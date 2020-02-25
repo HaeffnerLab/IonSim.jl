@@ -1,0 +1,22 @@
+name = "IonSim"
+uuid = "511e77fe-ab93-41f7-8f07-8f89809c6435"
+authors = ["Joseph Broz <jbroz@berkeley.edu>"]
+version = "0.1.0"
+
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
+FunctionWrappers = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
+QuantumOptics = "6e0679c1-51ea-5a7c-ac74-d61b76210b0c"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
+WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

@@ -1,0 +1,83 @@
+digraph {
+outputorder=edgesfirst
+bgcolor=transparent
+
+// Default node attributes
+node [
+  style="filled,bold,rounded"
+  fontname=Inter
+  fillcolor = "grey99"
+  shape=record
+]
+
+// Edges
+RotationalMode -> IonConfiguration
+Ion -> IonConfiguration
+VibrationalMode -> IonConfiguration
+IonConfiguration -> Trap
+Lasers -> Trap
+
+// Node attributes
+Ion [
+    label="{\<:Ion|\
+    label::String\l\
+    mass::Real\l\
+    selected_level_structure::OrderedDict\{String,NamedTuple\}\l\
+    selected_matrix_elements::OrderedDict\{Tuple,Function\}\l\
+    stark_shift::OrderedDict\{String,Real\}\l\
+    |level_structure::OrderedDict\{String,NamedTuple\}\l\
+    matrix_elements::OrderedDict\{Tuple,Function\}\l\
+    basis::NLevelBasis\l\
+    number::Int\l\
+    position::Real\l}"
+]
+
+IonConfiguration [
+    label="{ring \<: IonConfiguration | not implemented}\
+    |{linearchain \<: IonConfiguration|\
+    label::String\l\
+    ions::Vector\{Ion\}\l\
+    com_frequencies::NamedTuple\{(:x,:y,:z)\}\l\
+    vibrational_modes::NamedTuple\{(:x,:y,:z),Tuple\{Vector\{vibrational_mode\}\}\}\})\l\
+    |full_normal_mode_description::NamedTuple\{(:x,:y,:z)\}\l }"
+]
+
+Trap [
+    label="{\<:Trap|\
+    label::String\l\
+    configuration::\<:IonConfiguration\l\
+    B::Function\l\
+    Bhat::NamedTuple\{(:x,:y,:z)\}\l\
+    ∇B::Real\l\
+    δB::Function\l\
+    lasers::Array\{Laser\}\l }"
+]
+
+Lasers [
+    label="{\<:Laser|\
+    label::String\l\
+    E::Function\l\
+    Δ::Real\l\
+    ϵ::NamedTuple\{(:x,:y,:z)\}\l\
+    k::NamedTuple\{(:x,:y,:z)\}\l\
+    ϕ::Function\l\
+    λ::Real\l\
+    pointing::Vector\{Tuple\{Int,Real\}\}\l}"
+]
+VibrationalMode [ 
+    label="{\<:VibrationalMode|\
+    label::String\l\
+    ν::Real\l\
+    δν::Function\l\
+    N::Int\l\
+    |mode_structure::Vector\{Real\}\l\
+    basis::FockBasis\l\
+    axis::NamedTuple\{(:x,:y,:z)\}\l}"
+]
+
+RotationalMode [
+    label="{\<:RotationalMode|\
+    not implemented}"
+]
+
+} // diagraph
