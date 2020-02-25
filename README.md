@@ -10,10 +10,9 @@ trapped ions interacting with laser light.
 The functional form of the Hamiltonian can then be used as input to any of the solvers implemented in 
 [`QuantumOptics.timeevolution`](https://qojulia.org/documentation/timeevolution/timeevolution/). For more information see:
 
-+ The main code: []()
-+ Documentation: []()
-+ Examples: []()
-+ Benchmarks: []()
++ Main code: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/src](https://github.com/HaeffnerLab/IonSim.jl/tree/master/src)
++ Documentation: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/doc](https://github.com/HaeffnerLab/IonSim.jl/tree/master/doc)
++ Examples: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/examples](https://github.com/HaeffnerLab/IonSim.jl/tree/master/examples)
  
 ## Installation
 
@@ -34,7 +33,7 @@ And then enter the following commands:
 ```julia
 julia> Using Pkg
 
-julia> Pkg.clone()
+julia> Pkg.clone(https://github.com/HaeffnerLab/IonSim.jl.git)
 
 julia> Pkg.develop(PackageSpec(path="/path/to/IonSim.jl/"))
 ```
