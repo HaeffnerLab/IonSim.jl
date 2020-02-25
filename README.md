@@ -28,13 +28,28 @@ Once Julia has been installed, open a terminal session and begin a
 $ julia
 ```
 
+(*If using Windows it's easier to start a REPL with the julia executable available after 
+installation.*)
+
+
 And then enter the following commands:
 
 ```julia
-julia> Using Pkg
+julia> using Pkg
 
-julia> Pkg.clone(https://github.com/HaeffnerLab/IonSim.jl.git)
-
-julia> Pkg.develop(PackageSpec(path="/path/to/IonSim.jl/"))
+julia> Pkg.add(PackageSpec(url="https://github.com/HaeffnerLab/IonSim.jl.git"))
 ```
 
+You'll also need to download the QuantumOptics package:
+
+```julia
+julia> Pkg.add("QuantumOptics")
+```
+
+And will probably want to add Jupyter compatability by downloading IJulia:
+
+```julia
+julia> Pkg.add("IJulia")
+```
+
+after which you'll have the option to start a Julia kernel from Jupyter notebook.
