@@ -60,7 +60,7 @@ mutable struct laser <: Laser
 end 
 
 function Base.print(L::Laser)
-    print("λ: ", L.λ, " nm\n")
+    print("λ: ", L.λ, " m\n")
     print("Δ: ", L.Δ, " Hz\n")
     print("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))\n")
     print("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))\n")
