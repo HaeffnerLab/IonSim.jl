@@ -147,19 +147,21 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
             δν = modes[l].δν
             mode_basis = modes[l].basis
 
-            if sum(η.(abs.(0:1e-2:100))) == 0  # needs better solution
-                continue
-            end
-
             # construct an array with dimensions equal to the dimensions of a vibrational mode
             # operator and with indices equal to a complex number z, with z.re equal to the 
             # row and z.im equal to the column.
             mode_dim = mode_basis.shape[1]
             indx_array = zeros(ComplexF64, mode_dim, mode_dim)
-            for i in 1:mode_dim, j in 1:mode_dim
-                if ((abs(j-i) <= lamb_dicke_order) &&
-                    abs((Δ/(2π) + (j-i) * ν * timescale)) < rwa_cutoff * timescale)
-                    indx_array[i, j] = complex(i, j)
+            if sum(η.(abs.(0:1e-2:100))) == 0
+                for i in 1:mode_dim
+                    indx_array[i, i] = complex(i, i)
+                end
+            else
+                for i in 1:mode_dim, j in 1:mode_dim
+                    if ((abs(j-i) <= lamb_dicke_order) &&
+                        abs((Δ/(2π) + (j-i) * ν * timescale)) < rwa_cutoff * timescale)
+                        indx_array[i, j] = complex(i, j)
+                    end
                 end
             end
 
@@ -389,7 +391,9 @@ function _Dnm(ξ::Number, n::Int, m::Int)
         else
             return conj(_Dnm(ξ, m, n))
         end
-    end  # generally true?
+    elseif n == m
+        return 1.0
+    end
     n -= 1; m -= 1
     @fastmath begin
         s = 1.0
