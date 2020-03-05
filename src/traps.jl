@@ -147,7 +147,8 @@ function Efield_from_pi_time(
     transition::Union{Tuple{String,String},Vector{<:String}}
 )
     (γ, ϕ) = map(x -> rad2deg(ndot(Bhat, x)), [laser.ϵ, laser.k])
-    s = laser.pointing[ion.number][2]
+    s_indx = findall(x -> x[1] == ion.number, laser.pointing)
+    s = laser.pointing[s_indx[1]][2]
     Ω = s * ion.selected_matrix_elements[tuple(transition...)](1, γ, ϕ)
     1 / (Ω * 2 * pi_time) 
 end
