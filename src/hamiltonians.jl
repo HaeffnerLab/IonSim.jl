@@ -391,8 +391,6 @@ function _Dnm(ξ::Number, n::Int, m::Int)
         else
             return conj(_Dnm(ξ, m, n))
         end
-    # elseif n == m
-    #     return 1.0
     end
     n -= 1; m -= 1
     @fastmath begin
@@ -403,7 +401,12 @@ function _Dnm(ξ::Number, n::Int, m::Int)
         ret = sqrt(1 / s) *  ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
     end
     if isnan(ret)
-        return 0.0
+        if n == m 
+            return 1.0 
+        else
+            return 0.0
+        end
+        # return 0.0
     end
     ret
 end
