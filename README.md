@@ -19,6 +19,18 @@ The functional form of the Hamiltonian can then be used as input to any of the s
 ### Installing [Julia](https://julialang.org/)
 [Platform specific instructions found here](https://julialang.org/downloads/)
 
+If using Linux, once you've extracted the downloaded file copy it to `/opt` with: 
+
+```bash
+$ sudo cp -r julia-1.3.1 /opt/
+```
+
+(replacing `julia-1.3.1` with the appropriate version) and then create a symbolic link in `/usr/local/bin` with
+
+```bash 
+$ sudo ln -s /opt/julia-1.3.1/bin/julia /usr/local/bin/julia
+```
+
 ### Installing IonSim
 
 Once Julia has been installed, open a terminal session and begin a 
@@ -53,3 +65,5 @@ julia> Pkg.add("IJulia")
 ```
 
 after which you'll have the option to start a Julia kernel from Jupyter notebook.
+
+
