@@ -345,7 +345,7 @@ function _Ωmatrix(T, timescale)
     for n in 1:N, m in 1:M
         E = lasers[m].E
         phase = lasers[m].ϕ
-        (γ, ϕ) = map(x -> rad2deg(ndot(T.Bhat, x)), [lasers[m].ϵ, lasers[m].k])
+        (γ, ϕ) = map(x -> rad2deg(acos(ndot(T.Bhat, x))), [lasers[m].ϵ, lasers[m].k])
         transitions = _transitions(ions[n])
         v = []
         s_indx = findall(x -> x[1] == n, lasers[m].pointing)  # length(s_indx) == 0 || 1

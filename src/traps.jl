@@ -146,10 +146,16 @@ function Efield_from_pi_time(
     pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
     transition::Union{Tuple{String,String},Vector{<:String}}
 )
-    (γ, ϕ) = map(x -> rad2deg(ndot(Bhat, x)), [laser.ϵ, laser.k])
+    (γ, ϕ) = map(x -> rad2deg(acos(ndot(Bhat, x))), [laser.ϵ, laser.k])
     s_indx = findall(x -> x[1] == ion.number, laser.pointing)
     s = laser.pointing[s_indx[1]][2]
     Ω = s * ion.selected_matrix_elements[tuple(transition...)](1, γ, ϕ)
+    if Ω < 1e-15
+        # even when coupling strength is zero, numerical error causes it to be finite
+        # (on order 1e-16), this is a band-aid to prevent users from unknowingly setting 
+        # the E-field to something absurd (like 1e20 V/m)
+        return Inf
+    end
     1 / (Ω * 2 * pi_time) 
 end
 
