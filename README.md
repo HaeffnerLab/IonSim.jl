@@ -66,4 +66,14 @@ julia> Pkg.add("IJulia")
 
 after which you'll have the option to start a Julia kernel from Jupyter notebook.
 
+### Updating IonSim
+
+IonSim.jl is a work in progress. You can update your local code to the most recent version
+with the following:
+
+```julia
+julia> using Pkg
+julia> Pkg.update("IonSim")
+```
+
 
