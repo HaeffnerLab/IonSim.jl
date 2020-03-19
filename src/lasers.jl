@@ -20,7 +20,7 @@ abstract type Laser end
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
 * `k::NamedTuple`: (k.x, k.y, k.z), propagation direction, requires norm of 1
 * `ϕ::Union{Function,Real}`: time-dependent phase. of course, this can also be used to model a 
-    time-dependent detuning. units are Hz/s or multiples of π (depending on your perspective).
+    time-dependent detuning. units are Hz/s or multiples of 2π (depending on your perspective).
 * `λ::Real`: the wavelength of the laser in meters
 * `pointing`: an array of `Tuple{Int,Real}` for describing ion-laser pointing configuration.
     (first element of the tuple is the index for an ion and the second element is the scaling
@@ -65,7 +65,7 @@ function Base.print(L::Laser)
     print("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))\n")
     print("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))\n")
     print("E(t=0): ", "$(L.E(0.0)) V/m\n")
-    print("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ π\n")
+    print("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π\n")
 end
 
 function Base.setproperty!(L::laser, s::Symbol, v)
