@@ -58,6 +58,26 @@ interacting with laser light.
         in the `ions` field that the laser interacts with. The second element specifies a 
         scaling factor for the strength of that interaction (to be used, e.g., for 
         modelling cross-talk).
+#### derived fields:
+* `basis::CompositeBasis`: The basis for describing the combined system, ions + vibrational
+        modes. The ordering of the basis is set, by convention, as 
+        ion₁ ⊗ ion₂ ⊗ ... ⊗ ionₙ ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ modeₙ, where the ion bases are
+        ordered according to the order in `T.configuration.ions` and the vibrational modes
+        are ordered according to the order in 
+        `[T.configuration.vibrational_modes.x, T.configuration.vibrational_modes.y, 
+        T.configuration.vibrational_modes.z`].
+        
+    E.g. for:
+
+    ```
+    chain = linearchain(ions=[C1, C2], com_frequencies=(x=2e6,y=2e6,z=1e6), 
+    selected_modes=(x=[1, 2], y=[], z=[1]))
+    ```
+
+    The ordering of the basis would be
+
+    `C1.basis ⊗ C2.basis ⊗ chain.vibrational_modes.x[1].basis 
+    ⊗ chain.vibrational_modes.x[2].basis ⊗ chain.vibrational_modes.z[1].basis`
 """
 mutable struct trap <: Trap
     label::String
@@ -67,6 +87,7 @@ mutable struct trap <: Trap
     ∇B::Real
     δB::Function
     lasers::Array{<:Laser}
+    basis::CompositeBasis
     function trap(;
             label="", configuration::linearchain, B=0, Bhat=(x=0, y=0, z=1), ∇B=0, δB=0, 
             lasers=Laser[]
@@ -93,7 +114,13 @@ mutable struct trap <: Trap
             )
         end
         typeof(δB) <: Number ?  δBt(t) = δB : δBt = δB
-        new(label, configuration, B, Bhat, ∇B, δBt, lasers) 
+        basis = tensor(
+            [I.basis for I in configuration.ions]..., 
+            [V.basis for V in configuration.vibrational_modes.x]...,
+            [V.basis for V in configuration.vibrational_modes.y]...,
+            [V.basis for V in configuration.vibrational_modes.z]...,
+        )
+        new(label, configuration, B, Bhat, ∇B, δBt, lasers, basis) 
     end
 end
 
