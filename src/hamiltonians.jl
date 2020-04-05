@@ -131,8 +131,13 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
     conj_repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
     functions = FunctionWrapper[]
 
+    
+    νlist = [mode.ν for mode in modes]
+    mode_dims = Int64[]
+    
     # iterate over ions, lasers and ion-laser transitions
     for n in eachindex(ions), m in eachindex(T.lasers), (ti, tr) in enumerate(_transitions(ions[n]))
+        ηnm = ηm[n, m, :]
         Δ = Δm[n, m][ti]
         Ω = Ωm[n, m][ti]
         if sum(Ω.(abs.(0:1e-2:100))) == 0  # needs better solution
@@ -142,9 +147,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
         
         # iterate over vibrational modes
         for l in eachindex(modes)
-            η = ηm[n, m, l]
             ν = modes[l].ν
-            δν = modes[l].δν
             mode_basis = modes[l].basis
 
             # construct an array with dimensions equal to the dimensions of a vibrational mode
@@ -509,41 +512,34 @@ function _Dnm(ξ::Number, n::Int, m::Int)
     ret
 end
 
-# Consider: T = sub_ops[1] ⊗ sub_ops[2] ⊗ ... ⊗ sub_ops[N] (where sub_ops[i] is 
-# a 2D matrix). And indices: indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., 
-# (iN, jN). This function returns (k, l) such that:
-# T[k, l] = sub_ops[1][i1, j1] ⊗ sub_ops[2][i2, j2] ⊗ ... ⊗ sub_ops[N][iN, jN]
-function _get_kron_indxs(indxs, sub_ops)
-    sub_lengths = []
-    for (i, mat) in enumerate(sub_ops)
-        pushfirst!(sub_lengths, size(mat)[1])
-    end
+# Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ Xₙ (Xᵢ ∈ ℝ(dims[i]×dims[i])), and indices: 
+# indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
+# This function returns (k, l) such that: T[k, l] = X₁[i1, j1] ⊗ X₂[i2, j2] ⊗ ... ⊗ Xₙ[iN, jN]
+function get_kron_indxs(indxs, dims)
+    reverse!(dims)
     row, col = 0, 0
     for (i, indx) in enumerate(reverse(indxs))
         if i == 1
             row += indx[1]
             col += indx[2]
         else
-            row += (indx[1] - 1) * prod(sub_lengths[1:i-1])
-            col += (indx[2] - 1) * prod(sub_lengths[1:i-1])
+            row += (indx[1] - 1) * prod(dims[1:i-1])
+            col += (indx[2] - 1) * prod(dims[1:i-1])
         end
     end
     row, col
 end
 
-# the is the inverse of _get_kron_indxs.
-function _inv_get_kron_indxs(indxs, sub_ops)
+# the inverse of _get_kron_indxs
+function inv_get_kron_indxs(indxs, dims)
     row, col = indxs
-    N = length(sub_ops)
-    ret_rows, ret_cols, sub_lengths = Int64[], Int64[], Int64[]
-    for (i, mat) in enumerate(sub_ops)
-        push!(sub_lengths, size(mat)[1])
-    end
+    N = length(dims)
+    ret_rows, ret_cols = Int64[], Int64[]
     for i in 1:N
-        tensor_N = prod(sub_lengths[i:N])
-        M = tensor_N ÷ sub_lengths[i]
+        tensor_N = prod(dims[i:N])
+        M = tensor_N ÷ dims[i]
         rowflag, colflag = false, false
-        for j in 1:sub_lengths[i]
+        for j in 1:dims[i]
             if !rowflag && row <= j * M
                 push!(ret_rows, j)
                 row -= (j - 1) * M
