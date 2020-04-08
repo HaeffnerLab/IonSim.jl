@@ -183,7 +183,7 @@ function Efield_from_pi_time(
         # the E-field to something absurd (like 1e20 V/m)
         return Inf
     end
-    1 / (Ω * 2 * pi_time) 
+    1 / (Ω * pi_time) 
 end
 
 """
