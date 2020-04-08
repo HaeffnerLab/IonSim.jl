@@ -39,7 +39,7 @@ end
 Single ion rabi flop. Returns:
 
 ``\\sum_{n=0}^∞ p_n sin^2(\\Omega_n t)`` <br> with
-``\\Omega_n = Ωe^{-η^2/2}η^s\\sqrt{\\frac{1}{s}}L_{n}^{s}(η^2)`` <br>
+``\\Omega_n = Ωe^{-η^2/2}η^s\\sqrt{\\frac{n!}{(n+s)!}}L_{n}^{s}(η^2)`` <br>
 where ``s`` is the order of the (blue) sideband that we are driving and ``L_{n}^{s}`` is the
 associated Laguerre polynomial. [ref](https://doi.org/10.1103/RevModPhys.75.281)
 
