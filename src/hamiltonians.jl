@@ -27,7 +27,8 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
     if not using an RWA set to `Inf` (rather than a large number) for faster performance.**
 """
 function hamiltonian(
-        T::trap; timescale::Real=1e-6, lamb_dicke_order::Int=1, rwa_cutoff::Real=Inf
+        T::trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
+        rwa_cutoff::Real=Inf
     ) 
     hamiltonian(T, T.configuration, timescale, lamb_dicke_order, rwa_cutoff) 
 end
@@ -142,6 +143,11 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
     N = prod(mode_dims)
     if typeof(lamb_dicke_order) <: Int
         lamb_dicke_order = [lamb_dicke_order for _ in 1:L]
+    else
+        @assert length(lamb_dicke_order) == length(modes) (
+            "if typeof(lamb_dicke_order)<:Vector, then length of lamb_dicke_order must " *
+            "equal number of modes"
+        )
     end
     ld_arrays = []
     for (i, dim) in enumerate(mode_dims)
