@@ -129,7 +129,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
     Δm = _Δmatrix(T, timescale)
     Ωm = _Ωmatrix(T, timescale)
     ions = T.configuration.ions
-    modes = get_vibrational_modes(T.configuration)
+    modes = reverse(get_vibrational_modes(T.configuration))
     L = length(modes)
     
     indxs_dict = Dict()
@@ -154,7 +154,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
         array = zeros(Float64, dim, dim)
         for k in 1:dim, l in 1:dim
             if abs(k - l) <= lamb_dicke_order[i]
-                array[k, l] = exp((k - l) * νlist[i] * timescale)
+                array[k, l] = exp((l - k) * νlist[i] * timescale)
             end
         end
         push!(ld_arrays, array)
@@ -164,7 +164,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
 
     # iterate over ions, lasers and ion-laser transitions
     for n in eachindex(ions), m in eachindex(T.lasers), (ti, tr) in enumerate(_transitions(ions[n]))
-        ηnm = ηm[n, m, :]
+        ηnm = reverse(ηm[n, m, :])
         ηbool = map(x -> sum(x.(abs.(0:1e-2:100))) == 0, ηnm)  # needs better solution
         ηlist(t) = [η(t) for η in ηnm]
         Δ = Δm[n, m][ti]
@@ -186,24 +186,15 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
             if νarray[i, j] == 0
                 continue
             elseif abs((Δ/(2π)) + log(νarray[i, j])) < rwa_cutoff * timescale
-                indx_array[j, i] = complex(j, i)
+                indx_array[i, j] = complex(i, j)
             end
         end
 
         # construct the tensor product 𝐼 ⊗...⊗ σ₊ ⊗...⊗ 𝐼 ⊗ indx_array
         ion_op = sigma(ions[n], tr[2], tr[1])
-        mode_op = SparseOperator(⊗(mode_basis...), indx_array)
+        mode_op = SparseOperator(⊗(reverse(mode_basis)...), indx_array)
         A = embed(get_basis(T), [n, collect(length(ions)+1:length(ions)+L)], [ion_op, mode_op]).data
 
-        # if n == 2
-        #     print("here\n")
-        #     for i in 1:size(A)[1], j in 1:size(A)[1]
-        #         if abs(A[i, j]) > 0
-        #             print("($i, $j): ", A[i, j], "\n")
-        #         end
-        #     end
-        #     return
-        # end
         # See where subspace operators have been mapped after embedding
         for i in 1:N, j in 1:N
             
@@ -232,10 +223,6 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
             row, col = s_ri[1]
             sub_indxs = inv_get_kron_indxs([i, j], mode_dims)
             sub_indxs = map(x -> getfield.(sub_indxs, x), fieldnames(eltype(sub_indxs)))
-            # print(i, ", ", j, "\n")
-            # print(mode_dims, "\n")
-            # print(sub_indxs, "\n")
-            # break
             if haskey(indxs_dict, s_ri[1]) 
                 # this will happen when multiple lasers address the same transition
                 functions[indxs_dict[row, col]] = let 
