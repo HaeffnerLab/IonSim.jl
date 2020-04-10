@@ -50,7 +50,7 @@ function rabi_flop(tspan, Ω::Real, η::Real, n̄::Real; s::Int=0)
     for t in tspan
         pi = 0.0
         for n in 0:300
-            pi += _Pn(n̄, n) * sin(Ω * exp(-η^2/2) * η^s * sqrt(1/prod(n+1:n+s)) * _alaguerre(η^2, n, s) * t)^2
+            pi += _Pn(n̄, n) * sin(Ω/2 * exp(-η^2/2) * η^s * sqrt(1/prod(n+1:n+s)) * _alaguerre(η^2, n, s) * t)^2
         end
         push!(p, pi)
     end
