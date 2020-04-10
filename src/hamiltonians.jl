@@ -125,11 +125,15 @@ Also, there's some additional symmetry of the displacement operator (when not ap
 We keep track of this in a separate vector of vectors of indices.
 =#
 function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
+    modes = reverse(get_vibrational_modes(T.configuration))
+    if length(modes) == 1
+        return _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa_cutoff)
+    end
+    
     ηm = _ηmatrix(T, timescale)
     Δm = _Δmatrix(T, timescale)
     Ωm = _Ωmatrix(T, timescale)
     ions = T.configuration.ions
-    modes = reverse(get_vibrational_modes(T.configuration))
     L = length(modes)
     
     indxs_dict = Dict()
@@ -137,7 +141,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
     conj_repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
     functions = FunctionWrapper[]
 
-    νlist = [mode.ν for mode in modes]
+    νlist = Float64[mode.ν for mode in modes]
     mode_dims = [mode.basis.N+1 for mode in modes]
     mode_basis = [mode.basis for mode in modes]
     N = prod(mode_dims)
@@ -166,7 +170,14 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
     for n in eachindex(ions), m in eachindex(T.lasers), (ti, tr) in enumerate(_transitions(ions[n]))
         ηnm = reverse(ηm[n, m, :])
         ηbool = map(x -> sum(x.(abs.(0:1e-2:100))) == 0, ηnm)  # needs better solution
-        ηlist(t) = [η(t) for η in ηnm]
+        work_eta = zeros(Float64, L)
+        function ηlist(t)
+            for i in 1:L
+                work_eta[i] = ηnm[i](t)
+            end
+            work_eta
+        end
+
         Δ = Δm[n, m][ti]
         Ω = Ωm[n, m][ti]
         if sum(Ω.(abs.(0:1e-2:100))) == 0  # needs better solution
@@ -208,7 +219,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
             
             # if not RWA, find all locations of j + im*i since these values are trivially
             # related to their conjugates
-            if i != j && rwa_cutoff == Inf
+            if i != j && isinf(rwa_cutoff)
                 s_cri = sort(getfield.(findall(x->x.==complex(j, i), A), :I), by=x->x[2])
                 if isodd(abs(i-j))
                     pushfirst!(s_cri, (-1, 0))
@@ -222,19 +233,16 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
             # push information to top-level lists, construct time-dep function
             row, col = s_ri[1]
             sub_indxs = inv_get_kron_indxs([i, j], mode_dims)
-            sub_indxs = map(x -> getfield.(sub_indxs, x), fieldnames(eltype(sub_indxs)))
             if haskey(indxs_dict, s_ri[1]) 
                 # this will happen when multiple lasers address the same transition
                 functions[indxs_dict[row, col]] = let 
                         a = functions[indxs_dict[row, col]]
                         FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                            t -> @fastmath a(t) .+ 
-                                _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t)
-                            )
+                            t -> a(t) .+ _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L))
                     end
             else
                 push!(functions, FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                        t -> @fastmath _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t)
+                        t -> _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L)
                     ))
                 push!(repeated_indices, s_ri)
                 push!(conj_repeated_indices, s_cri)
@@ -246,7 +254,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
 end
 
 
-function _setup_base_hamiltonian_old(T, timescale, lamb_dicke_order, rwa_cutoff)
+function _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa_cutoff)
     ηm = _ηmatrix(T, timescale)
     Δm = _Δmatrix(T, timescale)
     Ωm = _Ωmatrix(T, timescale)
@@ -297,16 +305,6 @@ function _setup_base_hamiltonian_old(T, timescale, lamb_dicke_order, rwa_cutoff)
             mode_op = SparseOperator(mode_basis, indx_array)
             A = embed(get_basis(T), [n, length(ions)+l], [ion_op, mode_op]).data
 
-            if n == 2
-                print("here\n")
-                for i in 1:size(A)[1], j in 1:size(A)[1]
-                    if abs(A[i, j]) > 0
-                        print("($i, $j): ", A[i, j], "\n")
-                    end
-                end
-                return
-            end
-
             # See where subspace operators have been mapped after embedding
             for i in 1:mode_dim, j in (rwa_cutoff == Inf ? collect(1:i) : 1:mode_dim)
                 
@@ -320,7 +318,7 @@ function _setup_base_hamiltonian_old(T, timescale, lamb_dicke_order, rwa_cutoff)
                 
                 # if not RWA, find all locations of j + im*i since these values are trivially
                 # related to their conjugates
-                if i != j && rwa_cutoff == Inf
+                if i != j && isinf(rwa_cutoff)
                     s_cri = sort(getfield.(findall(x->x.==complex(j, i), A), :I), by=x->x[2])
                     if isodd(abs(i-j))
                         pushfirst!(s_cri, (-1, 0))
@@ -338,11 +336,11 @@ function _setup_base_hamiltonian_old(T, timescale, lamb_dicke_order, rwa_cutoff)
                     functions[indxs_dict[row, col]] = let 
                             a = functions[indxs_dict[row, col]]
                             FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                               t -> @fastmath a(t) .+ _D(Ω(t), Δ, η(t), ν, timescale, i, j, t))
+                               t -> @fastmath a(t) .+ _Ds(Ω(t), Δ, η(t), ν, timescale, i, j, t))
                         end
                 else
                     push!(functions, FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                            t -> @fastmath _D(Ω(t), Δ, η(t), ν, timescale, i, j, t)
+                            t -> @fastmath _Ds(Ω(t), Δ, η(t), ν, timescale, i, j, t)
                         ))
                     push!(repeated_indices, s_ri)
                     push!(conj_repeated_indices, s_cri)
@@ -499,18 +497,19 @@ end
 
 _transitions(ion) = collect(keys(ion.selected_matrix_elements))
 
+const oneval = complex(1, 0)
+
 # [σ₊(t)]ₙₘ ⋅ [D(ξ(t))]ₙₘ
-function _D(Ω, Δ, η, ν, timescale, n, t)
-    N = length(η)
-    d = complex(1, 0)
-    for i in 1:N
+function _D(Ω, Δ, η, ν, timescale, n, t, L)
+    d = oneval
+    for i in 1:L
         d *= _Dnm(1im * η[i] * exp(im * 2π * ν[i] * timescale * t), n[1][i], n[2][i])
     end
     g = Ω * exp(-1im * t * Δ)
     (g * d, g * conj(d))
 end
 
-function _D(Ω, Δ, η, ν, timescale, n, m, t)
+function _Ds(Ω, Δ, η, ν, timescale, n, m, t)
     d = _Dnm(1im * η * exp(im * 2π * ν * timescale * t), n, m)
     g = Ω * exp(-1im * t * Δ)
     (g * d, g * conj(d))
@@ -557,7 +556,7 @@ function _Dnm(ξ::Number, n::Int, m::Int)
     ret
 end
 
-# Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ Xₙ (Xᵢ ∈ ℝ(dims[i]×dims[i])), and indices: 
+# Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ Xₙ (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
 # indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
 # This function returns (k, l) such that: T[k, l] = X₁[i1, j1] ⊗ X₂[i2, j2] ⊗ ... ⊗ Xₙ[iN, jN]
 function get_kron_indxs(indxs, dims)
@@ -600,7 +599,7 @@ function inv_get_kron_indxs(indxs, dims)
             end
         end
     end
-    collect(zip(ret_rows, ret_cols))
+    tuple(ret_rows...), tuple(ret_cols...)
 end
 
 """
