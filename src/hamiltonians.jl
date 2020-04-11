@@ -123,18 +123,18 @@ a vector of vectors of indices that keep track of this redundancy.
 Also, there's some additional symmetry of the displacement operator (when not applying an RWA)
             <m|D(α)|n> = (-1)^(n-m) × conjugate(<n|D(α)|m>)
 We keep track of this in a separate vector of vectors of indices.
+
+TODO: Break this function up into smaller pieces.  
 =#
 function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
     modes = reverse(get_vibrational_modes(T.configuration))
-    if length(modes) == 1
+    L = length(modes)
+    if L == 1
         return _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa_cutoff)
     end
     
-    ηm = _ηmatrix(T, timescale)
-    Δm = _Δmatrix(T, timescale)
-    Ωm = _Ωmatrix(T, timescale)
+    ηm, Δm, Ωm = _ηmatrix(T, timescale), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
     ions = T.configuration.ions
-    L = length(modes)
     
     indxs_dict = Dict()
     repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
@@ -177,14 +177,14 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
             end
             work_eta
         end
-
-        Δ = Δm[n, m][ti]
-        Ω = Ωm[n, m][ti]
+        Δ, Ω = Δm[n, m][ti], Ωm[n, m][ti]
         if sum(Ω.(abs.(0:1e-2:100))) == 0  # needs better solution
             # e.g. the laser doesn't shine on this ion
             continue 
         end  
         
+        # Perform Lamb-Dicke approx. + RWA by constructing an array of indices with nonzero 
+        # values only when matrix element satisfies both.
         νarray .*= 0.
         indx_array .*= 0.
         if length(ld_arrays) > 1
@@ -207,7 +207,101 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
         A = embed(get_basis(T), [n, collect(length(ions)+1:length(ions)+L)], [ion_op, mode_op]).data
 
         # See where subspace operators have been mapped after embedding
-        for i in 1:N, j in 1:N
+        for i in 1:N, j in (rwa_cutoff == Inf ? collect(1:i) : 1:N)
+            sub_indxs = _inv_get_kron_indxs([i, j], mode_dims)
+            ic, jc = _get_kron_indxs(collect(zip(sub_indxs[2], sub_indxs[1])), mode_dims)
+
+            # find all locations of i + im*j 
+            s_ri = sort(getfield.(findall(x->x.==complex(i, j), A), :I), by=x->x[2])
+            
+            if length(s_ri) == 0  
+                # this index doesn't exist due to Lamd-Dicke approx and/or RWA
+                continue
+            end
+            
+            # if not RWA, find all locations of ic, jc
+            if isinf(rwa_cutoff) && (i, j) != (ic, jc)
+                s_cri = sort(getfield.(findall(x->x.==complex(ic, jc), A), :I), by=x->x[2])
+                if isodd(abs(i - j))
+                    pushfirst!(s_cri, (-1, 0))
+                else
+                    pushfirst!(s_cri, (0, 0))
+                end
+            else
+                s_cri = []
+            end
+
+            # push information to top-level lists, construct time-dep function
+            row, col = s_ri[1]
+            if haskey(indxs_dict, s_ri[1]) 
+                # this will happen when multiple lasers address the same transition
+                functions[indxs_dict[row, col]] = 
+                    let 
+                        a = functions[indxs_dict[row, col]]
+                        FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
+                            t -> a(t) .+ _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L))
+                    end
+            else
+                push!(functions, FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
+                        t -> _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L)
+                    ))
+                push!(repeated_indices, s_ri)
+                push!(conj_repeated_indices, s_cri)
+                indxs_dict[row, col] = length(repeated_indices)
+            end
+        end
+    end
+    functions, repeated_indices, conj_repeated_indices
+end
+
+# In the case of a single vibrational mode, this code runs marginally faster (10-20%) than
+# _setup_base_hamiltonian. We keep it here for now, but in the future we should understand
+# why and remove this
+function _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa_cutoff)
+    ηm, Δm, Ωm = _ηmatrix(T, timescale), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
+    ions = T.configuration.ions
+    mode = get_vibrational_modes(T.configuration)[1]
+    ν, δν, mode_basis = mode.ν, mode.δν, mode.basis
+    
+    indxs_dict = Dict()
+    repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
+    conj_repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
+    functions = FunctionWrapper[]
+
+    # iterate over ions, lasers and ion-laser transitions
+    for n in eachindex(ions), m in eachindex(T.lasers), (ti, tr) in enumerate(_transitions(ions[n]))
+        Δ, Ω = Δm[n, m][ti], Ωm[n, m][ti]
+        if sum(Ω.(abs.(0:1e-2:100))) == 0  # needs better solution
+            # e.g. the laser doesn't shine on this ion
+            continue 
+        end  
+        η = ηm[n, m, 1]
+
+        # construct an array with dimensions equal to the dimensions of the vibrational mode
+        # operator and with indices equal to a complex number z, with z.re equal to the 
+        # row and z.im equal to the column.
+        mode_dim = mode_basis.shape[1]
+        indx_array = zeros(ComplexF64, mode_dim, mode_dim)
+        if sum(η.(abs.(0:1e-2:100))) == 0
+            for i in 1:mode_dim
+                indx_array[i, i] = complex(i, i)
+            end
+        else
+            for i in 1:mode_dim, j in 1:mode_dim
+                if ((abs(j-i) <= lamb_dicke_order) &&
+                    abs((Δ/(2π) + (j-i) * ν * timescale)) < rwa_cutoff * timescale)
+                    indx_array[i, j] = complex(i, j)
+                end
+            end
+        end
+
+        # construct the tensor product 𝐼 ⊗...⊗ σ₊ ⊗ 𝐼 ⊗...⊗ indx_array ⊗ 𝐼 ⊗... 𝐼
+        ion_op = sigma(ions[n], tr[2], tr[1])
+        mode_op = SparseOperator(mode_basis, indx_array)
+        A = embed(get_basis(T), [n, length(ions)+1], [ion_op, mode_op]).data
+
+        # See where subspace operators have been mapped after embedding
+        for i in 1:mode_dim, j in (rwa_cutoff == Inf ? collect(1:i) : 1:mode_dim)
             
             # find all locations of i + im*j 
             s_ri = sort(getfield.(findall(x->x.==complex(i, j), A), :I), by=x->x[2])
@@ -232,120 +326,20 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
 
             # push information to top-level lists, construct time-dep function
             row, col = s_ri[1]
-            sub_indxs = inv_get_kron_indxs([i, j], mode_dims)
-            if haskey(indxs_dict, s_ri[1]) 
+            if haskey(indxs_dict, s_ri[1])
                 # this will happen when multiple lasers address the same transition
                 functions[indxs_dict[row, col]] = let 
                         a = functions[indxs_dict[row, col]]
                         FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                            t -> a(t) .+ _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L))
+                            t -> @fastmath a(t) .+ _Ds(Ω(t), Δ, η(t), ν, timescale, i, j, t))
                     end
             else
                 push!(functions, FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                        t -> _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L)
+                        t -> @fastmath _Ds(Ω(t), Δ, η(t), ν, timescale, i, j, t)
                     ))
                 push!(repeated_indices, s_ri)
                 push!(conj_repeated_indices, s_cri)
                 indxs_dict[row, col] = length(repeated_indices)
-            end
-        end
-    end
-    functions, repeated_indices, conj_repeated_indices
-end
-
-
-function _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa_cutoff)
-    ηm = _ηmatrix(T, timescale)
-    Δm = _Δmatrix(T, timescale)
-    Ωm = _Ωmatrix(T, timescale)
-    ions = T.configuration.ions
-    modes = get_vibrational_modes(T.configuration)
-    
-    indxs_dict = Dict()
-    repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
-    conj_repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
-    functions = FunctionWrapper[]
-
-    # iterate over ions, lasers and ion-laser transitions
-    for n in eachindex(ions), m in eachindex(T.lasers), (ti, tr) in enumerate(_transitions(ions[n]))
-        Δ = Δm[n, m][ti]
-        Ω = Ωm[n, m][ti]
-        if sum(Ω.(abs.(0:1e-2:100))) == 0  # needs better solution
-            # e.g. the laser doesn't shine on this ion
-            continue 
-        end  
-        
-        # iterate over vibrational modes
-        for l in eachindex(modes)
-            η = ηm[n, m, l]
-            ν = modes[l].ν
-            δν = modes[l].δν
-            mode_basis = modes[l].basis
-
-            # construct an array with dimensions equal to the dimensions of a vibrational mode
-            # operator and with indices equal to a complex number z, with z.re equal to the 
-            # row and z.im equal to the column.
-            mode_dim = mode_basis.shape[1]
-            indx_array = zeros(ComplexF64, mode_dim, mode_dim)
-            if sum(η.(abs.(0:1e-2:100))) == 0
-                for i in 1:mode_dim
-                    indx_array[i, i] = complex(i, i)
-                end
-            else
-                for i in 1:mode_dim, j in 1:mode_dim
-                    if ((abs(j-i) <= lamb_dicke_order) &&
-                        abs((Δ/(2π) + (j-i) * ν * timescale)) < rwa_cutoff * timescale)
-                        indx_array[i, j] = complex(i, j)
-                    end
-                end
-            end
-
-            # construct the tensor product 𝐼 ⊗...⊗ σ₊ ⊗ 𝐼 ⊗...⊗ indx_array ⊗ 𝐼 ⊗... 𝐼
-            ion_op = sigma(ions[n], tr[2], tr[1])
-            mode_op = SparseOperator(mode_basis, indx_array)
-            A = embed(get_basis(T), [n, length(ions)+l], [ion_op, mode_op]).data
-
-            # See where subspace operators have been mapped after embedding
-            for i in 1:mode_dim, j in (rwa_cutoff == Inf ? collect(1:i) : 1:mode_dim)
-                
-                # find all locations of i + im*j 
-                s_ri = sort(getfield.(findall(x->x.==complex(i, j), A), :I), by=x->x[2])
-                
-                if length(s_ri) == 0  
-                    # this index doesn't exist due to Lamd-Dicke approx and/or RWA
-                    continue
-                end
-                
-                # if not RWA, find all locations of j + im*i since these values are trivially
-                # related to their conjugates
-                if i != j && isinf(rwa_cutoff)
-                    s_cri = sort(getfield.(findall(x->x.==complex(j, i), A), :I), by=x->x[2])
-                    if isodd(abs(i-j))
-                        pushfirst!(s_cri, (-1, 0))
-                    else
-                        pushfirst!(s_cri, (0, 0))
-                    end
-                else
-                    s_cri = []
-                end
-
-                # push information to top-level lists, construct time-dep function
-                row, col = s_ri[1]
-                if haskey(indxs_dict, s_ri[1]) #&& abs(row) + abs(col) != 0
-                    # this will happen when multiple lasers address the same transition
-                    functions[indxs_dict[row, col]] = let 
-                            a = functions[indxs_dict[row, col]]
-                            FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                               t -> @fastmath a(t) .+ _Ds(Ω(t), Δ, η(t), ν, timescale, i, j, t))
-                        end
-                else
-                    push!(functions, FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                            t -> @fastmath _Ds(Ω(t), Δ, η(t), ν, timescale, i, j, t)
-                        ))
-                    push!(repeated_indices, s_ri)
-                    push!(conj_repeated_indices, s_cri)
-                    indxs_dict[row, col] = length(repeated_indices)
-                end
             end
         end
     end
@@ -559,7 +553,7 @@ end
 # Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ Xₙ (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
 # indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
 # This function returns (k, l) such that: T[k, l] = X₁[i1, j1] ⊗ X₂[i2, j2] ⊗ ... ⊗ Xₙ[iN, jN]
-function get_kron_indxs(indxs, dims)
+function _get_kron_indxs(indxs, dims)
     reverse!(dims)
     row, col = 0, 0
     for (i, indx) in enumerate(reverse(indxs))
@@ -575,7 +569,7 @@ function get_kron_indxs(indxs, dims)
 end
 
 # the inverse of _get_kron_indxs
-function inv_get_kron_indxs(indxs, dims)
+function _inv_get_kron_indxs(indxs, dims)
     row, col = indxs
     N = length(dims)
     ret_rows, ret_cols = Int64[], Int64[]
