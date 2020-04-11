@@ -152,6 +152,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
             "if typeof(lamb_dicke_order)<:Vector, then length of lamb_dicke_order must " *
             "equal number of modes"
         )
+        reverse!(lamb_dicke_order)
     end
     ld_arrays = []
     for (i, dim) in enumerate(mode_dims)
