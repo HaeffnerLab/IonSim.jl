@@ -1,4 +1,4 @@
-using QuantumOptics: projector, tensor, dagger, create, destroy
+using QuantumOptics: projector, tensor, dagger, create, destroy, displace
 import QuantumOptics: thermalstate, coherentstate, coherentthermalstate
 
 
@@ -7,7 +7,7 @@ export sigma, ion_state, ion_projector
 
 """
     thermalstate(v::vibrational_mode, n̄::Real)
-<br>returns a thermal density matrix with ``\\langle aa^{\\dagger}\\rangle = `` n
+<br>Returns a thermal density matrix with ``\\langle aa^{\\dagger}\\rangle = `` n
 """
 thermalstate(v::vibrational_mode, n̄::Real) = thermalstate(v.basis, n̄)
     
@@ -22,9 +22,17 @@ end
 
 coherentstate(v::vibrational_mode, α::Number) = coherentstate(v.basis, α)
 
-function coherentthermalstate(b::Basis, α)
-    return
+function coherentthermalstate(b::Basis, n̄::Real, α::Number)
+    d = displace(b, α)
+    d * thermalstate(b, n̄) * dagger(d)
 end
+
+"""
+    coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
+<br>Returns a displaced thermal state for `v`. The mean occupation of the thermal state is `n̄` 
+, and `α` is the complex amplitude of the displacement.
+"""
+coherentthermalstate(v::vibrational_mode,n̄::Real,α::Number) = coherentthermalstate(v.basis,n̄,α)
 
 """
     sigma(ion::Ion, ψ1::String, ψ2::String)
