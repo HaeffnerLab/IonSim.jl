@@ -1,5 +1,5 @@
 using QuantumOptics: projector, tensor, dagger, create, destroy
-import QuantumOptics.thermalstate
+import QuantumOptics: thermalstate, coherentstate, coherentthermalstate
 
 
 export sigma, ion_state, ion_projector
@@ -18,6 +18,12 @@ function thermalstate(b::Basis, n̄::Real)
     T = 1 / (log((1 / n̄) + 1))
     H = create(b) * destroy(b)
     thermalstate(H, T)
+end
+
+coherentstate(v::vibrational_mode, α::Number) = coherentstate(v.basis, α)
+
+function coherentthermalstate(b::Basis, α)
+    return
 end
 
 """
