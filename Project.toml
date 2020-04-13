@@ -1,7 +1,7 @@
 name = "IonSim"
 uuid = "511e77fe-ab93-41f7-8f07-8f89809c6435"
 authors = ["Joseph Broz <jbroz@berkeley.edu>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
