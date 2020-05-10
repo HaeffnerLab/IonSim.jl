@@ -186,11 +186,9 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
         
         # Perform Lamb-Dicke approx. + RWA by constructing an array of indices with nonzero 
         # values only when matrix element satisfies both.
-        νarray .*= 0.
-        indx_array .*= 0.
+        νarray .*= 0.; indx_array .*= 0.
         if length(ld_arrays) > 1
-            νarray .= kron(
-                [ηbool[l] ? one(ld_arrays[l]) : ld_arrays[l] for l in 1:L]...)
+            νarray .= kron([ηbool[l] ? one(ld_arrays[l]) : ld_arrays[l] for l in 1:L]...)
         else
             νarray .= ld_arrays[1]
         end
@@ -482,7 +480,7 @@ function _Ωmatrix(T, timescale)
         for t in transitions
             Ω0 = 2π * timescale * s * ions[n].selected_matrix_elements[t](1.0, γ, ϕ) / 2.0
             push!(v, FunctionWrapper{ComplexF64,Tuple{Float64}}(
-                    t -> Ω0 * E(t) * exp(-im * 2π * phase(t * timescale)))
+                    t -> Ω0 * E(t) * exp(-im * phase(t)))
                 )
         end
         Ωnmkj[n, m] = v
