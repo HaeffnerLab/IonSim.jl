@@ -15,11 +15,11 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
+[compat]
+QuantumOptics = "0.8.0"
+
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test"]
-
-[compat]
-QuantumOptics = "0.8.0"
