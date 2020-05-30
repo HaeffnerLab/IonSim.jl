@@ -50,18 +50,18 @@ end
     L = laser(); L.pointing = [(1, 1.0)]
     lasers = [L]
     chain = linearchain(ions=[C, C1], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[], y=[], z=[1]))
-    T = trap(configuration=chain, lasers=[L]) 
+    T = trap(configuration=chain, lasers=[L], Bhat=(x̂ + ŷ + ẑ)/√3) 
     
     # Efield_from_pi_time
-    @test Efield_from_pi_time(1e-6, ẑ, L, T.configuration.ions[1], ("S-1/2", "D-1/2")) ≈ 130154.07850 rtol=1e-4
-    @test Efield_from_pi_time(1e-6, ẑ, L, T.configuration.ions[1], ("S-1/2", "D-1/2")) == Efield_from_pi_time(1e-6, T, 1, 1, ("S-1/2", "D-1/2"))
-    Efield_from_pi_time!(1e-6, ẑ, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
-    @test T.lasers[1].E(0) == Efield_from_pi_time(1e-6, ẑ, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
+    @test Efield_from_pi_time(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2")) ≈ 153739.56 rtol=1e-4
+    @test Efield_from_pi_time(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2")) == Efield_from_pi_time(1e-6, T, 1, 1, ("S-1/2", "D-1/2"))
+    Efield_from_pi_time!(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
+    @test T.lasers[1].E(0) == Efield_from_pi_time(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
 
     # Efield_from_rabi_frequency
-    @test T.lasers[1].E(0) ≈ Efield_from_rabi_frequency(1 / (2 * 1e-6), ẑ, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
-    Efield_from_rabi_frequency!(5e-3, ẑ, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
-    @test T.lasers[1].E(0) == Efield_from_rabi_frequency(5e-3, ẑ, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
+    @test T.lasers[1].E(0) ≈ Efield_from_rabi_frequency(1 / (2 * 1e-6), (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
+    Efield_from_rabi_frequency!(5e-3, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
+    @test T.lasers[1].E(0) == Efield_from_rabi_frequency(5e-3, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
 
     # transition_frequency
     T.B = 4e-4

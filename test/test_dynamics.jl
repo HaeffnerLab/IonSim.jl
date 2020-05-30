@@ -134,7 +134,7 @@ end
 
     # check that δν(t) shifts sideband frequencies appropriately
     tspan = 0:0.01:30
-    mode.δν = t -> 20e3
+    mode.δν = t -> 20e3 * 1e-6
     L.Δ = Δf + mode.ν + 20e3
     h = hamiltonian(T, rwa_cutoff=1e5)
     tout, sol = timeevolution.schroedinger_dynamic(
