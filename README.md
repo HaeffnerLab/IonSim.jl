@@ -1,4 +1,7 @@
 # IonSim.jl 
+---
+[![Travis build status][travis-img]][travis-url]
+[![Test coverage status on codecov][codecov-img]][codecov-url]
 
 A simple tool, built on top of [QuantumOptics.jl](https://qojulia.org/), for simulating the dynamics of a configuration of 
 trapped ions interacting with laser light.
