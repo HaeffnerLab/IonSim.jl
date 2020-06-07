@@ -127,15 +127,15 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 """
     linearchain(;
             label::String="", ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
-            vibrational_modes::NamedTuple{(:x,:y,:z)}
+            vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{vibrational_mode},3}}}
         )
 
 #### user-defined fields
 * `label`: convenience label
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
-* `com_frequencies::NamedTuple{(:x,:y,:z)}`: Describes the COM frequencies 
-        `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be parallel to the crystal's 
-        symmetry axis.
+* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{vibrational_mode},3}}}`: 
+        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
+        parallel to the crystal's symmetry axis.
 * `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
     mode away from the COM of that axis. For example, `selected_modes=(z=[2])` would 
@@ -149,8 +149,7 @@ struct linearchain <: IonConfiguration
     label::String
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x,:y,:z)}
-    vibrational_modes::(NamedTuple{(:x,:y,:z),
-        Tuple{Vector{vibrational_mode},Vector{vibrational_mode},Vector{vibrational_mode}}})
+    vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{vibrational_mode},3}}}
     full_normal_mode_description::NamedTuple{(:x,:y,:z)}
     function linearchain(; 
             label="", ions, com_frequencies, selected_modes::NamedTuple{(:x,:y,:z)}, 
