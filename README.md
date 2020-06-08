@@ -1,4 +1,5 @@
-# IonSim.jl
+![](temp_logo.png?raw=true)
+___
 
 [![Build Status](https://travis-ci.org/HaeffnerLab/IonSim.jl.svg?branch=master)](https://travis-ci.org/HaeffnerLab/IonSim.jl)
 [![codecov](https://codecov.io/gh/HaeffnerLab/IonSim.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/HaeffnerLab/IonSim.jl)
