@@ -1,4 +1,4 @@
-![](temp_logo.png?raw=true)
+![](temp_logo.png?raw=true?center=true)
 ___
 
 [![Build Status](https://travis-ci.org/HaeffnerLab/IonSim.jl.svg?branch=master)](https://travis-ci.org/HaeffnerLab/IonSim.jl)
