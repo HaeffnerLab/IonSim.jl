@@ -4,6 +4,7 @@ ___
 [![Build Status](https://travis-ci.org/HaeffnerLab/IonSim.jl.svg?branch=master)](https://travis-ci.org/HaeffnerLab/IonSim.jl)
 [![codecov](https://codecov.io/gh/HaeffnerLab/IonSim.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/HaeffnerLab/IonSim.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/HaeffnerLab/IonSim.jl/blob/master/LICENSE.md)
+[![Twitter](https://img.shields.io/twitter/follow/Berkeley_ions.svg?style=social&label=@Berkeley_ions)](https://twitter.com/Berkeley_ions)
 
 A simple tool, built on top of [QuantumOptics.jl](https://qojulia.org/), for simulating the dynamics of a configuration of 
 trapped ions interacting with laser light.
@@ -80,5 +81,6 @@ with the following:
 julia> using Pkg
 julia> Pkg.update("IonSim")
 ```
+
 
 
