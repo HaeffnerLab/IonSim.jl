@@ -1,4 +1,4 @@
-using QuantumOptics: FockBasis
+using QuantumOptics: Basis, basisstate
 
 
 export Vibration, vibrational_mode
@@ -8,38 +8,44 @@ export Vibration, vibrational_mode
     Vibration
 the physical parameters defining a vibrational mode of a linear chain of ions
 """
-abstract type Vibration end
+abstract type Vibration <: Basis end
 
 """
-    vibrational_mode(label::String, ν::Real, δν=0., mode_structure::Vector{Real}; N::Int=10)
+    vibrational_mode(
+            ν::Real, mode_structure::Vector{Real}, δν::Union{Function,Real}=0.; N::Int=10,
+            axis::NamedTuple{(:x,:y,:z)}=ẑ
+        )
 
 #### user-defined fields
-* `label`: convenience name
-* `ν`: frequency [Hz]
-* `mode_structure`: the normalized eigenvector describing the collective motion of the ions
-        belonging to this mode
-* `δν`: function describing time-dependent fluctuations of `ν`
-* `N`: dimension of the Hilbert space
+* `ν::Real`: frequency [Hz]
+* `mode_structure::Vector{Real}`: the normalized eigenvector describing the collective motion 
+        of the ions belonging to this mode
+* `δν::Union{Function,Real}`: either a function describing time-dependent fluctuations of `ν`
+        or a real number which will be converted to the constant function `t -> δν`
+* `N::Int`: highest modeled level of the corresponding basis
+* `axis::NamedTuple{(:x,:y,:z)}`: the axis of symmetry for the vibration
 #### derived fields
-* `basis<:QuantumOptics.FockBasis`: FockBasis representation of mode, cutoff``=N-1``.
-* `axis`: the axis of vibration
+* `shape::Vector{Int}`: indicates dimension of used Hilbert space (`=[N+1]`)
+
+Note: the iᵗʰ Fock state (|i⟩) by indexing as `v=vibrational_mode(...); v[i]`
 """
 mutable struct vibrational_mode <: Vibration
-    label::String
     ν::Real
     mode_structure::Vector{Real}
     δν::Function
     N::Int
-    basis::QuantumOptics.FockBasis
+    shape::Vector{Int}
     axis::NamedTuple{(:x,:y,:z)}
-    function vibrational_mode(label, ν, mode_structure; δν=0., N=10, axis=ẑ)
+    function vibrational_mode(ν, mode_structure; δν=0., N=10, axis=ẑ)
         typeof(δν) <: Number ? δνt(t) = δν : δνt = δν
-        new(label, ν, mode_structure, δνt, N, FockBasis(N-1), axis)
+        new(ν, mode_structure, δνt, N, [N+1], axis)
     end
 end
 
+==(b1::T, b2::T) where {T<:vibrational_mode} = b1===b2
+
 # suppress long output
-Base.show(io::IO, v::vibrational_mode) = print(io, "$(v.label)(ν=$(v.ν), axis=$(v.axis))")
+Base.show(io::IO, v::vibrational_mode) = print(io, "vibrational_mode(ν=$(v.ν), axis=$(v.axis))")
 
 function Base.setproperty!(V::Vibration, s::Symbol, v)
     if s == :mode_structure || s == :basis || s == :axis
@@ -47,14 +53,22 @@ function Base.setproperty!(V::Vibration, s::Symbol, v)
     end
     if s == :N
         @assert typeof(v) <: Int "N must be a positive integer"
-        @assert v > 0 "N must be a positive integer"
-        Core.setproperty!(V, :basis, FockBasis(v-1))
+        @assert v >= 0 "N must be a nonnegative integer"
+        Core.setproperty!(V, :N, v)
+        Core.setproperty!(V, :shape, Int[v])
+    elseif s == :shape
+        return
     elseif s == :δν
         typeof(v) <: Number ? vt(t) = v : vt = v
         Core.setproperty!(V, s, vt)
         return
     end
     Core.setproperty!(V, s, v)
+end
+
+function Base.getindex(V::vibrational_mode, n::Int)
+    @assert 0 <= n <= V.N "n must be less than $(V.N+1)"
+    basisstate(V, n+1)
 end
 
 
