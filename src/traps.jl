@@ -1,7 +1,7 @@
 using QuantumOptics: tensor, CompositeBasis
 
 
-export Trap, trap, label, configuration, Bfield, Bhat, gradB, deltaB, get_lasers, get_basis
+export Trap, trap, configuration, Bfield, Bhat, gradB, deltaB, get_lasers, get_basis
 export Efield_from_pi_time, Efield_from_pi_time!, transition_frequency, set_gradient!
 export Efield_from_rabi_frequency, Efield_from_rabi_frequency!, global_beam!
 
@@ -14,7 +14,6 @@ modes, lasers and their physical relationships).
 abstract type Trap end
 
 # required fields
-label(T::Trap)::String = T.label
 configuration(T::Trap)::IonConfiguration = T.configuration
 Bfield(T::Trap)::Union{Real,Function} = T.B
 Bhat(T::Trap)::NamedTuple{(:x,:y,:z)} = T.Bhat
@@ -36,16 +35,14 @@ end
 #############################################################################################
 
 """
-    trap(
-            ;label::String="", configuration::linearchain, B::Real=0, 
-            Bhat::NamedTuple{(:x,:y,:z)=ẑ, ∇B::Real=0, δB::Union{Real,Function}=0, 
-            lasers::Vector{Laser}
-        )
+    trap(;
+            configuration::linearchain, B::Real=0, Bhat::NamedTuple{(:x,:y,:z)=ẑ, ∇B::Real=0,
+             δB::Union{Real,Function}=0, lasers::Vector{Laser}
+    )
 
 Information necessary to describe the Hamiltonian for a  collection of ions in a linear chain
 interacting with laser light.
 #### user-defined fields
-* `label`: convenience label
 * `configuration <: linearchain`
 * `B`: either a real value describing the magnitude of the B-field or a function for
        describing its time dependence [Tesla]
@@ -80,7 +77,6 @@ interacting with laser light.
     ⊗ chain.vibrational_modes.x[2].basis ⊗ chain.vibrational_modes.z[1].basis`
 """
 mutable struct trap <: Trap
-    label::String
     configuration::linearchain
     B::Real
     Bhat::NamedTuple{(:x,:y,:z)}
@@ -89,7 +85,7 @@ mutable struct trap <: Trap
     lasers::Array{<:Laser}
     basis::CompositeBasis
     function trap(;
-            label="", configuration::linearchain, B=0, Bhat=(x=0, y=0, z=1), ∇B=0, δB=0, 
+            configuration::linearchain, B=0, Bhat=(x=0, y=0, z=1), ∇B=0, δB=0, 
             lasers=Laser[]
         )
         for i in 1:length(lasers)
@@ -120,7 +116,7 @@ mutable struct trap <: Trap
             [V.basis for V in configuration.vibrational_modes.y]...,
             [V.basis for V in configuration.vibrational_modes.z]...,
         )
-        new(label, configuration, B, Bhat, ∇B, δBt, lasers, basis) 
+        new(configuration, B, Bhat, ∇B, δBt, lasers, basis) 
     end
 end
 
@@ -133,17 +129,17 @@ function Base.setproperty!(T::trap, s::Symbol, v)
     Core.setproperty!(T, s, v)
 end
 
-function Base.getindex(T::trap, S::String)
-    if typeof(T.configuration) == linearchain
-        v = T.configuration.vibrational_modes
-        V = vcat(T.configuration.ions, v.x, v.y, v.z)
-        for obj in V
-            if obj.label == S
-                return obj
-            end
-        end
-    end
-end
+# function Base.getindex(T::trap, S::String)
+#     if typeof(T.configuration) == linearchain
+#         v = T.configuration.vibrational_modes
+#         V = vcat(T.configuration.ions, v.x, v.y, v.z)
+#         for obj in V
+#             if obj.label == S
+#                 return obj
+#             end
+#         end
+#     end
+# end
 
 Base.show(io::IO, T::trap) = print(io, "trap")  # suppress long output
 
