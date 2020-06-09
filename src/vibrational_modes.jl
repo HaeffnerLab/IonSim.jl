@@ -11,7 +11,7 @@ the physical parameters defining a vibrational mode of a linear chain of ions
 abstract type Vibration end
 
 """
-    vibrational_mode(label::String, ν::Real, δν=0.0, mode_structure::Vector{Real}; N::Int=10)
+    vibrational_mode(label::String, ν::Real, δν=0., mode_structure::Vector{Real}; N::Int=10)
 
 #### user-defined fields
 * `label`: convenience name
@@ -32,7 +32,7 @@ mutable struct vibrational_mode <: Vibration
     N::Int
     basis::QuantumOptics.FockBasis
     axis::NamedTuple{(:x,:y,:z)}
-    function vibrational_mode(label, ν, mode_structure; δν=0.0, N=10, axis=ẑ)
+    function vibrational_mode(label, ν, mode_structure; δν=0., N=10, axis=ẑ)
         typeof(δν) <: Number ? δνt(t) = δν : δνt = δν
         new(label, ν, mode_structure, δνt, N, FockBasis(N-1), axis)
     end
