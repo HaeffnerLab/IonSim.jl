@@ -1,4 +1,5 @@
 using QuantumOptics: Basis, basisstate
+import Base: ==
 
 
 export Vibration, vibrational_mode
@@ -23,7 +24,8 @@ abstract type Vibration <: Basis end
 * `δν::Union{Function,Real}`: either a function describing time-dependent fluctuations of `ν`
         or a real number which will be converted to the constant function `t -> δν`
 * `N::Int`: highest modeled level of the corresponding basis
-* `axis::NamedTuple{(:x,:y,:z)}`: the axis of symmetry for the vibration
+* `axis::NamedTuple{(:x,:y,:z)}`: the axis of symmetry for the vibration. this must lie along
+        one of the basis vectors `x̂`, `ŷ` or `ẑ`
 #### derived fields
 * `shape::Vector{Int}`: indicates dimension of used Hilbert space (`=[N+1]`)
 

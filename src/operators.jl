@@ -1,5 +1,6 @@
-using QuantumOptics: projector, tensor, displace, SparseOperator, DenseOperator, thermalstate
+using QuantumOptics: projector, tensor, SparseOperator, DenseOperator
 using LinearAlgebra: diagm
+import QuantumOptics: displace, thermalstate, coherentthermalstate
 
 
 export create, destroy, number, displace, coherentstate, coherentthermalstate
@@ -68,17 +69,16 @@ function coherentstate(v::vibrational_mode, α::Number)
     k
 end
 
+"""
+    coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
+returns a displaced thermal state for `v`. The mean occupation of the thermal state is `n̄` 
+, and `α` is the complex amplitude of the displacement.
+"""
 function coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
     d = displace(v, α)
     d * thermalstate(v, n̄) * d'
 end
 
-"""
-    coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
-<br>Returns a displaced thermal state for `v`. The mean occupation of the thermal state is `n̄` 
-, and `α` is the complex amplitude of the displacement.
-"""
-coherentthermalstate(v::vibrational_mode,n̄::Real,α::Number) = coherentthermalstate(v.basis,n̄,α)
 
 """
     sigma(ion::Ion, ψ1::String, ψ2::String)
