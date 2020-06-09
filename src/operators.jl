@@ -1,30 +1,76 @@
-using QuantumOptics: projector, tensor, dagger, create, destroy, displace
-import QuantumOptics: thermalstate, coherentstate, coherentthermalstate
+using QuantumOptics: projector, tensor, displace, SparseOperator, DenseOperator, thermalstate
+using LinearAlgebra: diagm
 
 
+export create, destroy, number, displace, coherentstate, coherentthermalstate
 export sigma, ion_state, ion_projector
 
 
+#############################################################################################
+# vibrational_mode operators
+#############################################################################################
+
 """
-    thermalstate(v::vibrational_mode, n̄::Real)
-<br>Returns a thermal density matrix with ``\\langle aa^{\\dagger}\\rangle = `` n
+    create(v::vibrational_mode)
+returns the creation operator for `v` such that: `create(v) * v[i] = √(i+1) * v[i+1]`
 """
-thermalstate(v::vibrational_mode, n̄::Real) = thermalstate(v.basis, n̄)
-    
-function thermalstate(b::Basis, n̄::Real)
-    if n̄ == 0
-        return fockstate(b, 0) ⊗ dagger(fockstate(b, 0))
+create(v::vibrational_mode) = SparseOperator(v, diagm(-1 => sqrt.(1:v.N)))
+
+"""
+    destroy(v::vibrational_mode)
+returns the destruction operator for `v` such that: `destroy(v) * v[i] = √i * v[i-1]`
+"""
+destroy(v::vibrational_mode) = create(v)'
+
+"""
+    number(v::vibrational_mode)
+returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`
+"""
+number(v::vibrational_mode) = SparseOperator(v, diagm(0 => 0:v.N))
+
+"""
+    displace(v::vibrational_mode, α::Number)
+returns the displacement operator ``D(α)`` corresponding to `v`.
+"""
+function displace(v::vibrational_mode, α::Number)
+    D = zeros(ComplexF64, v.N+1, v.N+1)
+    @inbounds for n in 1:v.N+1, m in 1:v.N+1
+        D[n, m] = _Dnm(α, n, m)
     end
-    T = 1 / (log((1 / n̄) + 1))
-    H = create(b) * destroy(b)
-    thermalstate(H, T)
+    DenseOperator(v, D)
 end
 
-coherentstate(v::vibrational_mode, α::Number) = coherentstate(v.basis, α)
+"""
+    thermalstate(v::vibrational_mode, n̄::Real)
+returns a thermal density matrix with ``\\langle aa^{\\dagger}\\rangle = `` n
+"""
+function thermalstate(v::vibrational_mode, n̄::Real)
+    if n̄ == 0
+        return v[0] ⊗ v[0]'
+    end
+    T = 1 / (log((1 / n̄) + 1))
+    H = create(v) * destroy(v)
+    SparseOperator(v, thermalstate(H, T).data)
+end
 
-function coherentthermalstate(b::Basis, n̄::Real, α::Number)
-    d = displace(b, α)
-    d * thermalstate(b, n̄) * dagger(d)
+"""
+    coherentstate(v::vibrational_mode, α::Number)
+returns a coherent state on `v` with complex amplitude ``α``
+"""
+function coherentstate(v::vibrational_mode, α::Number)
+    # this implementation is the same as in QuantumOptics.jl, but there the function is 
+    # restricted to v::FockBasis, so we must reimplement here
+    k = zeros(ComplexF64, v.N+1)
+    k[1] = exp(-abs2(α) / 2)
+    @inbounds for n=1:v.N
+        k[n+1] = k[n] * α / √n
+    end
+    k
+end
+
+function coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
+    d = displace(v, α)
+    d * thermalstate(v, n̄) * d'
 end
 
 """
