@@ -47,7 +47,8 @@ end
 ==(b1::T, b2::T) where {T<:vibrational_mode} = b1===b2
 
 # suppress long output
-Base.show(io::IO, v::vibrational_mode) = print(io, "vibrational_mode(ν=$(v.ν), axis=$(v.axis))")
+Base.show(io::IO, v::vibrational_mode) = print(io, 
+    "Vibration(ν=$(round(v.ν,sigdigits=4)), axis=$(_print_axis(v.axis)), N=$(v.N))")
 
 function Base.setproperty!(V::Vibration, s::Symbol, v)
     if s == :mode_structure || s == :basis || s == :axis
@@ -57,7 +58,7 @@ function Base.setproperty!(V::Vibration, s::Symbol, v)
         @assert typeof(v) <: Int "N must be a positive integer"
         @assert v >= 0 "N must be a nonnegative integer"
         Core.setproperty!(V, :N, v)
-        Core.setproperty!(V, :shape, Int[v])
+        Core.setproperty!(V, :shape, Int[v+1])
     elseif s == :shape
         return
     elseif s == :δν

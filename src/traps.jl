@@ -23,10 +23,16 @@ get_lasers(T::Trap)::Vector{Laser} = T.lasers
 function get_basis(T::Trap)::CompositeBasis 
     tensor(
             [I.basis for I in T.configuration.ions]..., 
-            [V.basis for V in T.configuration.vibrational_modes.x]...,
-            [V.basis for V in T.configuration.vibrational_modes.y]...,
-            [V.basis for V in T.configuration.vibrational_modes.z]...,
+            T.configuration.vibrational_modes.x...,
+            T.configuration.vibrational_modes.y...,
+            T.configuration.vibrational_modes.z...,
         )
+    # tensor(
+    #         [I.basis for I in T.configuration.ions]..., 
+    #         [FockBasis(V.N) for V in T.configuration.vibrational_modes.x]...,
+    #         [FockBasis(V.N) for V in T.configuration.vibrational_modes.y]...,
+    #         [FockBasis(V.N) for V in T.configuration.vibrational_modes.z]...,
+    #     )
 end 
 
 
@@ -112,9 +118,9 @@ mutable struct trap <: Trap
         typeof(δB) <: Number ?  δBt(t) = δB : δBt = δB
         basis = tensor(
             [I.basis for I in configuration.ions]..., 
-            [V.basis for V in configuration.vibrational_modes.x]...,
-            [V.basis for V in configuration.vibrational_modes.y]...,
-            [V.basis for V in configuration.vibrational_modes.z]...,
+            configuration.vibrational_modes.x...,
+            configuration.vibrational_modes.y...,
+            configuration.vibrational_modes.z...,
         )
         new(configuration, B, Bhat, ∇B, δBt, lasers, basis) 
     end

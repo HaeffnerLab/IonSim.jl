@@ -3,8 +3,8 @@ using LinearAlgebra: diagm
 import QuantumOptics: displace, thermalstate, coherentthermalstate
 
 
-export create, destroy, number, displace, coherentstate, coherentthermalstate
-export sigma, ion_state, ion_projector
+export create, destroy, number, displace, coherentstate, coherentthermalstate, fockstate,
+       thermalstate, sigma, ion_state, ion_projector
 
 
 #############################################################################################
@@ -43,7 +43,7 @@ end
 
 """
     thermalstate(v::vibrational_mode, n̄::Real)
-returns a thermal density matrix with ``\\langle aa^{\\dagger}\\rangle = `` n
+returns a thermal density matrix with ``⟨a^†a⟩ =`` n
 """
 function thermalstate(v::vibrational_mode, n̄::Real)
     if n̄ == 0
@@ -51,7 +51,7 @@ function thermalstate(v::vibrational_mode, n̄::Real)
     end
     T = 1 / (log((1 / n̄) + 1))
     H = create(v) * destroy(v)
-    SparseOperator(v, thermalstate(H, T).data)
+    thermalstate(H, T)
 end
 
 """
@@ -79,6 +79,15 @@ function coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
     d * thermalstate(v, n̄) * d'
 end
 
+"""
+    fockstate(v::vibrational_mode, N::Int)
+returns the fockstate ``|N⟩`` on `v` 
+"""
+fockstate(v::vibrational_mode, N::Int) = v[N]
+
+#############################################################################################
+# ion operators
+#############################################################################################
 
 """
     sigma(ion::Ion, ψ1::String, ψ2::String)
@@ -112,7 +121,7 @@ function ion_projector(T::trap, states...)
         state = state ⊗ projector(T.configuration.ions[i][states[i]])
     end
     for mode in modes
-        state = state ⊗ one(mode.basis)
+        state = state ⊗ one(mode)
     end
     state    
 end
