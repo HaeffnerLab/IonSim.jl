@@ -148,9 +148,8 @@ struct linearchain <: IonConfiguration
     com_frequencies::NamedTuple{(:x,:y,:z)}
     vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{vibrational_mode},3}}}
     full_normal_mode_description::NamedTuple{(:x,:y,:z)}
-    function linearchain( 
+    function linearchain(; 
             ions, com_frequencies, selected_modes::NamedTuple{(:x,:y,:z)}, 
-            
         )
         for i in 1:length(ions)-1, j in i+1:length(ions)
             if ions[j] == ions[i]
