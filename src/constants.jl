@@ -70,6 +70,18 @@ const x̂ = (x=1, y=0, z=0)
 const ŷ = (x=0, y=1, z=0)
 const ẑ = (x=0, y=0, z=1)
 
+function _print_axis(a::NamedTuple{(:x,:y,:z)})
+    if a == x̂
+        return "x̂"
+    elseif a == ŷ
+        return "ŷ"
+    elseif a == ẑ
+        return "ẑ"
+    else
+        return string(a)
+    end
+end
+
 ndot(a::NamedTuple{(:x,:y,:z)}, b::NamedTuple{(:x,:y,:z)}) = a.x * b.x + a.y * b.y + a.z * b.z
 function Base.:+(a::NamedTuple{(:x,:y,:z)}, b::NamedTuple{(:x,:y,:z)})
     (x=a.x + b.x, y=a.y + b.y, z=a.z + b.z)
