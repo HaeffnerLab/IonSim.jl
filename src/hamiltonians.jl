@@ -260,7 +260,8 @@ function _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa
     ηm, Δm, Ωm = _ηmatrix(T, timescale), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
     ions = T.configuration.ions
     mode = get_vibrational_modes(T.configuration)[1]
-    ν, δν, mode_basis = mode.ν, mode.δν, mode.basis
+    ν, δν = mode.ν, mode.δν
+    mode_basis = mode
     
     indxs_dict = Dict()
     repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
@@ -279,7 +280,7 @@ function _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa
         # construct an array with dimensions equal to the dimensions of the vibrational mode
         # operator and with indices equal to a complex number z, with z.re equal to the 
         # row and z.im equal to the column.
-        mode_dim = mode_basis.shape[1]
+        mode_dim = mode.shape[1]
         indx_array = zeros(ComplexF64, mode_dim, mode_dim)
         if sum(η.(abs.(0:1e-2:100))) == 0
             for i in 1:mode_dim
