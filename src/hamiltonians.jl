@@ -142,8 +142,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
     functions = FunctionWrapper[]
 
     νlist = Float64[mode.ν for mode in modes]
-    mode_dims = [mode.basis.N+1 for mode in modes]
-    mode_basis = [mode.basis for mode in modes]
+    mode_dims = [mode.N+1 for mode in modes]
     N = prod(mode_dims)
     if typeof(lamb_dicke_order) <: Int
         lamb_dicke_order = [lamb_dicke_order for _ in 1:L]
@@ -202,7 +201,7 @@ function _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
 
         # construct the tensor product 𝐼 ⊗...⊗ σ₊ ⊗...⊗ 𝐼 ⊗ indx_array
         ion_op = sigma(ions[n], tr[2], tr[1])
-        mode_op = SparseOperator(⊗(reverse(mode_basis)...), indx_array)
+        mode_op = SparseOperator(⊗(reverse(modes)...), indx_array)
         A = embed(get_basis(T), [n, collect(length(ions)+1:length(ions)+L)], [ion_op, mode_op]).data
 
         # See where subspace operators have been mapped after embedding
@@ -261,7 +260,6 @@ function _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa
     ions = T.configuration.ions
     mode = get_vibrational_modes(T.configuration)[1]
     ν, δν = mode.ν, mode.δν
-    mode_basis = mode
     
     indxs_dict = Dict()
     repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
@@ -297,7 +295,7 @@ function _setup_base_hamiltonian_single_mode(T, timescale, lamb_dicke_order, rwa
 
         # construct the tensor product 𝐼 ⊗...⊗ σ₊ ⊗ 𝐼 ⊗...⊗ indx_array ⊗ 𝐼 ⊗... 𝐼
         ion_op = sigma(ions[n], tr[2], tr[1])
-        mode_op = SparseOperator(mode_basis, indx_array)
+        mode_op = SparseOperator(mode, indx_array)
         A = embed(get_basis(T), [n, length(ions)+1], [ion_op, mode_op]).data
 
         # See where subspace operators have been mapped after embedding
@@ -362,8 +360,8 @@ function _setup_δν_hamiltonian(T, timescale)
                 ))
         δν_indices_l = Vector{Vector{Int64}}(undef, 0)
         δν = modes[l].δν
-        mode_basis = modes[l].basis
-        mode_op = number(mode_basis)
+        mode = modes[l]
+        mode_op = number(mode)
         A = embed(get_basis(T), [N+l], [mode_op]).data
         mode_dim = modes[l].basis.shape[1]
         for i in 1:mode_dim-1
@@ -476,7 +474,7 @@ function _Ωmatrix(T, timescale)
         (γ, ϕ) = map(x -> rad2deg(acos(ndot(T.Bhat, x))), [lasers[m].ϵ, lasers[m].k])
         transitions = _transitions(ions[n])
         v = []
-        s_indx = findall(x -> x[1] == n, lasers[m].pointing)  # length(s_indx) == 0 || 1
+        s_indx = findall(x -> x[1] == n, lasers[m].pointing) 
         length(s_indx) == 0 ? s = 0 : s = lasers[m].pointing[s_indx[1]][2]
         for t in transitions
             Ω0 = 2π * timescale * s * ions[n].selected_matrix_elements[t](1.0, γ, ϕ) / 2.0
