@@ -13,25 +13,25 @@ export create, destroy, number, displace, coherentstate, coherentthermalstate, f
 
 """
     create(v::vibrational_mode)
-returns the creation operator for `v` such that: `create(v) * v[i] = √(i+1) * v[i+1]`
+returns the creation operator for `v` such that: `create(v) * v[i] = √(i+1) * v[i+1]`.
 """
 create(v::vibrational_mode) = SparseOperator(v, diagm(-1 => sqrt.(1:v.N)))
 
 """
     destroy(v::vibrational_mode)
-returns the destruction operator for `v` such that: `destroy(v) * v[i] = √i * v[i-1]`
+Returns the destruction operator for `v` such that: `destroy(v) * v[i] = √i * v[i-1]`.
 """
 destroy(v::vibrational_mode) = create(v)'
 
 """
     number(v::vibrational_mode)
-returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`
+Returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`.
 """
 number(v::vibrational_mode) = SparseOperator(v, diagm(0 => 0:v.N))
 
 """
     displace(v::vibrational_mode, α::Number)
-returns the displacement operator ``D(α)`` corresponding to `v`.
+Returns the displacement operator ``D(α)`` corresponding to `v`.
 """
 function displace(v::vibrational_mode, α::Number)
     D = zeros(ComplexF64, v.N+1, v.N+1)
@@ -43,7 +43,8 @@ end
 
 """
     thermalstate(v::vibrational_mode, n̄::Real)
-returns a thermal density matrix with ``⟨a^†a⟩ =`` n
+Returns a thermal density matrix with ``⟨a^†a⟩ ≈ n̄``. Note: approximate because we are 
+dealing with a finite dimensional Hilbert space that must be normalized.
 """
 function thermalstate(v::vibrational_mode, n̄::Real)
     if n̄ == 0
@@ -56,7 +57,7 @@ end
 
 """
     coherentstate(v::vibrational_mode, α::Number)
-returns a coherent state on `v` with complex amplitude ``α``
+Returns a coherent state on `v` with complex amplitude ``α``.
 """
 function coherentstate(v::vibrational_mode, α::Number)
     # this implementation is the same as in QuantumOptics.jl, but there the function is 
@@ -71,7 +72,7 @@ end
 
 """
     coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
-returns a displaced thermal state for `v`. The mean occupation of the thermal state is `n̄` 
+Returns a displaced thermal state for `v`. The mean occupation of the thermal state is `n̄` 
 , and `α` is the complex amplitude of the displacement.
 """
 function coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
@@ -81,7 +82,7 @@ end
 
 """
     fockstate(v::vibrational_mode, N::Int)
-returns the fockstate ``|N⟩`` on `v` 
+Returns the fockstate ``|N⟩`` on `v`. 
 """
 fockstate(v::vibrational_mode, N::Int) = v[N]
 
