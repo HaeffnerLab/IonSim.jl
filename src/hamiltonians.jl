@@ -39,7 +39,7 @@ end
 #############################################################################################
 
 function hamiltonian(
-        T::trap, configuration::linearchain, timescale::Real, 
+        T::trap, configuration::LinearChain, timescale::Real, 
         lamb_dicke_order::Union{Vector{Int},Int}, rwa_cutoff::Real
     )
     b, indxs, cindxs = _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)
