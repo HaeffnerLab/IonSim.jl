@@ -594,12 +594,12 @@ function _inv_get_kron_indxs(indxs, dims)
 end
 
 """
-    get_η(V::vibrational_mode, L::Laser, I::Ion)
+    get_η(V::VibrationalMode, L::Laser, I::Ion)
 The Lamb-Dicke parameter: 
 ``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
 for a given vibrational mode, ion and laser.
 """
-function get_η(V::vibrational_mode, L::Laser, I::Ion; scaled=false)
+function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled=false)
     @fastmath begin
         k = 2π / L.λ
         scaled ? ν = 1 : ν = V.ν
