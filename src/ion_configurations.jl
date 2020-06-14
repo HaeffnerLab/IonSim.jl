@@ -3,7 +3,7 @@ using NLsolve: nlsolve
 
 export IonConfiguration
 export ions
-export linear_equilibrium_positions, Anm, linearchain, characteristic_length_scale
+export linear_equilibrium_positions, Anm, LinearChain, characteristic_length_scale
 export get_vibrational_modes
 
 
@@ -19,7 +19,7 @@ ions(I::IonConfiguration)::Vector{Ion} = I.ions
 
 
 #############################################################################################
-# linearchain - a linear Coulomb crystal
+# LinearChain - a linear Coulomb crystal
 #############################################################################################
 
 """
@@ -124,7 +124,7 @@ end
 _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 
 """
-    linearchain(;
+    LinearChain(;
             ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
             vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
         )
@@ -134,7 +134,7 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
         Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
         parallel to the crystal's symmetry axis.
-* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
+* `selected_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `selected_modes=(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
     mode away from the COM for that axis. For example, `selected_modes=(z=[2])` would 
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
@@ -143,12 +143,12 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
     array of tuples where the first element is a vibrational frequency [Hz] and the second
     element is a vector describing the corresponding normalized normal mode structure.
 """
-struct linearchain <: IonConfiguration
+struct LinearChain <: IonConfiguration
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x,:y,:z)}
     vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
     full_normal_mode_description::NamedTuple{(:x,:y,:z)}
-    function linearchain(; 
+    function LinearChain(; 
             ions, com_frequencies, selected_modes::NamedTuple{(:x,:y,:z)}, 
         )
         for i in 1:length(ions)-1, j in i+1:length(ions)
@@ -179,16 +179,16 @@ struct linearchain <: IonConfiguration
     end
 end
 
-function get_vibrational_modes(lc::linearchain)
+function get_vibrational_modes(lc::LinearChain)
     collect(Iterators.flatten(lc.vibrational_modes))
 end
 
-function Base.print(lc::linearchain)
+function Base.print(lc::LinearChain)
     print("$(length(lc.ions)) ions\n")
     print("com frequencies: $(lc.com_frequencies)\n")
     print("selected vibrational_modes: $(lc.vibrational_modes)\n")
 end
 
-function Base.show(io::IO, lc::linearchain)  # suppress long output
-    print(io, "linearchain($(length(lc.ions)) ions)")
+function Base.show(io::IO, lc::LinearChain)  # suppress long output
+    print(io, "LinearChain($(length(lc.ions)) ions)")
 end
