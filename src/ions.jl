@@ -14,12 +14,11 @@ export Ion, ca40
 
 """
     Ion
-the physical parameters defining an isolated ion's structure
+The physical parameters defining an isolated ion's internal structure.
 """
 abstract type Ion end
 
 # required fields
-label(I::Ion)::String = I.label
 mass(I::Ion)::Real = I.mass
 level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.level_structure
 selected_level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.selected_level_structure
@@ -36,10 +35,9 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 #############################################################################################
 
 """
-    Ca40(;label::String="", selected_level_structure::Vector{String})
+    Ca40(;selected_level_structure::Vector{String})
 
 #### user-defined fields
-* `label`: convenience label 
 * `selected_level_structure`: 
     keys ⊂ `["S-1/2", "S+1/2", "D-5/2", "D-3/2", "D-1/2", "D+1/2", "D+3/2", "D+5/2"]`.
     Values are a `NamedTuple` with:
@@ -70,8 +68,7 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 * `position`: when the ion is added to an `IonConfiguration`, this value keeps track of its
     physical position in meters
 """
-mutable struct ca40 <: Ion
-    label::String
+mutable struct Ca40 <: Ion
     mass::Real
     level_structure::OrderedDict{String,NamedTuple}
     selected_level_structure::OrderedDict{String,NamedTuple}
@@ -81,22 +78,22 @@ mutable struct ca40 <: Ion
     stark_shift::OrderedDict{String,Real}
     number::Union{Int,Nothing}
     position::Union{Real,Nothing}
-    function ca40(;label="", selected_level_structure="default", ss=Dict())
+    function Ca40(;selected_level_structure="default", ss=Dict())
         fls, sls_dict, me, me_dict=_structure(selected_level_structure)
-        b=NLevelBasis(length(sls_dict))
+        b = NLevelBasis(length(sls_dict))
         ss_full = OrderedDict{String,Float64}()
         for level in keys(sls_dict)
             haskey(ss, level) ? ss_full[level] = ss[level] : ss_full[level] = 0.
         end
-        new(label, m_ca40, fls, sls_dict, b, me, me_dict, ss_full, nothing, nothing)
+        new(m_ca40, fls, sls_dict, b, me, me_dict, ss_full, nothing, nothing)
     end
     # for copying
-    function ca40(  
-            label, mass, level_structure, selected_level_structure, basis, matrix_elements,
+    function Ca40(  
+            mass, level_structure, selected_level_structure, basis, matrix_elements,
             selected_matrix_elements, stark_shift, number, position
         )
-        new(label, mass, level_structure, selected_level_structure, basis,
-            matrix_elements, selected_matrix_elements, stark_shift, number, position)
+        new(mass, level_structure, selected_level_structure, basis, matrix_elements, 
+            selected_matrix_elements, stark_shift, number, position)
     end
 end
 
@@ -197,20 +194,20 @@ Only considers linearly polarized light fields.
 * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
 * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
 """
-function matrix_elements(C::ca40, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
+function matrix_elements(C::Ca40, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
     t1 = C.level_structure[transition[1]]
     t2 = C.level_structure[transition[2]]
     _ca40_matrix_elements((t1, t2), Efield, γ, ϕ)
 end
 
-function Base.print(I::ca40)
+function Base.print(I::Ca40)
     print("⁴⁰Ca  ('$(I.label)'))\n\n")
     for (k, v) in I.selected_level_structure
         print(k, ": ", v, "\n")
     end
 end
 
-Base.show(io::IO, I::ca40) = print(io, "⁴⁰Ca('$(I.label)')")  # suppress long output
+Base.show(io::IO, I::Ca40) = print(io, "⁴⁰Ca('$(I.label)')")  # suppress long output
 
 
 
