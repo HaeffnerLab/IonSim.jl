@@ -16,7 +16,7 @@ export Ion, ca40
     Ion
 The physical parameters defining an isolated ion's internal structure.
 """
-abstract type Ion end
+abstract type Ion <: Basis end
 
 # required fields
 mass(I::Ion)::Real = I.mass
@@ -24,14 +24,13 @@ level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.level_structure
 selected_level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.selected_level_structure
 matrix_elements(I::Ion)::OrderedDict = I.matrix_elements
 selected_matrix_elements(I::Ion)::OrderedDict = I.selected_matrix_elements
-get_basis(I::Ion)::NLevelBasis = I.basis
 ion_number(I::Ion)::Union{Int,Nothing} = I.number
 ion_position(I::Ion)::Union{Real,Nothing} = I.position
 stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 
 
 #############################################################################################
-# ca40 Ion
+# Ca40 Ion
 #############################################################################################
 
 """
@@ -62,7 +61,7 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 * `matrix_elements::OrderedDict{Tuple,Function}`: same as `selected_matrix_elements` but for
     all of the ion's allowable transitions
 #### derived fields
-* `basis<:NLevelBasis`: the ion's basis 
+* `shape::Vector{Int}`: indicates dimension of used Hilbert space
 * `number`: when the ion is added to an `IonConfiguration`, this value keeps track of its 
     location
 * `position`: when the ion is added to an `IonConfiguration`, this value keeps track of its
@@ -72,7 +71,7 @@ mutable struct Ca40 <: Ion
     mass::Real
     level_structure::OrderedDict{String,NamedTuple}
     selected_level_structure::OrderedDict{String,NamedTuple}
-    basis::NLevelBasis
+    shape::Vector{Int}
     matrix_elements::OrderedDict{Tuple,Function}
     selected_matrix_elements::OrderedDict{Tuple,Function}
     stark_shift::OrderedDict{String,Real}
@@ -80,19 +79,19 @@ mutable struct Ca40 <: Ion
     position::Union{Real,Nothing}
     function Ca40(;selected_level_structure="default", ss=Dict())
         fls, sls_dict, me, me_dict=_structure(selected_level_structure)
-        b = NLevelBasis(length(sls_dict))
+        shape = [length(sls_dict)]
         ss_full = OrderedDict{String,Float64}()
         for level in keys(sls_dict)
             haskey(ss, level) ? ss_full[level] = ss[level] : ss_full[level] = 0.
         end
-        new(m_ca40, fls, sls_dict, b, me, me_dict, ss_full, nothing, nothing)
+        new(m_ca40, fls, sls_dict, shape, me, me_dict, ss_full, nothing, nothing)
     end
     # for copying
     function Ca40(  
-            mass, level_structure, selected_level_structure, basis, matrix_elements,
+            mass, level_structure, selected_level_structure, shape, matrix_elements,
             selected_matrix_elements, stark_shift, number, position
         )
-        new(mass, level_structure, selected_level_structure, basis, matrix_elements, 
+        new(mass, level_structure, selected_level_structure, shape, matrix_elements, 
             selected_matrix_elements, stark_shift, number, position)
     end
 end
@@ -210,7 +209,6 @@ end
 Base.show(io::IO, I::Ca40) = print(io, "⁴⁰Ca('$(I.label)')")  # suppress long output
 
 
-
 #############################################################################################
 # general functions
 #############################################################################################
@@ -244,7 +242,7 @@ function Base.getindex(I::Ion, S::String)
     s = I.selected_level_structure.keys
     @assert S in s "index not in selected_level_structure: $s"
     i = findall(s .≡ S)[1]
-    nlevelstate(I.basis, i)
+    ionstate(I.basis, i)
 end
 
 function Base.print(I::Ion)
@@ -263,7 +261,7 @@ function Base.getproperty(I::Ion, s::Symbol)
     getfield(I, s)
 end
 
-function zero_stark_shift(I::T) where {T<:Ion}
+function zero_stark_shift(I::Ion)
     for k in keys(I.stark_shift)
         I.stark_shift[k] = 0.0
     end
@@ -272,7 +270,7 @@ end
 function Base.setproperty!(I::Ion, s::Symbol, v)
     if (s == :mass || 
         s == :level_structure || 
-        s == :basis || 
+        s == :shape || 
         s == :matrix_elements ||
         s == :selected_matrix_elements ||
         s == :number ||
@@ -283,7 +281,7 @@ function Base.setproperty!(I::Ion, s::Symbol, v)
         _, sls_dict, _, me_dict = _structure(v)
         Core.setproperty!(I, :selected_level_structure, sls_dict)
         Core.setproperty!(I, :selected_matrix_elements, me_dict)
-        Core.setproperty!(I, :basis, NLevelBasis(length(sls_dict)))
+        Core.setproperty!(I, :shape, [length(sls_dict)])
         I.stark_shift = OrderedDict{String,Real}()
         for key in v
             I.stark_shift[key] = 0.0
