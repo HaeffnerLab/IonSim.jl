@@ -27,12 +27,6 @@ function get_basis(T::Trap)::CompositeBasis
             T.configuration.vibrational_modes.y...,
             T.configuration.vibrational_modes.z...,
         )
-    # tensor(
-    #         [I.basis for I in T.configuration.ions]..., 
-    #         [FockBasis(V.N) for V in T.configuration.vibrational_modes.x]...,
-    #         [FockBasis(V.N) for V in T.configuration.vibrational_modes.y]...,
-    #         [FockBasis(V.N) for V in T.configuration.vibrational_modes.z]...,
-    #     )
 end 
 
 
@@ -134,18 +128,6 @@ function Base.setproperty!(T::trap, s::Symbol, v)
     end
     Core.setproperty!(T, s, v)
 end
-
-# function Base.getindex(T::trap, S::String)
-#     if typeof(T.configuration) == linearchain
-#         v = T.configuration.vibrational_modes
-#         V = vcat(T.configuration.ions, v.x, v.y, v.z)
-#         for obj in V
-#             if obj.label == S
-#                 return obj
-#             end
-#         end
-#     end
-# end
 
 Base.show(io::IO, T::trap) = print(io, "trap")  # suppress long output
 

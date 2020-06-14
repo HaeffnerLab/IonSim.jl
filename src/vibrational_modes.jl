@@ -1,18 +1,11 @@
 using QuantumOptics: Basis, basisstate
-import Base: ==
 
 
-export Vibration, vibrational_mode
+export VibrationalMode
 
 
 """
-    Vibration
-the physical parameters defining a vibrational mode of a linear chain of ions
-"""
-abstract type Vibration <: Basis end
-
-"""
-    vibrational_mode(
+    VibrationalMode(
             ν::Real, mode_structure::Vector{Real}, δν::Union{Function,Real}=0.; N::Int=10,
             axis::NamedTuple{(:x,:y,:z)}=ẑ
         )
@@ -29,28 +22,28 @@ abstract type Vibration <: Basis end
 #### derived fields
 * `shape::Vector{Int}`: indicates dimension of used Hilbert space (`=[N+1]`)
 
-Note: the iᵗʰ Fock state (|i⟩) by indexing as `v=vibrational_mode(...); v[i]`
+Note: the iᵗʰ Fock state (|i⟩) by indexing as `v=VibrationalMode(...); v[i]`
 """
-mutable struct vibrational_mode <: Vibration
+mutable struct VibrationalMode <: Basis
     ν::Real
     mode_structure::Vector{Real}
     δν::Function
     N::Int
     shape::Vector{Int}
     axis::NamedTuple{(:x,:y,:z)}
-    function vibrational_mode(ν, mode_structure; δν=0., N=10, axis=ẑ)
+    function VibrationalMode(ν, mode_structure; δν=0., N=10, axis=ẑ)
         typeof(δν) <: Number ? δνt(t) = δν : δνt = δν
         new(ν, mode_structure, δνt, N, [N+1], axis)
     end
 end
 
-==(b1::T, b2::T) where {T<:vibrational_mode} = b1===b2
+Base.:(==)(b1::T, b2::T) where {T<:VibrationalMode} = b1===b2
 
 # suppress long output
-Base.show(io::IO, v::vibrational_mode) = print(io, 
-    "Vibration(ν=$(round(v.ν,sigdigits=4)), axis=$(_print_axis(v.axis)), N=$(v.N))")
+Base.show(io::IO, v::VibrationalMode) = print(io, 
+    "VibrationalMode(ν=$(round(v.ν,sigdigits=4)), axis=$(_print_axis(v.axis)), N=$(v.N))")
 
-function Base.setproperty!(V::Vibration, s::Symbol, v)
+function Base.setproperty!(V::VibrationalMode, s::Symbol, v)
     if s == :mode_structure || s == :basis || s == :axis
         return
     end
@@ -69,7 +62,7 @@ function Base.setproperty!(V::Vibration, s::Symbol, v)
     Core.setproperty!(V, s, v)
 end
 
-function Base.getindex(V::vibrational_mode, n::Int)
+function Base.getindex(V::VibrationalMode, n::Int)
     @assert 0 <= n <= V.N "n must be less than $(V.N+1)"
     basisstate(V, n+1)
 end

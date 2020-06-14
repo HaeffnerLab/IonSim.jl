@@ -126,12 +126,12 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 """
     linearchain(;
             ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
-            vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{vibrational_mode},3}}}
+            vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
         )
 
 #### user-defined fields
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
-* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{vibrational_mode},3}}}`: 
+* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
         Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
         parallel to the crystal's symmetry axis.
 * `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
@@ -146,7 +146,7 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 struct linearchain <: IonConfiguration
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x,:y,:z)}
-    vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{vibrational_mode},3}}}
+    vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
     full_normal_mode_description::NamedTuple{(:x,:y,:z)}
     function linearchain(; 
             ions, com_frequencies, selected_modes::NamedTuple{(:x,:y,:z)}, 
@@ -162,12 +162,12 @@ struct linearchain <: IonConfiguration
         A = (x=Anm(N, com_frequencies, axis=x̂), 
              y=Anm(N, com_frequencies, axis=ŷ),
              z=Anm(N, com_frequencies, axis=ẑ))
-        vm = (x=Vector{Vibration}(undef, 0),
-              y=Vector{Vibration}(undef, 0),
-              z=Vector{Vibration}(undef, 0))
+        vm = (x=Vector{VibrationalMode}(undef, 0),
+              y=Vector{VibrationalMode}(undef, 0),
+              z=Vector{VibrationalMode}(undef, 0))
         r = [x̂, ŷ, ẑ]
         for (i, modes) in enumerate(selected_modes), mode in modes
-            push!(vm[i], vibrational_mode(A[i][mode]..., axis=r[i]))
+            push!(vm[i], VibrationalMode(A[i][mode]..., axis=r[i]))
         end
         l = linear_equilibrium_positions(length(ions))
         l0 = characteristic_length_scale(m_ca40, com_frequencies.z) 
@@ -192,13 +192,3 @@ end
 function Base.show(io::IO, lc::linearchain)  # suppress long output
     print(io, "linearchain($(length(lc.ions)) ions)")
 end
-
-# function Base.getindex(lc::linearchain, s::String)
-#     v = lc.vibrational_modes
-#     V = vcat(v.x, v.y, v.z)
-#     for obj in V
-#         if obj.label == s
-#             return obj
-#         end
-#     end
-# end

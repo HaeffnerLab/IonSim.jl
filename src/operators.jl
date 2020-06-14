@@ -8,32 +8,32 @@ export create, destroy, number, displace, coherentstate, coherentthermalstate, f
 
 
 #############################################################################################
-# vibrational_mode operators
+# VibrationalMode operators
 #############################################################################################
 
 """
-    create(v::vibrational_mode)
+    create(v::VibrationalMode)
 returns the creation operator for `v` such that: `create(v) * v[i] = √(i+1) * v[i+1]`.
 """
-create(v::vibrational_mode) = SparseOperator(v, diagm(-1 => sqrt.(1:v.N)))
+create(v::VibrationalMode) = SparseOperator(v, diagm(-1 => sqrt.(1:v.N)))
 
 """
-    destroy(v::vibrational_mode)
+    destroy(v::VibrationalMode)
 Returns the destruction operator for `v` such that: `destroy(v) * v[i] = √i * v[i-1]`.
 """
-destroy(v::vibrational_mode) = create(v)'
+destroy(v::VibrationalMode) = create(v)'
 
 """
-    number(v::vibrational_mode)
+    number(v::VibrationalMode)
 Returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`.
 """
-number(v::vibrational_mode) = SparseOperator(v, diagm(0 => 0:v.N))
+number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:v.N))
 
 """
-    displace(v::vibrational_mode, α::Number)
+    displace(v::VibrationalMode, α::Number)
 Returns the displacement operator ``D(α)`` corresponding to `v`.
 """
-function displace(v::vibrational_mode, α::Number)
+function displace(v::VibrationalMode, α::Number)
     D = zeros(ComplexF64, v.N+1, v.N+1)
     @inbounds for n in 1:v.N+1, m in 1:v.N+1
         D[n, m] = _Dnm(α, n, m)
@@ -42,11 +42,11 @@ function displace(v::vibrational_mode, α::Number)
 end
 
 """
-    thermalstate(v::vibrational_mode, n̄::Real)
+    thermalstate(v::VibrationalMode, n̄::Real)
 Returns a thermal density matrix with ``⟨a^†a⟩ ≈ n̄``. Note: approximate because we are 
 dealing with a finite dimensional Hilbert space that must be normalized.
 """
-function thermalstate(v::vibrational_mode, n̄::Real)
+function thermalstate(v::VibrationalMode, n̄::Real)
     if n̄ == 0
         return v[0] ⊗ v[0]'
     end
@@ -56,10 +56,10 @@ function thermalstate(v::vibrational_mode, n̄::Real)
 end
 
 """
-    coherentstate(v::vibrational_mode, α::Number)
+    coherentstate(v::VibrationalMode, α::Number)
 Returns a coherent state on `v` with complex amplitude ``α``.
 """
-function coherentstate(v::vibrational_mode, α::Number)
+function coherentstate(v::VibrationalMode, α::Number)
     # this implementation is the same as in QuantumOptics.jl, but there the function is 
     # restricted to v::FockBasis, so we must reimplement here
     k = zeros(ComplexF64, v.N+1)
@@ -71,20 +71,20 @@ function coherentstate(v::vibrational_mode, α::Number)
 end
 
 """
-    coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
+    coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number)
 Returns a displaced thermal state for `v`. The mean occupation of the thermal state is `n̄` 
 , and `α` is the complex amplitude of the displacement.
 """
-function coherentthermalstate(v::vibrational_mode, n̄::Real, α::Number)
+function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number)
     d = displace(v, α)
     d * thermalstate(v, n̄) * d'
 end
 
 """
-    fockstate(v::vibrational_mode, N::Int)
+    fockstate(v::VibrationalMode, N::Int)
 Returns the fockstate ``|N⟩`` on `v`. 
 """
-fockstate(v::vibrational_mode, N::Int) = v[N]
+fockstate(v::VibrationalMode, N::Int) = v[N]
 
 #############################################################################################
 # ion operators
