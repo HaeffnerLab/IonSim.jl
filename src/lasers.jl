@@ -1,20 +1,13 @@
-export Laser, laser
+using .PhysicalConstants: c, ca40_qubit_transition_frequency
+
+export Laser
+
 
 """
-    Laser
-the physical parameters defining laser light
-"""
-abstract type Laser end
-
-"""
-    laser(;
-            label="", 
-            E=1e5, Δ=0, ϵ=(x=1/√2, y=1/√2, z=0), k=(x=0, y=0, z=1), ϕ=0, λ=729.147e-9,
-            pointing::Array{Tuple{Int,Real}}
-        )
-
+    Laser(;E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, λ=729.147e-9, pointing::Array{Tuple{Int,Real}})
+        
+The physical parameters defining laser light.
 ### args
-* `label`: convenience label
 * `E::Union{Function,Real}`: magnitude of the E-field in V/m
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
@@ -28,8 +21,7 @@ abstract type Laser end
     (first element of the tuple is the index for an ion and the second element is the scaling
     factor for the laser's Efield which must be between 0 and 1).
 """
-mutable struct laser <: Laser
-    label::String
+mutable struct Laser
     E::Function
     Δ::Real
     ϵ::NamedTuple{(:x,:y,:z)}
@@ -37,9 +29,9 @@ mutable struct laser <: Laser
     ϕ::Function 
     λ::Real
     pointing::Vector
-    function laser(; 
-            label="", E=1e5, Δ=0, ϵ=(x=1/√2, y=1/√2, z=0), k=(x=0, y=0, z=1), ϕ=0, 
-            λ=c/ca40_qubit_transition_frequency, pointing=Array{Tuple{Int,<:Real}}(undef, 0)
+    function Laser(; 
+            E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, λ=c/ca40_qubit_transition_frequency, 
+            pointing=Array{Tuple{Int,<:Real}}(undef, 0)
         )
         rtol = 1e-6
         @assert isapprox(norm(ϵ), 1, rtol=rtol) "!(|ϵ| = 1)"
@@ -55,22 +47,22 @@ mutable struct laser <: Laser
         end
         typeof(E) <: Number ?  Et(t) = E : Et = E
         typeof(ϕ) <: Number ? ϕt(t) = ϕ : ϕt = ϕ
-        new(label, Et, Δ, ϵ, k, ϕt, λ, pointing)
+        new(Et, Δ, ϵ, k, ϕt, λ, pointing)
     end
     # for copying
-    laser(label, E, Δ, ϵ, k, ϕ, λ, pointing) = new(label, E, Δ, ϵ, k, ϕ, λ, pointing)
+    Laser(E, Δ, ϵ, k, ϕ, λ, pointing) = new(E, Δ, ϵ, k, ϕ, λ, pointing)
 end 
 
 function Base.print(L::Laser)
-    print("λ: ", L.λ, " m\n")
-    print("Δ: ", L.Δ, " Hz\n")
-    print("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))\n")
-    print("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))\n")
-    print("E(t=0): ", "$(L.E(0.0)) V/m\n")
-    print("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π\n")
+    println("λ: ", L.λ, " m")
+    println("Δ: ", L.Δ, " Hz")
+    println("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
+    println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
+    println("E(t=0): ", "$(L.E(0.0)) V/m")
+    println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
 end
 
-function Base.setproperty!(L::laser, s::Symbol, v)
+function Base.setproperty!(L::Laser, s::Symbol, v)
     rtol = 1e-6
     if s == :ϵ
         @assert isapprox(norm(v), 1, rtol=rtol) "!(|ϵ| = 1)"

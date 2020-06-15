@@ -1,49 +1,25 @@
 using QuantumOptics: tensor, CompositeBasis
 
 
-export Trap, trap, configuration, Bfield, Bhat, gradB, deltaB, get_lasers, get_basis
-export Efield_from_pi_time, Efield_from_pi_time!, transition_frequency, set_gradient!
-export Efield_from_rabi_frequency, Efield_from_rabi_frequency!, global_beam!
+export Trap, get_basis, Efield_from_pi_time, Efield_from_pi_time!, 
+       transition_frequency, set_gradient!, Efield_from_rabi_frequency, 
+       Efield_from_rabi_frequency!, global_beam!
 
-
-"""
-    Trap
-A container with all of the information necessary for simulation. (i.e. a collection of ions, 
-modes, lasers and their physical relationships).
-"""
-abstract type Trap end
-
-# required fields
-configuration(T::Trap)::IonConfiguration = T.configuration
-Bfield(T::Trap)::Union{Real,Function} = T.B
-Bhat(T::Trap)::NamedTuple{(:x,:y,:z)} = T.Bhat
-gradB(T::Trap)::Real = T.∇B
-deltaB(T::Trap)::Function = T.δB
-get_lasers(T::Trap)::Vector{Laser} = T.lasers
-function get_basis(T::Trap)::CompositeBasis 
-    tensor(
-            [I.basis for I in T.configuration.ions]..., 
-            T.configuration.vibrational_modes.x...,
-            T.configuration.vibrational_modes.y...,
-            T.configuration.vibrational_modes.z...,
-        )
-end 
-
-
+   
 #############################################################################################
-# a trap with a linear ion chain configuration
+# an ion trap with a linear ion chain configuration
 #############################################################################################
 
 """
-    trap(;
-            configuration::linearchain, B::Real=0, Bhat::NamedTuple{(:x,:y,:z)=ẑ, ∇B::Real=0,
+    Trap(;
+            configuration::LinearChain, B::Real=0, Bhat::NamedTuple{(:x,:y,:z)=ẑ, ∇B::Real=0,
              δB::Union{Real,Function}=0, lasers::Vector{Laser}
     )
 
-Information necessary to describe the Hamiltonian for a  collection of ions in a linear chain
+Information necessary to describe the Hamiltonian for a collection of ions in a linear chain
 interacting with laser light.
 #### user-defined fields
-* `configuration <: linearchain`
+* `configuration <: LinearChain`
 * `B`: either a real value describing the magnitude of the B-field or a function for
        describing its time dependence [Tesla]
 * `Bhat::NamedTuple{(:x,:y,:z)}`: for descibing the direction of the B-field, defaults to ẑ.
@@ -67,7 +43,7 @@ interacting with laser light.
     E.g. for:
 
     ```
-    chain = linearchain(ions=[C1, C2], com_frequencies=(x=2e6,y=2e6,z=1e6), 
+    chain = LinearChain(ions=[C1, C2], com_frequencies=(x=2e6,y=2e6,z=1e6), 
     selected_modes=(x=[1, 2], y=[], z=[1]))
     ```
 
@@ -76,17 +52,16 @@ interacting with laser light.
     `C1.basis ⊗ C2.basis ⊗ chain.vibrational_modes.x[1].basis 
     ⊗ chain.vibrational_modes.x[2].basis ⊗ chain.vibrational_modes.z[1].basis`
 """
-mutable struct trap <: Trap
-    configuration::linearchain
+mutable struct Trap
+    configuration::LinearChain
     B::Real
     Bhat::NamedTuple{(:x,:y,:z)}
     ∇B::Real
     δB::Function
     lasers::Array{<:Laser}
     basis::CompositeBasis
-    function trap(;
-            configuration::linearchain, B=0, Bhat=(x=0, y=0, z=1), ∇B=0, δB=0, 
-            lasers=Laser[]
+    function Trap(;
+            configuration::LinearChain, B=0, Bhat=(x=0, y=0, z=1), ∇B=0, δB=0, lasers=Laser[]
         )
         for i in 1:length(lasers)
             if length(lasers[i].pointing) == 0
@@ -111,7 +86,7 @@ mutable struct trap <: Trap
         end
         typeof(δB) <: Number ?  δBt(t) = δB : δBt = δB
         basis = tensor(
-            [I.basis for I in configuration.ions]..., 
+            configuration.ions..., 
             configuration.vibrational_modes.x...,
             configuration.vibrational_modes.y...,
             configuration.vibrational_modes.z...,
@@ -120,7 +95,7 @@ mutable struct trap <: Trap
     end
 end
 
-function Base.setproperty!(T::trap, s::Symbol, v)
+function Base.setproperty!(T::Trap, s::Symbol, v)
     if s == :δB
         typeof(v) <: Number ? vt(t) = v : vt = v
         Core.setproperty!(T, s, vt)
@@ -129,12 +104,25 @@ function Base.setproperty!(T::trap, s::Symbol, v)
     Core.setproperty!(T, s, v)
 end
 
-Base.show(io::IO, T::trap) = print(io, "trap")  # suppress long output
+Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
 
 
 #############################################################################################
 # general functions
 #############################################################################################
+
+"""
+    get_basis(T::Trap)
+Returns the composite basis describing the Hilbert space for `T`.
+"""
+function get_basis(T::Trap)::CompositeBasis 
+    tensor(
+            [I.basis for I in T.configuration.ions]..., 
+            T.configuration.vibrational_modes.x...,
+            T.configuration.vibrational_modes.y...,
+            T.configuration.vibrational_modes.z...,
+        )
+end 
 
 """
     global_beam!(T::Trap, laser::Laser)
@@ -292,14 +280,14 @@ end
 
 """
     set_gradient!(
-            T::trap, ion_indxs::Tuple{Int,Int}, transition::Tuple{String,String}, f::Real
+            T::Trap, ion_indxs::Tuple{Int,Int}, transition::Tuple{String,String}, f::Real
         )
 Sets the Bfield gradient in place to achieve a detuning `f` between the `transition` of two
 ions, which are assumed to be of the same species. `ion_indxs` refer to the 
 ordering of the ions in the chain.
 """
 function set_gradient!(
-        T::trap, ion_indxs::Tuple{Int,Int}, transition::Tuple{String,String}, f::Real
+        T::Trap, ion_indxs::Tuple{Int,Int}, transition::Tuple{String,String}, f::Real
     )
     ion1 = T.configuration.ions[ion_indxs[1]]
     ion2 = T.configuration.ions[ion_indxs[2]]

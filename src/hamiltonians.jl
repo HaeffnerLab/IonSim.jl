@@ -9,7 +9,7 @@ export get_η
 
 """
     hamiltonian(
-            T::trap, timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
+            T::Trap, timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
             rwa_cutoff::Real=Inf
         )
 Constructs the Hamiltonian for `T` as a function of time. Return type is a function 
@@ -27,7 +27,7 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
     if not using an RWA set to `Inf` (rather than a large number) for faster performance.**
 """
 function hamiltonian(
-        T::trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
+        T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
         rwa_cutoff::Real=Inf
     ) 
     hamiltonian(T, T.configuration, timescale, lamb_dicke_order, rwa_cutoff) 
@@ -39,7 +39,7 @@ end
 #############################################################################################
 
 function hamiltonian(
-        T::trap, configuration::LinearChain, timescale::Real, 
+        T::Trap, configuration::LinearChain, timescale::Real, 
         lamb_dicke_order::Union{Vector{Int},Int}, rwa_cutoff::Real
     )
     b, indxs, cindxs = _setup_base_hamiltonian(T, timescale, lamb_dicke_order, rwa_cutoff)

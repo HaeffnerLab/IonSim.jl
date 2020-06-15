@@ -73,21 +73,16 @@ and with axial trap frequency 2π × ν.
 characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1/3)
 
 """
-    Anm(N::Real, com::NamedTuple; axis::NamedTuple{(:x,:y,:z)}=ẑ)
-Computes the normal modes and corresponding trap frequencies for a collection of N ions in a 
-linear Coloumb crystal.
+    Anm(N::Real, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
+Computes the normal modes and corresponding trap frequencies along a particular `axis` for a 
+collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first 
+element the frequency of the normal mode and 2nd element the corresponding eigenvector.
 
-#### args
-* `N`: number of ions
-* `com`: NamedTuple of COM frequencies for the different axes, `(x=Real, y=Real, z=Real)`. 
-    The ``z``-axis is taken to be parallel to the axis of the crystal.
-* `axis`: the axis for which to compute the normal modes
-
-#### returns
-An array of tuples with first element the frequency of the normal mode and 2nd element the 
-corresponding eigenvector.
+`com` should be a `NamedTuple` of COM frequences for the different axes: 
+`(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of 
+the crystal.
 """
-function Anm(N::Int, com::NamedTuple{(:x,:y,:z)}; axis::NamedTuple{(:x,:y,:z)}=ẑ)
+function Anm(N::Int, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
     @assert axis in [x̂, ŷ, ẑ] "axis can be x̂, ŷ, ẑ"
     axis == ẑ ? a = 2 : a = -1
     l = linear_equilibrium_positions(N)
@@ -129,6 +124,9 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
             vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
         )
 
+Contains all of the information necessary to describe a collection of ions trapped in a 3D
+harmonic potential and forming a linear coulomb crystal.
+
 #### user-defined fields
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
@@ -159,9 +157,9 @@ struct LinearChain <: IonConfiguration
             end
         end
         N = length(ions)
-        A = (x=Anm(N, com_frequencies, axis=x̂), 
-             y=Anm(N, com_frequencies, axis=ŷ),
-             z=Anm(N, com_frequencies, axis=ẑ))
+        A = (x=Anm(N, com_frequencies, x̂), 
+             y=Anm(N, com_frequencies, ŷ),
+             z=Anm(N, com_frequencies, ẑ))
         vm = (x=Vector{VibrationalMode}(undef, 0),
               y=Vector{VibrationalMode}(undef, 0),
               z=Vector{VibrationalMode}(undef, 0))

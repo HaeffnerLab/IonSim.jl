@@ -11,7 +11,6 @@ export embed, ⊗, dagger, normalize, normalize!, expect, tr, ptrace, tracenorm,
 Base.copy(x::T) where T = T([getfield(x, k) for k ∈ fieldnames(T)]...)
 
 include("constants.jl")
-using .PhysicalConstants
 include("ions.jl")
 include("vibrational_modes.jl")
 include("lasers.jl")

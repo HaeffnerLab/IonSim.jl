@@ -1,10 +1,10 @@
-using QuantumOptics: projector, tensor, SparseOperator, DenseOperator
+using QuantumOptics: projector, tensor, SparseOperator, DenseOperator, basisstate, Ket
 using LinearAlgebra: diagm
 import QuantumOptics: displace, thermalstate, coherentthermalstate, fockstate
 
 
 export create, destroy, number, displace, coherentstate, coherentthermalstate, fockstate,
-       thermalstate, sigma, ion_state, ion_projector
+       thermalstate, sigma, ionprojector, ionstate
 
 
 #############################################################################################
@@ -67,7 +67,7 @@ function coherentstate(v::VibrationalMode, α::Number)
     @inbounds for n=1:v.N
         k[n+1] = k[n] * α / √n
     end
-    k
+    Ket(v, k)
 end
 
 """
@@ -87,42 +87,70 @@ Returns the fockstate ``|N⟩`` on `v`.
 fockstate(v::VibrationalMode, N::Int) = v[N]
 
 #############################################################################################
-# ion operators
+# Ion operators
 #############################################################################################
 
 """
-    sigma(ion::Ion, ψ1::String, ψ2::String)
-<br>Creates ``|ψ1\\rangle\\langle ψ2|``, where ``|ψ_i\\rangle`` corresponds to the state
+    ionstate(object, index)
+For `object<:Ion` and `index<:String`, this returns the ket corresponding to the `Ion` being 
+in the state ``|index⟩``. The object can also be an `IonConfiguration` or `Trap` instance, in
+which case ``N`` arguments should be given in place of `index`, where ``N`` equals the number
+of ions in the `IonConfiguration` or `Trap`. This will return the state 
+``|index₁⟩⊗|index₂⟩⊗...⊗|index\\_N⟩``.
+
+Rather than `index<:String`, one may also specify `index<:Int`. If `object<:Ion`, this will
+return the ket given by ``|index⟩ = (0 ... 1 ... 0)ᵀ`` where the nonzero element in the 
+column vector is located at `index`.
+"""
+function ionstate(I::Ion, state::String)
+    s = I.selected_level_structure.keys
+    @assert state in s "index not in selected_level_structure: $s"
+    i = findall(s .≡ state)[1]
+    basisstate(I, i)
+end
+
+function ionstate(IC::IonConfiguration, states::Union{String,Int}...)
+    ions = IC.ions
+    L = length(ions)
+    @assert L ≡ length(states) "wrong number of states"
+    tensor([ionstate(ions[i], states[i]) for i in 1:L]...)
+end
+
+ionstate(T::Trap, states::Union{String,Int}...) = ionstate(T.configuration, states...)
+ionstate(I::Ion, level::Int) = basisstate(I, level)
+
+"""
+    sigma(ion::Ion, ψ1::Union{String,Int}, ψ2::Union{String,Int})
+Returns ``|ψ1\\rangle\\langle ψ2|``, where ``|ψ_i\\rangle`` corresponds to the state
 returned by `ion[ψᵢ]`.
 """
-sigma(ion::Ion, ψ1::String, ψ2::String) = projector(ion[ψ1], dagger(ion[ψ2]))
+sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}} = projector(ion[ψ1], dagger(ion[ψ2]))
 
 """
-    ion_state(T::Trap, states...)
-<br>i.e. `ion_state(T, "S-1/2", "S-1/2")` returns `ion1["S-1/2"] ⊗ ion2["S-1/2"]`
+    ionprojector(obj, states::Union{String,Int}...; only_ions=false)
+
+If `obj<:IonConfiguration` this will return ``|ψ₁⟩⟨ψ₁|⊗...⊗|ψ\\_N⟩⟨ψ\\_N|⊗𝟙`` 
+where ``|ψᵢ⟩`` = `obj.ions[i][states[i]]` and the identity operator ``𝟙`` is over all of the 
+COM modes considered in `obj`.
+
+If `only_ions=true`, then the projector is defined only over the ion subspace.
+
+If instead `obj<:Trap`, then this is the same as `obj = Trap.configuration`.
 """
-function ion_state(T::trap, states...)
-    N = length(T.configuration.ions)
-    @assert N == length(states) "wrong number of states"
-    tensor([T.configuration.ions[i][states[i]] for i in 1:N])
+function ionprojector(IC::IonConfiguration, states::Union{String,Int}...; only_ions=false)
+    ions = IC.ions
+    L = length(ions)
+    @assert L ≡ length(states) "wrong number of states"
+    modes = get_vibrational_modes(IC)
+    observable = tensor([projector(ions[i][states[i]]) for i in 1:L]...)
+    if !only_ions
+        for mode in modes
+            observable = observable ⊗ one(mode)
+        end
+    end
+    observable
 end
 
-"""
-    ion_projector(T::trap, states...) 
-<br>i.e. `ion_projector(T, "S-1/2", "S-1/2")` returns:
-``|S-1/2\\rangle\\langle S-1/2| ⊗ |S-1/2\\rangle\\langle S-1/2| ⊗ 𝐼``, 
-where the identity ``𝐼`` is over the tensor product of all vibrational states.
-"""
-function ion_projector(T::trap, states...)
-    N = length(T.configuration.ions)
-    @assert N == length(states) "wrong number of states"
-    modes = collect(Iterators.flatten(T.configuration.vibrational_modes))
-    state = projector(T.configuration.ions[1][states[1]])
-    for i in 2:N
-        state = state ⊗ projector(T.configuration.ions[i][states[i]])
-    end
-    for mode in modes
-        state = state ⊗ one(mode)
-    end
-    state    
-end
+function ionprojector(T::Trap, states::Union{String,Int}...; only_ions=false)
+    ionprojector(T.configuration, states..., only_ions=only_ions)
+end 

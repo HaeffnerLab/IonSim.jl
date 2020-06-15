@@ -1,11 +1,12 @@
 using QuantumOptics: NLevelBasis, nlevelstate, Basis
 using WignerSymbols: wigner3j
+using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α
 
 
-export label, mass, level_structure, selected_level_structure, stark_shift
+export mass, level_structure, selected_level_structure, stark_shift
 export selected_matrix_elements, matrix_elements, get_basis, ion_number, ion_position
 export gJ, zeeman_shift, matrix_elements, zero_stark_shift
-export Ion, ca40
+export Ion, Ca40
 
 
 #############################################################################################
@@ -34,7 +35,7 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 #############################################################################################
 
 """
-    Ca40(;selected_level_structure::Vector{String})
+    Ca40(selected_level_structure::Vector{String}, [stark_shift])
 
 #### user-defined fields
 * `selected_level_structure`: 
@@ -46,12 +47,6 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
     * `E`: relative energies
     Note: indexing the instantiated structure with one of these strings will return 
     the corresponding `Ket`.
-* `selected_matrix_elements`: functions for the allowed transitions (contained in the 
-    selected levels) that return the corresponding coupling strengths. These functions take 
-    as arguments:
-    * `Efield`: magnitude of the electric field at the position of the ion [V/m]
-    * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
-    * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
 * `stark_shift`: A dictionary with keys, the selected levels, and values, a real value for 
     describing a shift of the level's energy. This is just a convenient way to add stark 
     shifts to the simulation without additional resources.
@@ -61,6 +56,12 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 * `matrix_elements::OrderedDict{Tuple,Function}`: same as `selected_matrix_elements` but for
     all of the ion's allowable transitions
 #### derived fields
+* `selected_matrix_elements`: functions for the allowed transitions (contained in the 
+    selected levels) that return the corresponding coupling strengths. These functions take 
+    as arguments:
+    * `Efield`: magnitude of the electric field at the position of the ion [V/m]
+    * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
+    * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
 * `shape::Vector{Int}`: indicates dimension of used Hilbert space
 * `number`: when the ion is added to an `IonConfiguration`, this value keeps track of its 
     location
@@ -77,7 +78,7 @@ mutable struct Ca40 <: Ion
     stark_shift::OrderedDict{String,Real}
     number::Union{Int,Nothing}
     position::Union{Real,Nothing}
-    function Ca40(;selected_level_structure="default", ss=Dict())
+    function Ca40(selected_level_structure; ss=Dict())
         fls, sls_dict, me, me_dict=_structure(selected_level_structure)
         shape = [length(sls_dict)]
         ss_full = OrderedDict{String,Float64}()
@@ -86,6 +87,7 @@ mutable struct Ca40 <: Ion
         end
         new(m_ca40, fls, sls_dict, shape, me, me_dict, ss_full, nothing, nothing)
     end
+    Ca40(;ss=Dict()) = Ca40("default", ss=ss)
     # for copying
     function Ca40(  
             mass, level_structure, selected_level_structure, shape, matrix_elements,
@@ -200,13 +202,13 @@ function matrix_elements(C::Ca40, transition::Vector{String}, Efield::Real, γ::
 end
 
 function Base.print(I::Ca40)
-    print("⁴⁰Ca  ('$(I.label)'))\n\n")
+    println("⁴⁰Ca\n")
     for (k, v) in I.selected_level_structure
-        print(k, ": ", v, "\n")
+        println(k, ": ", v)
     end
 end
 
-Base.show(io::IO, I::Ca40) = print(io, "⁴⁰Ca('$(I.label)')")  # suppress long output
+Base.show(io::IO, I::Ca40) = print(io, "⁴⁰Ca")  # suppress long output
 
 
 #############################################################################################
@@ -238,16 +240,12 @@ zeeman_shift(B::Real, p::NamedTuple) = (μB/ħ) * gJ(p.l, p.j) * B * p.mⱼ / 2�
 zeeman_shift(B::Real, p::Tuple) = zeeman_shift(B, (l=p[1], j=p[2], mⱼ=p[3]))
 zeeman_shift(;B::Real, l::Real, j::Real, mⱼ::Real) = zeeman_shift(B, (l=l, j=j, mⱼ=mⱼ))
 
-function Base.getindex(I::Ion, S::String)
-    s = I.selected_level_structure.keys
-    @assert S in s "index not in selected_level_structure: $s"
-    i = findall(s .≡ S)[1]
-    ionstate(I.basis, i)
-end
+Base.getindex(I::Ion, state::String) = ionstate(I, state)
+Base.getindex(I::Ion, state::Int) = ionstate(I, state)
 
 function Base.print(I::Ion)
     for (k, v) in I.selected_level_structure
-        print(k, ": ", v, "\n")
+        println(k, ": ", v)
     end
 end
 

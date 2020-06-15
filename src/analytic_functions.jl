@@ -37,7 +37,6 @@ end
 """
     rabi_flop(tspan, Ω::Real, η::Real, n̄::Real; s::Int=0) <br>
 Single ion rabi flop. Returns:
-
 ``\\sum_{n=0}^∞ p_n sin^2(\\Omega_n t)`` <br> with
 ``\\Omega_n = Ωe^{-η^2/2}η^s\\sqrt{\\frac{n!}{(n+s)!}}L_{n}^{s}(η^2)`` <br>
 where ``s`` is the order of the (blue) sideband that we are driving and ``L_{n}^{s}`` is the
