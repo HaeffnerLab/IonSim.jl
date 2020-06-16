@@ -67,5 +67,5 @@ function _laguerre(x, n)
     L[2]
 end
 
-_Pn(n̄::Real, n::Int) = n̄^n / ((n̄ + 1)^(n + 1))
+_Pn(n̄::Real, n::Int) = (n̄ / (n̄ + 1))^n / (n̄ + 1)
 
