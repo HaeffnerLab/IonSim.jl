@@ -1,6 +1,7 @@
 using SparseArrays: rowvals, nzrange, nonzeros
 using FunctionWrappers: FunctionWrapper
 using QuantumOptics: SparseOperator, embed
+using .PhysicalConstants: ħ, c
 
 
 export hamiltonian
@@ -547,9 +548,9 @@ function _Dnm(ξ::Number, n::Int, m::Int)
     ret
 end
 
-# Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ Xₙ (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
+# Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ X_n (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
 # indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
-# This function returns (k, l) such that: T[k, l] = X₁[i1, j1] ⊗ X₂[i2, j2] ⊗ ... ⊗ Xₙ[iN, jN]
+# This function returns (k, l) such that: T[k, l] = X₁[i1, j1] ⊗ X₂[i2, j2] ⊗...⊗ X_N[iN, jN]
 function _get_kron_indxs(indxs, dims)
     reverse!(dims)
     row, col = 0, 0

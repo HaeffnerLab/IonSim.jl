@@ -1,5 +1,6 @@
 using QuantumOptics: projector, tensor, SparseOperator, DenseOperator, basisstate, Ket
 using LinearAlgebra: diagm
+using PolynomialRoots: roots
 import QuantumOptics: displace, thermalstate, coherentthermalstate, fockstate
 
 
@@ -30,29 +31,54 @@ Returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`.
 number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:v.N))
 
 """
-    displace(v::VibrationalMode, α::Number)
+    displace(v::VibrationalMode, α::Number; method="truncated")
 Returns the displacement operator ``D(α)`` corresponding to `v`.
+
+If `method="truncated"` (default), the matrix elements are computed according to 
+``D(α) = exp[αa^† - α^*a]`` where ``a`` and ``a^†`` live in a truncated Hilbert space of 
+dimension `v.N+1`.
+Otherwise if `method="analytic"`, the matrix elements are computed assuming an
+infinite-dimension Hilbert space. In general, this option will not return a unitary operator.
 """
-function displace(v::VibrationalMode, α::Number)
+function displace(v::VibrationalMode, α::Number; method="truncated")
+    @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     D = zeros(ComplexF64, v.N+1, v.N+1)
-    @inbounds for n in 1:v.N+1, m in 1:v.N+1
-        D[n, m] = _Dnm(α, n, m)
+    if method ≡ "analytic"
+        @inbounds for n in 1:v.N+1, m in 1:v.N+1
+            D[n, m] = _Dnm(α, n, m)
+        end
+    elseif method ≡ "truncated"
+        m_α = abs(α)
+        p_α = atan(imag(α)/real(α))
+        rs = real.(roots(_He(v.N+1), polish=true))
+        for n in 0:v.N, m in 0:v.N
+            D[m+1, n+1] = _Dtrunc(m_α, p_α, rs, v.N, n, m)
+        end
     end
     DenseOperator(v, D)
 end
 
 """
-    thermalstate(v::VibrationalMode, n̄::Real)
+    thermalstate(v::VibrationalMode, n̄::Real; method="truncated")
 Returns a thermal density matrix with ``⟨a^†a⟩ ≈ n̄``. Note: approximate because we are 
 dealing with a finite dimensional Hilbert space that must be normalized.
+
+`method` can be set to either `"truncated"` (default) or `"analytic"`. In the former case,
+the thermal density matrix is generated according to the formula:
+``ρ_{th} = exp(-νa^†a/T) / Tr [exp(-νa^†a/T)]``. In the later case, the analytic formula, 
+assuming an infinite-dimensional Hilbert space, is used:
+``[ρ_{th}]_{ij} = δ_{ij} \\frac{nⁱ}{(n+1)^{i+1}}.``
 """
-function thermalstate(v::VibrationalMode, n̄::Real)
+function thermalstate(v::VibrationalMode, n̄::Real; method="truncated")
+    @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if n̄ == 0
         return v[0] ⊗ v[0]'
+    elseif method ≡ "truncated"
+        d = [(n̄ / (n̄+1))^i for i in 0:v.N]
+        return DenseOperator(v, diagm(0 => d) ./ sum(d))
+    elseif method ≡ "analytic"
+        return DenseOperator(v, diagm(0 => [(n̄ / (n̄+1))^i / (n̄+1) for i in 0:v.N]))
     end
-    T = 1 / (log((1 / n̄) + 1))
-    H = create(v) * destroy(v)
-    thermalstate(H, T)
 end
 
 """
@@ -71,12 +97,21 @@ function coherentstate(v::VibrationalMode, α::Number)
 end
 
 """
-    coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number)
-Returns a displaced thermal state for `v`. The mean occupation of the thermal state is `n̄` 
-, and `α` is the complex amplitude of the displacement.
+    coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method="truncated)
+Returns a displaced thermal state for `v`, which is created by applying a displacement
+operation to a thermal state. The mean occupation of the thermal state is `n̄` and `α` is the 
+complex amplitude of the displacement.
+
+`method` can be either `"truncated"` or `"analytic"` and this argument determines how the 
+displacement operator is computed (see: [`displace`](@ref)) .
 """
-function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number)
-    d = displace(v, α)
+function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method="truncated")
+    @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
+    if method ≡ "truncated"
+        d = displace(v, α)
+    elseif method ≡ "analytic"
+        d = displace(v, α, method="analytic")
+    end
     d * thermalstate(v, n̄) * d'
 end
 
@@ -154,3 +189,74 @@ end
 function ionprojector(T::Trap, states::Union{String,Int}...; only_ions=false)
     ionprojector(T.configuration, states..., only_ions=only_ions)
 end 
+
+
+#############################################################################################
+# internal functions
+#############################################################################################
+
+# computes iⁿ(-i)ᵐ * (s! / ((s+1) * √(m!n!)))
+function _pf(s::Int, n::Int, m::Int)
+    @assert n<=s && m<=s
+    val = 1
+    for i in 0:s-2
+        if (m-i > 0) && (n-i > 0)
+            val *= (s-i) / √((m-i) * (n-i))
+        elseif m-i > 0
+            val *= (s-i) / √(m-i)
+        elseif n-i > 0
+            val *= (s-i) / √(n-i)
+        else
+            val *= s-i
+        end
+    end
+    1im^n * (-1im)^m * val / (s+1)
+end
+
+# computes the coefficients for the 'probabilist's' Hermite polynomial of order n
+function _He(n::Int)
+    a = zeros(Float64, n+2, n+2)
+    a[1, 1] = 1; a[2, 1] = 0; a[2, 2] = 1
+    for i in 2:n+1, j in 1:n+1
+        if j ≡ 1
+            a[i+1, j] = -(i-1) * a[i-1, j]
+        else
+            a[i+1, j] = a[i, j-1] - (i-1) * a[i - 1, j]
+        end
+    end
+    [a[n+1, k+1] for k in 0:n]
+end
+
+# computes He_n(x) (nth order Hermite polynomial)
+function _fHe(x::Real, n::Int)
+    He = 1.0, x
+    if n < 2
+        return He[n+1]
+    end
+    for i in 2:n
+        He = He[2], x * He[2] - (i-1) * He[1] 
+    end
+    He[2]
+end
+
+function _fHe1(x::Real; He)
+    val = 0.
+    for i in 1:length(He)
+        v = He[i]
+        if He[i] != 0
+            val += x^(i-1) * He[i]
+        end
+    end
+    val
+end
+
+# computes the matrix elements ⟨m|Dˢ(α)|n⟩ for the truncated displacement operator Dˢ(α)
+# which exists in a Hilbert space of dimension s
+function _Dtrunc(m_α, p_α, rs, s, n, m)
+    prefactor = _pf(s, n, m) * exp(im * (m-n) * p_α)
+    val = 0.0im
+    for r in rs
+        val += exp(im * r * m_α) * _fHe(r, m) * _fHe(r, n) / _fHe(r, s)^2
+    end
+    prefactor * val
+end
