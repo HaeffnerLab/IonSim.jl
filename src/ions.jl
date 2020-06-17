@@ -1,12 +1,11 @@
-using QuantumOptics: NLevelBasis, nlevelstate, Basis
+using QuantumOptics: Basis
 using WignerSymbols: wigner3j
-using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α
+using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
 
 
-export mass, level_structure, selected_level_structure, stark_shift
-export selected_matrix_elements, matrix_elements, get_basis, ion_number, ion_position
-export gJ, zeeman_shift, matrix_elements, zero_stark_shift
-export Ion, Ca40
+export mass, level_structure, selected_level_structure, stark_shift,
+       selected_matrix_elements, matrix_element, get_basis, ion_number, ion_position,
+       gJ, zeeman_shift, matrix_elements, zero_stark_shift, Ion, Ca40
 
 
 #############################################################################################
@@ -35,7 +34,7 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 #############################################################################################
 
 """
-    Ca40(selected_level_structure::Vector{String}, [stark_shift])
+    Ca40(selected_level_structure::Vector{String}[, stark_shift])
 
 #### user-defined fields
 * `selected_level_structure`: 
@@ -47,26 +46,26 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
     * `E`: relative energies
     Note: indexing the instantiated structure with one of these strings will return 
     the corresponding `Ket`.
-* `stark_shift`: A dictionary with keys, the selected levels, and values, a real value for 
-    describing a shift of the level's energy. This is just a convenient way to add stark 
-    shifts to the simulation without additional resources.
+* `stark_shift`: A dictionary with keys denoting the selected levels and values, a real 
+    number for describing a shift of the level's energy. This is just a convenient way to add 
+    Stark shifts to the simulation without additional resources.
 #### fixed fields
-* `mass::Real`: the ion's mass in kg
-* `level_structure`: A full description of the ion's electronic structure
-* `matrix_elements::OrderedDict{Tuple,Function}`: same as `selected_matrix_elements` but for
-    all of the ion's allowable transitions
+* `mass::Real`: The ion's mass in kg.
+* `level_structure`: A full description of the ion's electronic structure.
+* `matrix_elements::OrderedDict{Tuple,Function}`: Same as `selected_matrix_elements` but for
+    all of the ion's allowed transitions.
 #### derived fields
-* `selected_matrix_elements`: functions for the allowed transitions (contained in the 
+* `selected_matrix_elements`: Functions for the allowed transitions (contained in the 
     selected levels) that return the corresponding coupling strengths. These functions take 
     as arguments:
     * `Efield`: magnitude of the electric field at the position of the ion [V/m]
     * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
     * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
-* `shape::Vector{Int}`: indicates dimension of used Hilbert space
-* `number`: when the ion is added to an `IonConfiguration`, this value keeps track of its 
-    location
-* `position`: when the ion is added to an `IonConfiguration`, this value keeps track of its
-    physical position in meters
+* `shape::Vector{Int}`: Indicates the dimension of the used Hilbert space.
+* `number`: When the ion is added to an `IonConfiguration`, this value keeps track of its 
+    order in the chain.
+* `position`: @hen the ion is added to an `IonConfiguration`, this value keeps track of its
+    physical position in meters.
 """
 mutable struct Ca40 <: Ion
     mass::Real
@@ -173,29 +172,23 @@ function _ca40_matrix_elements(
     wig = abs(wigner3j(t1.j, t2.j - t1.j, t2.j, -t1.mⱼ, t1.mⱼ - t2.mⱼ, t2.mⱼ))
     Ω * _ca40_geo[Δm+1](γ, ϕ) * wig
 end
-            
-function _ca40_matrix_elements(
-        ls::Union{OrderedDict,Dict}, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real
-    )
-    _ca40_matrix_elements(ls[transition[1]], ls[transition[2]], Efield, γ, ϕ)
-end
 
 """
-    matrix_elements(transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
+    matrix_element(transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
 
-Computes the coupling strengths of the various S <-> D transitions in ⁴⁰Ca.
+Computes the coupling strengths of the various S ⟷ D transitions in ⁴⁰Ca.
 See e.g. page 30 of 
 [Roos's thesis](https://quantumoptics.at/images/publications/dissertation/roos_diss.pdf).
 Only considers linearly polarized light fields.
 
 ### args
-* `C`: ca40 ion
+* `C`: Ca40 ion
 * `transition`: i.e. ["S-1/2", "D-1/2"]
 * `Efield`: magnitude of the electric field at the position of the ion [V/m]
 * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
 * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
 """
-function matrix_elements(C::Ca40, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
+function matrix_element(C::Ca40, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
     t1 = C.level_structure[transition[1]]
     t2 = C.level_structure[transition[2]]
     _ca40_matrix_elements((t1, t2), Efield, γ, ϕ)
@@ -208,7 +201,7 @@ function Base.print(I::Ca40)
     end
 end
 
-Base.show(io::IO, I::Ca40) = print(io, "⁴⁰Ca")  # suppress long output
+Base.show(io::IO, I::Ca40) = println(io, "⁴⁰Ca")  # suppress long output
 
 
 #############################################################################################
@@ -228,7 +221,7 @@ gJ(l::Real, j::Real; s::Real=1/2) = 3/2 + (s * (s + 1) - l * (l + 1)) / (2j * (j
 
 """
     zeeman_shift(B::Real, l::Real, j::Real, mⱼ::Real)
-``ΔE = (μ_B/ħ) \\cdot g_J(l, j) \\cdot B \\cdot mⱼ / 2π``
+``ΔE = (μ_B/ħ) ⋅ g_J(l, j) ⋅ B ⋅ mⱼ / 2π``
 ### args
 * `B`: magnitude of B-field at ion
 * `l`: orbital angular momentum quantum number
@@ -243,16 +236,10 @@ zeeman_shift(;B::Real, l::Real, j::Real, mⱼ::Real) = zeeman_shift(B, (l=l, j=j
 Base.getindex(I::Ion, state::String) = ionstate(I, state)
 Base.getindex(I::Ion, state::Int) = ionstate(I, state)
 
-function Base.print(I::Ion)
-    for (k, v) in I.selected_level_structure
-        println(k, ": ", v)
-    end
-end
-
 function Base.getproperty(I::Ion, s::Symbol)
     if s == :number || s == :position
         if typeof(getfield(I, s)) <: Nothing
-            print("ion has not been added to a configuration")
+            @warn "ion has not been added to a configuration"
         return
         end
     end
