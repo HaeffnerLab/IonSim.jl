@@ -1,6 +1,5 @@
 using QuantumOptics: tensor, CompositeBasis
 
-
 export Trap, get_basis, Efield_from_pi_time, Efield_from_pi_time!, 
        transition_frequency, set_gradient!, Efield_from_rabi_frequency, 
        Efield_from_rabi_frequency!, global_beam!
@@ -19,27 +18,26 @@ export Trap, get_basis, Efield_from_pi_time, Efield_from_pi_time!,
 Information necessary to describe the Hamiltonian for a collection of ions in a linear chain
 interacting with laser light.
 #### user-defined fields
-* `configuration <: LinearChain`
-* `B`: either a real value describing the magnitude of the B-field or a function for
-       describing its time dependence [Tesla]
-* `Bhat::NamedTuple{(:x,:y,:z)}`: for descibing the direction of the B-field, defaults to ẑ.
-* `∇B`: magnitude of the B-field gradient. We assume that the gradient always points along the
+* `configuration<:LinearChain`
+* `B`: A real value describing the mean magnitude of the B-field [Tesla].
+* `Bhat::NamedTuple{(:x,:y,:z)}`: Describes the direction of the B-field (defaults to ẑ).
+* `∇B`: Magnitude of the B-field gradient. We assume that the gradient always points along the
         z-direction. [Tesla / meter]
-* `δB::Function`: time-dependence of the B-field [Tesla]
+* `δB::Function`: Time-dependence of the B-field [Tesla]
 * `lasers::Array{<:Laser}`: For each laser in the array, the pointing field should contain
         an array of `Tuple{Int,Real}`. The first element specifies the index of an ion
         in the `ions` field that the laser interacts with. The second element specifies a 
         scaling factor for the strength of that interaction (to be used, e.g., for 
-        modelling cross-talk).
+        modeling cross-talk).
 #### derived fields:
-* `basis::CompositeBasis`: The basis for describing the combined system, ions + vibrational
-        modes. The ordering of the basis is set, by convention, as 
-        ion₁ ⊗ ion₂ ⊗ ... ⊗ ionₙ ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ modeₙ, where the ion bases are
+* `basis<:CompositeBasis`: The basis for describing the combined system, ions + vibrational
+        modes. If constructing the Hamiltonian explictly (with [`hamiltonian`](@ref)), then
+        the ordering of the basis is set, by convention, as 
+        ``ion₁ ⊗ ion₂ ⊗ ... ⊗ ion_N ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ mode_N``, where the ion bases are
         ordered according to the order in `T.configuration.ions` and the vibrational modes
         are ordered according to the order in 
         `[T.configuration.vibrational_modes.x, T.configuration.vibrational_modes.y, 
-        T.configuration.vibrational_modes.z`].
-        
+        T.configuration.vibrational_modes.z]`.       
     E.g. for:
 
     ```
@@ -51,6 +49,8 @@ interacting with laser light.
 
     `C1.basis ⊗ C2.basis ⊗ chain.vibrational_modes.x[1].basis 
     ⊗ chain.vibrational_modes.x[2].basis ⊗ chain.vibrational_modes.z[1].basis`
+    
+    Otherwise, the ordering is according to the form of the initial state used in the solver.
 """
 mutable struct Trap
     configuration::LinearChain
@@ -139,7 +139,21 @@ end
         pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
         transition::Union{Tuple{String,String},Vector{<:String}}
     )
-Compute the Efield needed to get a certain pi_time with a certain laser-ion-transition.
+Compute the E-field needed to get a certain `pi_time` with a certain `laser`-`ion` 
+`transition`.
+
+Alternatively, one may use
+```
+Efield_from_pi_time(
+            pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
+            transition::Union{Tuple{String,String},Vector{<:String}}
+        )
+```
+which is the same as 
+`Efield_from_pi_time(pi_time, T.Bhat, T.lasers[laser_index], T.configuration.ions[ion_index],
+transition)`
+
+Or `Efield_from_pi_time!`, which updates the laser's `:E` field in-place.
 """
 function Efield_from_pi_time(
     pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
@@ -158,27 +172,6 @@ function Efield_from_pi_time(
     1 / (2Ω * pi_time) 
 end
 
-"""
-    Efield_from_rabi_frequency(
-        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-        transition::Union{Tuple{String,String},Vector{<:String}}
-    )
-Compute the Efield needed to get a certain rabi frequency with a certain laser-ion-transition.
-"""
-function Efield_from_rabi_frequency(
-    Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-    transition::Union{Tuple{String,String},Vector{<:String}})
-    Efield_from_pi_time(1 / 2Ω, Bhat, laser, ion, transition)
-end
-
-"""
-    Efield_from_pi_time(
-            pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
-            transition::Union{Tuple{String,String},Vector{<:String}}
-        ) 
-`laser_index` and `ion_index` refer to the position of the desired laser, ion in 
-`T.lasers` and `T.configuration.ions`.
-"""
 function Efield_from_pi_time(
         pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
         transition::Union{Tuple{String,String},Vector{<:String}}
@@ -189,14 +182,49 @@ function Efield_from_pi_time(
         )
 end
 
+function Efield_from_pi_time!(
+    pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+    transition::Union{Tuple{String,String},Vector{<:String}}
+)
+Efield::Float64 = Efield_from_pi_time(pi_time, Bhat, laser, ion, transition)    
+laser.E = t -> Efield
+end
+
+function Efield_from_pi_time!(
+    pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
+    transition::Union{Tuple{String,String},Vector{<:String}}
+)
+Efield::Float64 = Efield_from_pi_time(pi_time, T, laser_index, ion_index, transition)    
+T.lasers[laser_index].E = t -> Efield
+end
+
 """
     Efield_from_rabi_frequency(
+        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+        transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+Compute the Efield needed to get a certain rabi frequency `Ω` with a certain `laser`-`ion` 
+`transition`.
+
+Alternatively, one may use
+```
+Efield_from_rabi_frequency(
             Ω::Real, T::Trap, laser_index::Int, ion_index::Int, 
             transition::Union{Tuple{String,String},Vector{<:String}}
-        ) 
-`laser_index` and `ion_index` refer to the position of the desired laser, ion in 
-`T.lasers` and `T.configuration.ions`.
+        )
+```
+which is the same as 
+`Efield_from_rabi_frequency(pi_time, T.Bhat, T.lasers[laser_index], 
+T.configuration.ions[ion_index], transition)`
+
+Or `Efield_from_rabi_frequency!`, which updates the laser's `:E` field in-place.
 """
+function Efield_from_rabi_frequency(
+    Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+    transition::Union{Tuple{String,String},Vector{<:String}})
+    Efield_from_pi_time(1 / 2Ω, Bhat, laser, ion, transition)
+end
+
 function Efield_from_rabi_frequency(
         Ω::Real, T::Trap, laser_index::Int, ion_index::Int, 
         transition::Union{Tuple{String,String},Vector{<:String}}
@@ -205,22 +233,6 @@ function Efield_from_rabi_frequency(
             Ω, T.Bhat, T.lasers[laser_index], T.configuration.ions[ion_index],
             transition
         )
-end
-
-function Efield_from_pi_time!(
-        pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-        transition::Union{Tuple{String,String},Vector{<:String}}
-    )
-    Efield::Float64 = Efield_from_pi_time(pi_time, Bhat, laser, ion, transition)    
-    laser.E = t -> Efield
-end
-
-function Efield_from_pi_time!(
-        pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
-        transition::Union{Tuple{String,String},Vector{<:String}}
-    )
-    Efield::Float64 = Efield_from_pi_time(pi_time, T, laser_index, ion_index, transition)    
-    T.lasers[laser_index].E = t -> Efield
 end
 
 function Efield_from_rabi_frequency!(
@@ -243,7 +255,20 @@ end
     transition_frequency(
         B::Real, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
     )
-Compute the transition frequency of the ion's selected transition under Bfield `B`.
+Compute the transition frequency of the `ion`'s selected transition under Bfield `B`.
+Alternatively, one may use:
+```
+transition_frequency(
+        T::Trap, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+```
+which is the same as `transition_frequency(T.B, ion, transition)` or
+```
+transition_frequency(
+        T::Trap, ion_index::Int, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+```
+which is the same as `transition_frequency(T.B, T.configuration.ions[ion_index], transition)`.
 """
 function transition_frequency(
         B::Real, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
@@ -251,12 +276,6 @@ function transition_frequency(
     diff([map(x -> zeeman_shift(B, ion.selected_level_structure[x]), transition)...])[1]
 end
 
-"""
-    transition_frequency(
-            T::Trap, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
-        )
-take B-field as given by `T.B`
-"""
 function transition_frequency(
         T::Trap, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
     )
@@ -264,12 +283,6 @@ function transition_frequency(
     transition_frequency(B, ion, transition)
 end
 
-"""
-    transition_frequency(
-            T::Trap, ion_index::Int, transition::Union{Tuple{String,String},Vector{<:String}}
-        )
-take B-field as given by `T.B` and ion as given by `T.configuration.ions[ion_index]`.
-"""
 function transition_frequency(
         T::Trap, ion_index::Int, transition::Union{Tuple{String,String},Vector{<:String}}
     )
@@ -292,6 +305,6 @@ function set_gradient!(
     ion1 = T.configuration.ions[ion_indxs[1]]
     ion2 = T.configuration.ions[ion_indxs[2]]
     separation = abs(ion1.position - ion2.position)
-    E1, E2 = map(x->zeeman_shift(1, ion1.selected_level_structure[x]), transition)
+    E1, E2 = map(x -> zeeman_shift(1, ion1.selected_level_structure[x]), transition)
     T.∇B = f / (abs(E2 - E1) * separation)
 end
