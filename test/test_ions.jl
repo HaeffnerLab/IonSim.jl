@@ -11,8 +11,8 @@ const pc = IonSim.PhysicalConstants
     @test selected_level_structure(C) == level_structure(C)
     @test typeof(matrix_elements(C)) == OrderedDict{Tuple,Function}
     @test selected_matrix_elements(C) == matrix_elements(C)
-    @test typeof(ion_number(C)) <: Nothing
-    @test typeof(ion_position(C)) <: Nothing
+    @test typeof(ion_number(C)) <: Missing
+    @test typeof(ion_position(C)) <: Missing
     @test typeof(stark_shift(C)) == OrderedDict{String,Real}
 
     # test inner constructors for Ca40

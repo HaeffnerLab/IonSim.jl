@@ -6,7 +6,7 @@ using Test, IonSim
 # setup system
 C = Ca40(["S-1/2", "D-1/2"])
 chain = LinearChain(
-    ions=[C, C], com_frequencies=(x=2,y=2,z=1), selected_modes=(x=[1], y=[], z=[1])
+    ions=[C, C], com_frequencies=(x=2,y=2,z=1), vibrational_modes=(x=[1], y=[], z=[1])
 )
 T = Trap(configuration=chain)
 modes = get_vibrational_modes(chain) 

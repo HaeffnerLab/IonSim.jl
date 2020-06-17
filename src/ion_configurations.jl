@@ -32,27 +32,27 @@ all ions have the same mass.
 function linear_equilibrium_positions(N::Int) 
     function f!(F, x, N) 
         for i in 1:N
-            F[i] = begin
-                x[i] - 
-                sum([1 / (x[i] - x[j])^2 for j in 1:i-1]) + 
-                sum([1 / (x[i] - x[j])^2 for j in i+1:N])
-            end
+            F[i] = (
+                x[i]
+              - sum([1 / (x[i] - x[j])^2 for j in 1:i-1])
+              + sum([1 / (x[i] - x[j])^2 for j in i+1:N])
+            )
         end
     end
     
     function j!(J, x, N)
         for i in 1:N, j in 1:N
             if i ≡ j
-                J[i, j] = begin
-                    1 + 
-                    2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1]) - 
-                    2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
-                end
+                J[i, j] = (
+                    1 
+                  + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1])
+                  - 2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
+            )
             else
-                J[i, j] = begin
-                    -2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1]) + 
-                    2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
-                end
+                J[i, j] = (
+                  - 2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1])
+                  + 2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
+            )
             end
         end
     end
@@ -133,28 +133,34 @@ harmonic potential and forming a linear coulomb crystal.
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
         Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
         parallel to the crystal's symmetry axis.
-* `selected_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `selected_modes=(x=[1], y=[2], z=[1,2])`. 
+* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
-    mode away from the COM for that axis. For example, `selected_modes=(z=[2])` would 
+    mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
+    Note: `vibrational_modes=(x=[],y=[],z=[1])`, `vibrational_modes=(y=[],z=[1])`
+    and `vibrational_modes=(;z=[1])` are all acceptable and equivalent.
 #### derived fields
 * `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an 
     array of tuples where the first element is a vibrational frequency [Hz] and the second
     element is a vector describing the corresponding normalized normal mode structure.
 """
-struct LinearChain <: IonConfiguration
+struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x,:y,:z)}
     vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
     full_normal_mode_description::NamedTuple{(:x,:y,:z)}
     function LinearChain(; 
-            ions, com_frequencies, selected_modes::NamedTuple{(:x,:y,:z)}, 
+            ions, com_frequencies, vibrational_modes::NamedTuple, 
         )
-        for i in 1:length(ions)-1, j in i+1:length(ions)
-            if ions[j] == ions[i]
+        vibrational_modes = _construct_vibrational_modes(vibrational_modes)
+        warn = nothing
+        for i in 1:length(ions), j in i+1:length(ions)
+            if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
-                @warn "some ions point to the same thing. Making copies."
-                break
+                if isnothing(warn)
+                    warn = "Some ions point to the same thing. Making copies."
+                    @warn warn
+                end
             end
         end
         N = length(ions)
@@ -165,7 +171,7 @@ struct LinearChain <: IonConfiguration
               y=Vector{VibrationalMode}(undef, 0),
               z=Vector{VibrationalMode}(undef, 0))
         r = [x̂, ŷ, ẑ]
-        for (i, modes) in enumerate(selected_modes), mode in modes
+        for (i, modes) in enumerate(vibrational_modes), mode in modes
             push!(vm[i], VibrationalMode(A[i][mode]..., axis=r[i]))
         end
         l = linear_equilibrium_positions(length(ions))
@@ -178,16 +184,38 @@ struct LinearChain <: IonConfiguration
     end
 end
 
+"""
+    get_vibrational_modes(lc::LinearChain)
+Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
+The order is `[lc.x..., lc.y..., lc.z...]`.
+"""
 function get_vibrational_modes(lc::LinearChain)
     collect(Iterators.flatten(lc.vibrational_modes))
 end
 
 function Base.print(lc::LinearChain)
-    print("$(length(lc.ions)) ions\n")
-    print("com frequencies: $(lc.com_frequencies)\n")
-    print("selected vibrational_modes: $(lc.vibrational_modes)\n")
+    println("$(length(lc.ions)) ions")
+    println("com frequencies: $(lc.com_frequencies)")
+    println("selected vibrational_modes: $(lc.vibrational_modes)")
 end
 
 function Base.show(io::IO, lc::LinearChain)  # suppress long output
     print(io, "LinearChain($(length(lc.ions)) ions)")
+end
+
+# Takes e.g. (y=[1]) to (x=[], y=[1], z=[])
+function _construct_vibrational_modes(x)
+    k = collect(keys(x))
+    xyz = [:x, :y, :z]
+    @assert isnothing(findfirst(x -> x ∉ xyz, k)) "keys of `vibrational_modes` must be `:x`, `:y` or `:z`"
+    indxs = findall(x -> x ∉ k, xyz)
+    values = []
+    for i in 1:3
+        if i in indxs
+            push!(values, Int[])
+        else
+            push!(values, x[xyz[i]])
+        end
+    end
+    (; zip(xyz, values)...)
 end

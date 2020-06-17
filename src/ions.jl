@@ -75,8 +75,8 @@ mutable struct Ca40 <: Ion
     matrix_elements::OrderedDict{Tuple,Function}
     selected_matrix_elements::OrderedDict{Tuple,Function}
     stark_shift::OrderedDict{String,Real}
-    number::Union{Int,Nothing}
-    position::Union{Real,Nothing}
+    number::Union{Int,Missing}
+    position::Union{Real,Missing}
     function Ca40(selected_level_structure; ss=Dict())
         fls, sls_dict, me, me_dict=_structure(selected_level_structure)
         shape = [length(sls_dict)]
@@ -84,7 +84,7 @@ mutable struct Ca40 <: Ion
         for level in keys(sls_dict)
             haskey(ss, level) ? ss_full[level] = ss[level] : ss_full[level] = 0.
         end
-        new(m_ca40, fls, sls_dict, shape, me, me_dict, ss_full, nothing, nothing)
+        new(m_ca40, fls, sls_dict, shape, me, me_dict, ss_full, missing, missing)
     end
     Ca40(;ss=Dict()) = Ca40("default", ss=ss)
     # for copying
