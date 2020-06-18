@@ -16,9 +16,11 @@ using Test, IonSim
     L = Laser(E=1, ϕ=1)
     ones = [1 for _ in t]
     # should be able to set L.E, L.ϕ to a function of time
-    @assert L.E.(t) == ones && L.ϕ.(t) == ones
+    @test L.E.(t) == ones
+    @test L.ϕ.(t) == ones
     L = Laser(E=sin, ϕ=sin)
-    @assert L.E.(t) == sin.(t) && L.ϕ.(t) == sin.(t)
+    @test L.E.(t) == sin.(t)
+    @test L.ϕ.(t) == sin.(t)
     
     # test that normalization is enforced for altered L.ϵ/L.k
     @test_throws AssertionError L.ϵ = (x=2, y=0, z=0)

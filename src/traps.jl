@@ -63,17 +63,20 @@ mutable struct Trap
     function Trap(;
             configuration::LinearChain, B=0, Bhat=(x=0, y=0, z=1), ∇B=0, δB=0, lasers=Laser[]
         )
+        warn = nothing
         for i in 1:length(lasers)
             if length(lasers[i].pointing) == 0
                 for n in eachindex(configuration.ions)
                     push!(lasers[i].pointing, (n, 1.0))
                 end
             end
-            for j in 1:i-1
-                if lasers[j] == lasers[i]
+            for j in i+1:length(lasers)
+                if lasers[j] ≡ lasers[i]
                     lasers[j] = copy(lasers[i])
-                    @warn "Some lasers point to the same memory address. Making copies."
-                    break
+                    if isnothing(warn)
+                        warn = "Some lasers point to the same thing. Making copies."
+                        @warn warn
+                    end
                 end
             end
         end
@@ -99,9 +102,18 @@ function Base.setproperty!(T::Trap, s::Symbol, v)
     if s == :δB
         typeof(v) <: Number ? vt(t) = v : vt = v
         Core.setproperty!(T, s, vt)
+    elseif s == :basis
         return
+    elseif s == :configuration
+        Core.setproperty!(T, s, v)
+        basis = tensor(
+            v.ions..., v.vibrational_modes.x..., v.vibrational_modes.y...,
+            v.vibrational_modes.z...,
+        )
+        Core.setproperty!(T, :basis, basis)
+    else
+        Core.setproperty!(T, s, v)
     end
-    Core.setproperty!(T, s, v)
 end
 
 Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
@@ -117,7 +129,7 @@ Returns the composite basis describing the Hilbert space for `T`.
 """
 function get_basis(T::Trap)::CompositeBasis 
     tensor(
-            [I.basis for I in T.configuration.ions]..., 
+            T.configuration.ions..., 
             T.configuration.vibrational_modes.x...,
             T.configuration.vibrational_modes.y...,
             T.configuration.vibrational_modes.z...,
@@ -158,9 +170,11 @@ Or `Efield_from_pi_time!`, which updates the laser's `:E` field in-place.
 function Efield_from_pi_time(
     pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
     transition::Union{Tuple{String,String},Vector{<:String}}
-)
+)   
+    p = laser.pointing
     (γ, ϕ) = map(x -> rad2deg(acos(ndot(Bhat, x))), [laser.ϵ, laser.k])
-    s_indx = findall(x -> x[1] == ion.number, laser.pointing)
+    s_indx = findall(x -> x[1] == ion.number, p)
+    @assert length(p) > 0 "This laser doesn't shine on any ions"
     s = laser.pointing[s_indx[1]][2]
     Ω = s * ion.selected_matrix_elements[tuple(transition...)](1, γ, ϕ)
     if Ω < 1e-15
