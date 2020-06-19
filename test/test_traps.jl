@@ -120,4 +120,15 @@ end
     f1 = transition_frequency(T, T.configuration.ions[1], transition)
     f2 = transition_frequency(T, T.configuration.ions[2], transition)
     @test abs(f1 - f2) ≈ 1e6
+
+    # test :(==)
+    chain1 = LinearChain(
+            ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(x=[1], z=[1])
+        )
+    T = Trap(configuration=chain1, lasers=[L1, L2])
+    xmode = chain1.vibrational_modes.x[1]
+    zmode = chain1.vibrational_modes.z[1]
+    cb = get_basis(T)
+    @test cb == C ⊗ C ⊗ xmode ⊗ zmode
+    @test cb != C ⊗ C ⊗ zmode ⊗ xmode
 end
