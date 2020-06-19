@@ -332,3 +332,19 @@ function set_gradient!(
     E1, E2 = map(x -> zeeman_shift(1, ion1.selected_level_structure[x]), transition)
     T.∇B = f / (abs(E2 - E1) * separation)
 end
+
+# In QunatumOptics.jl, this method will return true whenever the shapes of b1 and b2 match,
+# but we'd like to distinguish, i.e., between Ion ⊗ mode1 ⊗ mode2 and Ion ⊗ mode2 ⊗ mode1
+# when mode1.N == mode2.N but mode1.axis ≠ mode2.axis
+function Base.:(==)(b1::T, b2::T) where {T<:CompositeBasis}
+    N = length(b1.bases)
+    if N ≠ length(b2.bases)
+        return false
+    end
+    for i in 1:N
+        if !(b1.bases[i] == b2.bases[i])
+            return false
+        end
+    end
+    return true
+end
