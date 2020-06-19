@@ -41,21 +41,23 @@ Otherwise if `method="analytic"`, the matrix elements are computed assuming an
 infinite-dimension Hilbert space. In general, this option will not return a unitary operator.
 """
 function displace(v::VibrationalMode, α::Number; method="truncated")
+    @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     D = zeros(ComplexF64, v.N+1, v.N+1)
-    if method ≡ "analytic"
-        @inbounds for n in 1:v.N+1, m in 1:v.N+1
-            D[n, m] = _Dnm(α, n, m)
+    if α == 0
+        return one(v)
+    elseif method ≡ "analytic"
+        @inbounds begin 
+            @simd for n in 1:v.N+1 
+                @simd for m in 1:v.N+1
+                    D[n, m] = _Dnm(α, n, m)
+                end
+            end
         end
+        return DenseOperator(v, D)
     elseif method ≡ "truncated"
-        m_α = abs(α)
-        p_α = atan(imag(α)/real(α))
-        rs = real.(roots(_He(v.N+1), polish=true))
-        for n in 0:v.N, m in 0:v.N
-            D[m+1, n+1] = _Dtrunc(m_α, p_α, rs, v.N, n, m)
-        end
+        return exp(dense(α * create(v) - conj(α) * destroy(v)))
     end
-    DenseOperator(v, D)
 end
 
 """
@@ -70,6 +72,7 @@ assuming an infinite-dimensional Hilbert space, is used:
 ``[ρ_{th}]_{ij} = δ_{ij} \\frac{nⁱ}{(n+1)^{i+1}}.``
 """
 function thermalstate(v::VibrationalMode, n̄::Real; method="truncated")
+    @assert v.N ≥ n̄ "`n̄` must be less than `v.N`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if n̄ == 0
         return v[0] ⊗ v[0]'
@@ -88,6 +91,7 @@ Returns a coherent state on `v` with complex amplitude ``α``.
 function coherentstate(v::VibrationalMode, α::Number)
     # this implementation is the same as in QuantumOptics.jl, but there the function is 
     # restricted to v::FockBasis, so we must reimplement here
+    @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
     k = zeros(ComplexF64, v.N+1)
     k[1] = exp(-abs2(α) / 2)
     @inbounds for n=1:v.N
@@ -106,6 +110,7 @@ complex amplitude of the displacement.
 displacement operator is computed (see: [`displace`](@ref)) .
 """
 function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method="truncated")
+    @assert (v.N ≥ n̄ && v.N ≥ abs(α)) "`n̄`, `α` must be less than `v.N`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if method ≡ "truncated"
         d = displace(v, α)
@@ -198,19 +203,19 @@ end
 # computes iⁿ(-i)ᵐ * (s! / ((s+1) * √(m!n!)))
 function _pf(s::Int, n::Int, m::Int)
     @assert n<=s && m<=s
-    val = 1
+    val = 1. / (s+1)
     for i in 0:s-2
         if (m-i > 0) && (n-i > 0)
-            val *= (s-i) / √((m-i) * (n-i))
+            val *= (s-i) / (√((m-i) * (n-i)))
         elseif m-i > 0
-            val *= (s-i) / √(m-i)
+            val *= (s-i) / (√(m-i))
         elseif n-i > 0
-            val *= (s-i) / √(n-i)
+            val *= (s-i) / (√(n-i))
         else
-            val *= s-i
+            val *= (s-i)
         end
     end
-    1im^n * (-1im)^m * val / (s+1)
+    1im^n * (-1im)^m * val 
 end
 
 # computes the coefficients for the 'probabilist's' Hermite polynomial of order n
@@ -239,22 +244,11 @@ function _fHe(x::Real, n::Int)
     He[2]
 end
 
-function _fHe1(x::Real; He)
-    val = 0.
-    for i in 1:length(He)
-        v = He[i]
-        if He[i] != 0
-            val += x^(i-1) * He[i]
-        end
-    end
-    val
-end
-
 # computes the matrix elements ⟨m|Dˢ(α)|n⟩ for the truncated displacement operator Dˢ(α)
 # which exists in a Hilbert space of dimension s
 function _Dtrunc(m_α, p_α, rs, s, n, m)
     prefactor = _pf(s, n, m) * exp(im * (m-n) * p_α)
-    val = 0.0im
+    val = 0.
     for r in rs
         val += exp(im * r * m_α) * _fHe(r, m) * _fHe(r, n) / _fHe(r, s)^2
     end

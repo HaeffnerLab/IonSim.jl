@@ -40,12 +40,19 @@ modes = get_vibrational_modes(chain)
     coherentstate(modes[1], α).data == qo.coherentstate(fb, α).data
 
     # test coherenthermalstate
-    modes[1].N = 5
-    n̄ = 0.1
+    modes[1].N = 500
+    n̄ = 10randn()
     @test coherentthermalstate(modes[1], n̄, 0, method="analytic").data ≈ thermalstate(modes[1], n̄).data
-    @test coherentthermalstate(modes[1], 0, α, method="analytic").data ≈ coherentstate(modes[1], α).data
+    @test coherentthermalstate(modes[1], 0, α, method="analytic").data ≈ dm(coherentstate(modes[1], α)).data rtol=1e-3
     @test coherentthermalstate(modes[1], n̄, 0).data ≈ thermalstate(modes[1], n̄).data
-    @test coherentthermalstate(modes[1], 0, α).data ≈ coherentstate(modes[1], α).data
+    @test coherentthermalstate(modes[1], 0, α).data ≈ dm(coherentstate(modes[1], α)).data rtol=1e-3
+
+    # shouldn't be able to have a mean phonon occupation greater than Hilbert space dimension
+    @test_throws AssertionError coherentthermalstate(modes[1], modes[1].N+1, 0)
+    @test_throws AssertionError coherentthermalstate(modes[1], 0, modes[1].N+1)
+    @test_throws AssertionError coherentstate(modes[1], modes[1].N+1)
+    @test_throws AssertionError thermalstate(modes[1], modes[1].N+1)
+    @test_throws AssertionError displace(modes[1], modes[1].N+1)
 end
 
 
@@ -74,7 +81,7 @@ end
 
 @testset "internal functions" begin
     # test _pf(s, n, m)
-    s = rand(1:12)
+    s = rand(1:20)
     n = rand(1:s)
     m = rand(1:s)
     v1 = IonSim._pf(s, n, m)
@@ -85,5 +92,5 @@ end
     IonSim._He(10) == [-945, 0, 4725, 0, -3150, 0, 630, 0, -45, 0, 1]
 
     # test fHe(x, He)
-    IonSim._fHe(1, He=IonSim._He(10)) == sum(IonSim._He(10))
+    IonSim._fHe(1, 10) == sum(IonSim._He(10))
 end

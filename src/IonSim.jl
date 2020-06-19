@@ -5,8 +5,8 @@ import OrderedCollections: OrderedDict
 
 export OrderedDict, analytical
 # Export some commonly used QuantumOptics.jl functions
-export embed, ⊗, dagger, normalize, normalize!, expect, tr, ptrace, tracenorm, 
-       tracedistance, entropy_vn, fidelity, diagonaljumps, dm
+export embed, ⊗, ⊕, dagger, normalize, normalize!, expect, tr, ptrace, tracenorm, 
+       tracedistance, entropy_vn, fidelity, diagonaljumps, dm, exp, dense 
 
 Base.copy(x::T) where T = T([getfield(x, k) for k ∈ fieldnames(T)]...)
 
