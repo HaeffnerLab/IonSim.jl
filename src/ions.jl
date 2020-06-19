@@ -24,8 +24,8 @@ level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.level_structure
 selected_level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.selected_level_structure
 matrix_elements(I::Ion)::OrderedDict = I.matrix_elements
 selected_matrix_elements(I::Ion)::OrderedDict = I.selected_matrix_elements
-ion_number(I::Ion)::Union{Int,Nothing} = I.number
-ion_position(I::Ion)::Union{Real,Nothing} = I.position
+ion_number(I::Ion)::Union{Int,Missing} = I.number
+ion_position(I::Ion)::Union{Real,Missing} = I.position
 stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 
 
@@ -238,9 +238,9 @@ Base.getindex(I::Ion, state::Int) = ionstate(I, state)
 
 function Base.getproperty(I::Ion, s::Symbol)
     if s == :number || s == :position
-        if typeof(getfield(I, s)) <: Nothing
+        if typeof(getfield(I, s)) <: Missing
             @warn "ion has not been added to a configuration"
-        return
+        return missing
         end
     end
     getfield(I, s)
@@ -274,4 +274,13 @@ function Base.setproperty!(I::Ion, s::Symbol, v)
         return
     end
     Core.setproperty!(I, s, v)
+end
+
+function Base.:(==)(b1::T, b2::T) where {T<:Ion}
+    (
+        b1.mass == b2.mass &&
+        b1.selected_level_structure == b2.selected_level_structure &&
+        b1.shape == b2.shape &&
+        b1.stark_shift == b2.stark_shift
+    )
 end

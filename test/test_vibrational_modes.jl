@@ -11,6 +11,10 @@ using Test, IonSim
     vm.δν = sin
     @test vm.δν.(t) == sin.(t)
 
+    # test ==
+    vm1 = VibrationalMode(1, [1, 1], δν=1)
+    @test vm == vm1
+
     # test that updating cutoff also appropriately updates shape field
     vm.N = 20
     @test vm.shape == [21]

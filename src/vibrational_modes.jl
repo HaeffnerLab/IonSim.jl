@@ -37,7 +37,15 @@ mutable struct VibrationalMode <: Basis
     end
 end
 
-Base.:(==)(b1::T, b2::T) where {T<:VibrationalMode} = b1===b2
+function Base.:(==)(b1::T, b2::T) where {T<:VibrationalMode}
+    (
+        b1.ν == b2.ν &&
+        b1.mode_structure == b2.mode_structure &&
+        b1.N == b2.N &&
+        b1.shape == b2.shape &&
+        b1.axis == b2.axis 
+    )
+end
 
 # suppress long output
 Base.show(io::IO, V::VibrationalMode) = print(io, 
