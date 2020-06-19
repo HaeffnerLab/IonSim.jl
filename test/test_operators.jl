@@ -40,7 +40,10 @@ modes = get_vibrational_modes(chain)
     coherentstate(modes[1], α).data == qo.coherentstate(fb, α).data
 
     # test coherenthermalstate
-    modes[1].N = 10
+    modes[1].N = 5
+    n̄ = 0.1
+    @test coherentthermalstate(modes[1], n̄, 0, method="analytic").data ≈ thermalstate(modes[1], n̄).data
+    @test coherentthermalstate(modes[1], 0, α, method="analytic").data ≈ coherentstate(modes[1], α).data
     @test coherentthermalstate(modes[1], n̄, 0).data ≈ thermalstate(modes[1], n̄).data
     @test coherentthermalstate(modes[1], 0, α).data ≈ coherentstate(modes[1], α).data
 end
