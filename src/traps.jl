@@ -164,8 +164,6 @@ Efield_from_pi_time(
 which is the same as 
 `Efield_from_pi_time(pi_time, T.Bhat, T.lasers[laser_index], T.configuration.ions[ion_index],
 transition)`
-
-Or `Efield_from_pi_time!`, which updates the laser's `:E` field in-place.
 """
 function Efield_from_pi_time(
     pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
@@ -196,20 +194,27 @@ function Efield_from_pi_time(
         )
 end
 
+"""
+    Efield_from_pi_time!(
+            pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+            transition::Union{Tuple{String,String},Vector{<:String}}
+        )
+Same as [`Efield_from_pi_time`](@ref), but updates `laser[:E]` in-place.
+"""
 function Efield_from_pi_time!(
-    pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-    transition::Union{Tuple{String,String},Vector{<:String}}
-)
-Efield::Float64 = Efield_from_pi_time(pi_time, Bhat, laser, ion, transition)    
-laser.E = t -> Efield
+        pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+        transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+    Efield::Float64 = Efield_from_pi_time(pi_time, Bhat, laser, ion, transition)    
+    laser.E = t -> Efield
 end
 
 function Efield_from_pi_time!(
-    pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
-    transition::Union{Tuple{String,String},Vector{<:String}}
-)
-Efield::Float64 = Efield_from_pi_time(pi_time, T, laser_index, ion_index, transition)    
-T.lasers[laser_index].E = t -> Efield
+        pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
+        transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+    Efield::Float64 = Efield_from_pi_time(pi_time, T, laser_index, ion_index, transition)    
+    T.lasers[laser_index].E = t -> Efield
 end
 
 """
@@ -230,8 +235,6 @@ Efield_from_rabi_frequency(
 which is the same as 
 `Efield_from_rabi_frequency(pi_time, T.Bhat, T.lasers[laser_index], 
 T.configuration.ions[ion_index], transition)`
-
-Or `Efield_from_rabi_frequency!`, which updates the laser's `:E` field in-place.
 """
 function Efield_from_rabi_frequency(
     Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
@@ -249,12 +252,19 @@ function Efield_from_rabi_frequency(
         )
 end
 
+"""
+    Efield_from_rabi_frequency!(
+        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+        transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+Same as [`Efield_from_rabi_frequency`](@ref), but updates `laser[:E]` in-place.
+"""
 function Efield_from_rabi_frequency!(
-    Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-    transition::Union{Tuple{String,String},Vector{<:String}}
-)
-Efield::Float64 = Efield_from_rabi_frequency(Ω, Bhat, laser, ion, transition)    
-laser.E = t -> Efield
+        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+        transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+    Efield::Float64 = Efield_from_rabi_frequency(Ω, Bhat, laser, ion, transition)    
+    laser.E = t -> Efield
 end
 
 function Efield_from_rabi_frequency!(
