@@ -160,11 +160,14 @@ ionstate(T::Trap, states::Union{String,Int}...) = ionstate(T.configuration, stat
 ionstate(I::Ion, level::Int) = basisstate(I, level)
 
 """
-    sigma(ion::Ion, ψ1::Union{String,Int}, ψ2::Union{String,Int})
+    sigma(ion::Ion, ψ1::Union{String,Int}[, ψ2::Union{String,Int}])
 Returns ``|ψ1\\rangle\\langle ψ2|``, where ``|ψ_i\\rangle`` corresponds to the state
 returned by `ion[ψᵢ]`.
+
+If ψ2 is not given, then ``|ψ1\\rangle\\langle ψ1|`` is returned.
 """
 sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}} = projector(ion[ψ1], dagger(ion[ψ2]))
+sigma(ion::Ion, ψ1::Union{String,Int}) = sigma(ion, ψ1, ψ1)
 
 """
     ionprojector(obj, states::Union{String,Int}...; only_ions=false)

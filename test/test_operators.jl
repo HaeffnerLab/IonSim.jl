@@ -71,6 +71,8 @@ end
 
     # test sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}}
     @test sigma(C, "S-1/2", "D-1/2").data == sigma(C, 1, 2).data == ComplexF64[0 1; 0 0]
+    # test sigma(ion::Ion, ψ1::T<:Union{String,Int})
+    @test sigma(C, "S-1/2").data == sigma(C, 1) == ComplexF64[1 0; 0 0]
 
     # test ionprojector for IonConfiguration input
     ψ = ionprojector(chain, "S-1/2", "D-1/2", only_ions=true)
