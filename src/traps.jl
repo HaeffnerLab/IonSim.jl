@@ -62,7 +62,7 @@ mutable struct Trap
     lasers::Array{<:Laser}
     basis::CompositeBasis
     function Trap(;
-            configuration::LinearChain, B=0, Bhat=(x=0, y=0, z=1), ∇B=0, δB=0, lasers=Laser[]
+            configuration::LinearChain, B=0, Bhat=ẑ, ∇B=0, δB=0, lasers=Laser[]
         )
         warn = nothing
         for i in 1:length(lasers)
