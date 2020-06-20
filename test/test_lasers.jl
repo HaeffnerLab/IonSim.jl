@@ -37,4 +37,10 @@ using Test, IonSim
     # test non-orthogonal warnings
     @test_logs (:warn, "!(ϵ ⟂ k)") L.ϵ = (x̂+ŷ+ẑ)/√3
     @test_logs (:warn, "!(ϵ ⟂ k)") L.k = (x̂+ŷ+ẑ)/√3
+
+    # test comparison
+    L2 = copy(L)
+    @test L == L2
+    L.E = 7
+    @test L ≠ L2
 end

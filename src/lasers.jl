@@ -53,6 +53,15 @@ mutable struct Laser
     Laser(E, Δ, ϵ, k, ϕ, λ, pointing) = new(E, Δ, ϵ, k, ϕ, λ, pointing)
 end 
 
+function Base.:(==)(L1::Laser, L2::Laser)
+    for field in fieldnames(Laser)
+        if getfield(L1, field) != getfield(L2, field)
+            return false
+        end
+    end
+    true
+end
+
 function Base.print(L::Laser)
     println("λ: ", L.λ, " m")
     println("Δ: ", L.Δ, " Hz")
