@@ -406,15 +406,15 @@ function _setup_fluctuation_hamiltonian(T, timescale)
     all_unique_indices, gbi, gbs, bfunc, δνi, δνfuncs
 end
 
-# taken from https://gist.github.com/ivirshup/e9148f01663278ca4972d8a2d9715f72
+# https://gist.github.com/ivirshup/e9148f01663278ca4972d8a2d9715f72
 function _flattenall(a::AbstractArray)
-    while any(x->typeof(x)<:AbstractArray, a)
+    while any(x -> typeof(x)<:AbstractArray, a)
         a = collect(Iterators.flatten(a))
     end
-    return a
+    a
 end
 
-# an array of lamb_dicke parameters for each combination of ion, laser and mode
+# A 3D array of Lamb-Dicke parameters for each combination of ion, laser and mode
 function _ηmatrix(T, timescale)
     ions = T.configuration.ions
     vms = get_vibrational_modes(T.configuration)
@@ -430,10 +430,10 @@ function _ηmatrix(T, timescale)
     ηnml
 end
 
-# returns an array of vectors. the rows and columns of the array refer to ions and lasers,
-# respectively. for each row/column we have a vector of detunings from the laser frequency for 
-# each ion transition.
-# we need this to be separate from _Ωmatrix to make the RWA easy  
+# Returns an array of vectors. The rows and columns of the array refer to ions and lasers,
+# respectively. For each row/column we have a vector of detunings from the laser frequency 
+# for each ion transition. We need to separate this calculation from  _Ωmatrix to implement
+# RWA easily.  
 function _Δmatrix(T, timescale)
     ions = T.configuration.ions
     lasers = T.lasers
@@ -458,9 +458,9 @@ function _Δmatrix(T, timescale)
     Δnmkj
 end
 
-# returns an array of vectors. the rows and columns of the array refer to ions and lasers,
-# respectively. for each row/column we have a vector of coupling strengths between the laser
-# and all ion transitions with nonzero matrix element.
+# Returns an array of vectors. the rows and columns of the array refer to ions and lasers,
+# respectively. For each row/column we have a vector of coupling strengths between the laser
+# and all allowed electronic ion transitions.
 function _Ωmatrix(T, timescale)
     ions = T.configuration.ions
     lasers = T.lasers
@@ -487,11 +487,9 @@ end
 
 _transitions(ion) = collect(keys(ion.selected_matrix_elements))
 
-const oneval = complex(1, 0)
-
 # [σ₊(t)]ₙₘ ⋅ [D(ξ(t))]ₙₘ
 function _D(Ω, Δ, η, ν, timescale, n, t, L)
-    d = oneval
+    d = complex(1, 0)
     for i in 1:L
         d *= _Dnm(1im * η[i] * exp(im * 2π * ν[i] * timescale * t), n[1][i], n[2][i])
     end
@@ -507,7 +505,7 @@ end
 
 # Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ X_n (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
 # indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
-# This function returns (k, l) such that: T[k, l] = X₁[i1, j1] ⊗ X₂[i2, j2] ⊗...⊗ X_N[iN, jN]
+# This function returns (k, l) such that: T[k, l] = X₁[i1, j1] * X₂[i2, j2] *...* X_N[iN, jN]
 function _get_kron_indxs(indxs, dims)
     reverse!(dims)
     row, col = 0, 0
@@ -523,7 +521,8 @@ function _get_kron_indxs(indxs, dims)
     row, col
 end
 
-# the inverse of _get_kron_indxs
+# The inverse of _get_kron_indxs. If T = X₁ ⊗ X₂ ⊗ X₃ and X₁, X₂, X₃ are M×M, N×N and L×L
+# dimension matrices, then we should input dims=(M, N, L). 
 function _inv_get_kron_indxs(indxs, dims)
     row, col = indxs
     N = length(dims)
