@@ -92,6 +92,10 @@ mutable struct Ca40 <: Ion
             mass, level_structure, selected_level_structure, shape, matrix_elements,
             selected_matrix_elements, stark_shift, number, position
         )
+        selected_level_structure = deepcopy(selected_level_structure)
+        shape = copy(shape)
+        selected_matrix_elements = deepcopy(selected_matrix_elements)
+        stark_shift = deepcopy(stark_shift)
         new(mass, level_structure, selected_level_structure, shape, matrix_elements, 
             selected_matrix_elements, stark_shift, number, position)
     end
