@@ -1,7 +1,7 @@
 using Test, IonSim, IonSim.PhysicalConstants, Suppressor
 
 
-@testset "PhysicalConstant" begin
+@testset "constants -- PhysicalConstant" begin
     # test that algebraic operations on physical constants return a <:Number
     @test typeof(c - c) <: Number
     @test typeof(c - 1) <: Number
@@ -43,7 +43,7 @@ using Test, IonSim, IonSim.PhysicalConstants, Suppressor
     @test out == "$(c.x) [$(c.units)]"
 end
 
-@testset "other constants" begin
+@testset "constants -- other constants" begin
     @test x̂/2 == (x=1/2, y=0, z=0)
     @test 2x̂ == (x=2, y=0, z=0)
     @test x̂*2 == (x=2, y=0, z=0)

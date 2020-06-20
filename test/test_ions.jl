@@ -3,7 +3,7 @@ using Test, IonSim
 const pc = IonSim.PhysicalConstants
 
 
-@testset "Ca40" begin
+@testset "ions -- Ca40" begin
     C = Ca40()
     # test for required fields
     @test mass(C) == pc.m_ca40

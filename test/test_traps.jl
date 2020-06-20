@@ -1,5 +1,6 @@
 using QuantumOptics: NLevelBasis, CompositeBasis, FockBasis
 using Test, IonSim
+using .PhysicalConstants: ħ, ca40_qubit_transition_frequency, c, m_ca40
 
 
 # setup system
@@ -131,4 +132,13 @@ end
     cb = get_basis(T)
     @test cb == C ⊗ C ⊗ xmode ⊗ zmode
     @test cb != C ⊗ C ⊗ zmode ⊗ xmode
+
+    # test get_η
+    f = ca40_qubit_transition_frequency
+    λ = c/f
+    # η = |k|cos(θ) * √(ħ / (2M ⋅ N ⋅ 2πν)); cos(θ) ≡ k̂ ⋅ mode_axis; N ≡ number of ions
+    η(ν) = (2π/λ) * sqrt(ħ / (2 * m_ca40 * 2 * 2π * ν))
+    @test abs(get_η(zmode, L, C)) ≈ η(zmode.ν)
+    L.k = (x̂ + ẑ) / √2
+    @test abs(get_η(xmode, L, C)) ≈ η(xmode.ν) / √2
 end

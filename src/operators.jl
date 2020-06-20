@@ -254,3 +254,43 @@ function _Dtrunc(m_α, p_α, rs, s, n, m)
     end
     prefactor * val
 end
+
+# associated Laguerre polynomial
+function _alaguerre(x::Real, n::Int, k::Int)
+    L = 1.0, -x + k + 1
+    if n < 2
+        return L[n+1]
+    end
+    for i in 2:n
+        L = L[2], ((k + 2i - 1 - x) * L[2] - (k + i - 1) * L[1]) / i
+    end
+    L[2]
+end
+
+# matrix elements of the displacement operator in the Fock Basis, assuming an
+# infinite-dimensional Hilbert space. https://doi.org/10.1103/PhysRev.177.1857
+function _Dnm(ξ::Number, n::Int, m::Int)
+    if n < m 
+        if isodd(abs(n-m))
+            return -conj(_Dnm(ξ, m, n)) 
+        else
+            return conj(_Dnm(ξ, m, n))
+        end
+    end
+    n -= 1; m -= 1
+    @fastmath begin
+        s = 1.0
+        for i in m+1:n
+            s *= i
+        end
+        ret = sqrt(1 / s) *  ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
+    end
+    if isnan(ret)
+        if n == m 
+            return 1.0 
+        else
+            return 0.0
+        end
+    end
+    ret
+end

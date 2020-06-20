@@ -2,7 +2,7 @@ using Test, IonSim
 using IonSim.PhysicalConstants: m_ca40
 
 
-@testset "LinearChain" begin
+@testset "ion_configurations -- LinearChain" begin
     C = Ca40()
     lc = LinearChain(
             ions=[C, C, C, C], com_frequencies=(x=5, y=5, z=1), 

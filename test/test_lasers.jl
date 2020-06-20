@@ -1,6 +1,6 @@
 using Test, IonSim
 
-@testset "Laser" begin
+@testset "lasers -- Laser" begin
     # should not be able to set unnormalized k-vectors or polarizations
     @test_throws AssertionError Laser(ϵ=(x=2, y=0, z=0))
     @test_throws AssertionError Laser(k=(x=2, y=0, z=0))

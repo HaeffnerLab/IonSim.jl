@@ -1,8 +1,9 @@
 using QuantumOptics: tensor, CompositeBasis
+using .PhysicalConstants: ħ, c
 
 export Trap, get_basis, Efield_from_pi_time, Efield_from_pi_time!, 
        transition_frequency, set_gradient!, Efield_from_rabi_frequency, 
-       Efield_from_rabi_frequency!, global_beam!
+       Efield_from_rabi_frequency!, global_beam!, get_η
 
    
 #############################################################################################
@@ -348,3 +349,20 @@ function Base.:(==)(b1::T, b2::T) where {T<:CompositeBasis}
     end
     return true
 end
+
+"""
+    get_η(V::VibrationalMode, L::Laser, I::Ion)
+The Lamb-Dicke parameter: 
+``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
+for a given vibrational mode, ion and laser.
+"""
+function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled=false)
+    @fastmath begin
+        k = 2π / L.λ
+        scaled ? ν = 1 : ν = V.ν
+        x0 = √(ħ / (2 * I.mass * 2π * ν))
+        cosθ = ndot(L.k, V.axis)
+        k * x0 * cosθ * V.mode_structure[I.number]
+    end
+end
+

@@ -1,6 +1,6 @@
 using Test, IonSim
 
-@testset "VibrationalMode" begin
+@testset "vibrational_modes -- VibrationalMode" begin
     # setup system
     vm = VibrationalMode(1, [1, 1], δν=1)
     

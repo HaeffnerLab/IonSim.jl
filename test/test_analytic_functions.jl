@@ -1,7 +1,7 @@
 using Test, IonSim, IonSim.analytical
 
 
-@testset "MolmerSorensen" begin
+@testset "analytic_functions -- MolmerSorensen" begin
     t = 0:100:10000
     ν = 1
     Ω = 0.025
@@ -36,7 +36,7 @@ using Test, IonSim, IonSim.analytical
 end
 
 
-@testset "RabiFlop" begin
+@testset "analyticfunctions -- RabiFlop" begin
     # # test carrier with motion in ground state
     t = 0:0.01:1
     Ω = 1

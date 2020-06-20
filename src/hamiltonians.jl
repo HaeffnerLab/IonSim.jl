@@ -1,11 +1,8 @@
 using SparseArrays: rowvals, nzrange, nonzeros
 using FunctionWrappers: FunctionWrapper
 using QuantumOptics: SparseOperator, embed
-using .PhysicalConstants: ħ, c
-
 
 export hamiltonian
-export get_η
 
 
 """
@@ -508,46 +505,6 @@ function _Ds(Ω, Δ, η, ν, timescale, n, m, t)
     (g * d, g * conj(d))
 end
 
-# assoicated Laguerre polynomial
-function _alaguerre(x::Real, n::Int, k::Int)
-    L = 1.0, -x + k + 1
-    if n < 2
-        return L[n+1]
-    end
-    for i in 2:n
-        L = L[2], ((k + 2i - 1 - x) * L[2] - (k + i - 1) * L[1]) / i
-    end
-    L[2]
-end
-
-# matrix elements of the displacement operator in the Fock Basis
-# https://doi.org/10.1103/PhysRev.177.1857
-function _Dnm(ξ::Number, n::Int, m::Int)
-    if n < m 
-        if isodd(abs(n-m))
-            return -conj(_Dnm(ξ, m, n)) 
-        else
-            return conj(_Dnm(ξ, m, n))
-        end
-    end
-    n -= 1; m -= 1
-    @fastmath begin
-        s = 1.0
-        for i in m+1:n
-            s *= i
-        end
-        ret = sqrt(1 / s) *  ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
-    end
-    if isnan(ret)
-        if n == m 
-            return 1.0 
-        else
-            return 0.0
-        end
-    end
-    ret
-end
-
 # Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ X_n (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
 # indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
 # This function returns (k, l) such that: T[k, l] = X₁[i1, j1] ⊗ X₂[i2, j2] ⊗...⊗ X_N[iN, jN]
@@ -592,20 +549,4 @@ function _inv_get_kron_indxs(indxs, dims)
         end
     end
     tuple(ret_rows...), tuple(ret_cols...)
-end
-
-"""
-    get_η(V::VibrationalMode, L::Laser, I::Ion)
-The Lamb-Dicke parameter: 
-``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
-for a given vibrational mode, ion and laser.
-"""
-function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled=false)
-    @fastmath begin
-        k = 2π / L.λ
-        scaled ? ν = 1 : ν = V.ν
-        x0 = √(ħ / (2 * I.mass * 2π * ν))
-        cosθ = ndot(L.k, V.axis)
-        k * x0 * cosθ * V.mode_structure[I.number]
-    end
 end
