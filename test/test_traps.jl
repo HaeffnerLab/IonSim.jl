@@ -1,6 +1,6 @@
 using QuantumOptics: NLevelBasis, CompositeBasis, FockBasis
 using Test, IonSim
-using .PhysicalConstants: ħ, ca40_qubit_transition_frequency, c, m_ca40
+using IonSim.PhysicalConstants: ħ, ca40_qubit_transition_frequency, c, m_ca40
 
 
 # setup system

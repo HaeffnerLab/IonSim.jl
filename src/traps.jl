@@ -337,21 +337,18 @@ end
 # In QunatumOptics.jl, this method will return true whenever the shapes of b1 and b2 match,
 # but we'd like to distinguish, i.e., between Ion ⊗ mode1 ⊗ mode2 and Ion ⊗ mode2 ⊗ mode1
 # when mode1.N == mode2.N but mode1.axis ≠ mode2.axis.
-# The form of the parametric type specification is a hack. We really want to redefine the
-# QuantumOptics.jl function Base.:(==)(b1::T,b2::T) where {T<:CompositeBasis}, but if we do
-# this directly it breaks precompilation, so we define a method of this function that is 
-# effectively the same thing.
-function Base.:(==)(b1::T, b2::T) where {T<:CompositeBasis{Vector{Int},<:Tuple}}
-    N = length(b1.bases)
-    if N ≠ length(b2.bases)
+function (QuantumOptics.:(==)(b1::T, b2::T) 
+    where {T<:CompositeBasis{<:Vector{Int},<:Tuple{Vararg{<:IonSimBasis}}}})
+N = length(b1.bases)
+if N ≠ length(b2.bases)
+    return false
+end
+for i in 1:N
+    if !(b1.bases[i] == b2.bases[i])
         return false
     end
-    for i in 1:N
-        if !(b1.bases[i] == b2.bases[i])
-            return false
-        end
-    end
-    return true
+end
+return true
 end
 
 """

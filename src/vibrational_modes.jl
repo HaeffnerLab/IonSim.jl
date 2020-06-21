@@ -24,7 +24,7 @@ export VibrationalMode
 
 Note: the iᵗʰ Fock state (|i⟩) can be obtained by indexing as `v=VibrationalMode(...); v[i]`
 """
-mutable struct VibrationalMode <: Basis
+mutable struct VibrationalMode <: IonSimBasis
     ν::Real
     mode_structure::Vector{Real}
     δν::Function

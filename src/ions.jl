@@ -16,7 +16,7 @@ export mass, level_structure, selected_level_structure, stark_shift,
     Ion
 The physical parameters defining an isolated ion's internal structure.
 """
-abstract type Ion <: Basis end
+abstract type Ion <: IonSimBasis end
 
 # required fields
 mass(I::Ion)::Real = I.mass

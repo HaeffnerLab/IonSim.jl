@@ -2,10 +2,8 @@ using LinearAlgebra: eigen
 using NLsolve: nlsolve
 using .PhysicalConstants: e, ϵ₀
 
-export IonConfiguration
-export ions
-export linear_equilibrium_positions, Anm, LinearChain, characteristic_length_scale
-export get_vibrational_modes
+export IonConfiguration, ions, linear_equilibrium_positions, Anm, LinearChain, 
+       characteristic_length_scale, get_vibrational_modes
 
 
 """
