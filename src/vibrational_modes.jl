@@ -1,4 +1,4 @@
-using QuantumOptics: Basis, basisstate
+using QuantumOptics: basisstate
 
 
 export VibrationalMode

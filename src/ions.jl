@@ -1,4 +1,3 @@
-using QuantumOptics: Basis
 using WignerSymbols: wigner3j
 using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
 
