@@ -1,6 +1,10 @@
 using QuantumOptics: NLevelBasis, CompositeBasis, FockBasis
 using Test, IonSim
 using IonSim.PhysicalConstants: ħ, ca40_qubit_transition_frequency, c, m_ca40
+using Suppressor
+
+
+@suppress_err begin
 
 
 # setup system
@@ -142,3 +146,4 @@ end
     L.k = (x̂ + ẑ) / √2
     @test abs(get_η(xmode, L, C)) ≈ η(xmode.ν) / √2
 end
+end  # end suppress

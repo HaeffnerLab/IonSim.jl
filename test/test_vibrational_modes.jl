@@ -1,4 +1,5 @@
 using Test, IonSim
+using Suppressor
 
 @testset "vibrational_modes -- VibrationalMode" begin
     # setup system
@@ -29,8 +30,8 @@ using Test, IonSim
     @test_throws AssertionError vm.N = -1
 
     # just make sure no errors on print
-    print(vm)
-    show(vm)
+    @suppress print(vm)
+    @suppress show(vm)
 
     # make sure user can't directly alter :mode_structure or :axis after initialization
     ms = vm.mode_structure

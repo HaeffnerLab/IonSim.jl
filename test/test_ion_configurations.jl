@@ -1,5 +1,9 @@
 using Test, IonSim
 using IonSim.PhysicalConstants: m_ca40
+using Suppressor
+
+
+@suppress_err begin
 
 
 @testset "ion_configurations -- LinearChain" begin
@@ -35,7 +39,7 @@ using IonSim.PhysicalConstants: m_ca40
     @test !(chain1.ions[1] ≡ chain1.ions[2])
 
     # Make sure there are no errors with print/show
-    print(lc); show(lc)
+    @suppress print(lc); show(lc)
 end
 
 @testset "ion_configurations -- general" begin
@@ -63,3 +67,4 @@ end
     IonSim._sparsify!(x, 2e-6)
     @test any(x .== [0, 1e-5])
 end
+end  # end suppress

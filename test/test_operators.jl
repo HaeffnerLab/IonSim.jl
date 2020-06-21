@@ -1,6 +1,10 @@
 import QuantumOptics
 const qo = QuantumOptics
 using Test, IonSim
+using Suppressor
+
+
+@suppress_err begin
 
 
 # setup system
@@ -111,3 +115,4 @@ end
     @test diff < 100  # <1% difference of L1 norm
                       # Note: displace() is an approximation, whereas _Dnm should not be
 end
+end  # end suppress

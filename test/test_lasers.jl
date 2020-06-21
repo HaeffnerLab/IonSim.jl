@@ -32,7 +32,7 @@ using Test, IonSim
     @test L.λ == 1
 
     # just make sure print(L) isn't broken
-    print(L)
+    @suppress print(L)
 
     # test non-orthogonal warnings
     @test_logs (:warn, "!(ϵ ⟂ k)") L.ϵ = (x̂+ŷ+ẑ)/√3

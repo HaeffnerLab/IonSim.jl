@@ -1,6 +1,10 @@
 using QuantumOptics: NLevelBasis, nlevelstate
 using Test, IonSim
 const pc = IonSim.PhysicalConstants
+using Suppressor
+
+
+@suppress_err begin
 
 
 @testset "ions -- Ca40" begin
@@ -26,7 +30,7 @@ const pc = IonSim.PhysicalConstants
     @test selected_level_structure(C1copy) == selected_level_structure(C1)
 
     # make sure print/show don't throw any errors
-    print(C); show(C)
+    @suppress print(C); show(C)
 
     # test matrix_element
     E = 100randn(); γ = 100randn(); ϕ = 100randn()
@@ -74,3 +78,4 @@ end
     @test zeeman_shift(1e-4, (2, 5/2, 5/2)) ≈ val
     @test zeeman_shift(B=1e-4, l=2, j=5/2, mⱼ=5/2) ≈ val 
 end
+end  # end suppress
