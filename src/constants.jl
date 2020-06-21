@@ -2,7 +2,7 @@ module PhysicalConstants
 
 import Base.sqrt
 
-export μB, ħ, m_ca40, c, e, α, ϵ₀, kB, ca40_qubit_transition_frequency
+export μB, ħ, m_ca40, m_ca43, m_be9, m_yb171, m_ba138, m_sr88, m_mg25, m_hg198, m_hg199, c, e, α, ϵ₀, kB, ca40_qubit_transition_frequency
 
 abstract type PhysicalConstant<:Real end
 
