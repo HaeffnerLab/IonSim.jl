@@ -20,22 +20,34 @@ end
 const μB = physicalconstant(9.27400994e-24, "J⋅T⁻¹")
 """ ## `ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
 const ħ = physicalconstant(1.0545718e-34, "m²kg/s")
-""" ## `m_ca40` = 6.635943757345042e-26 kg <br> (mass of 40Ca)"""
-const m_ca40 = physicalconstant(6.635943757345042e-26, "kg")
-""" ## `m_ca43` = 1.4965078974e-26 <br> (mass of 9Be)"""
-const m_ca43 = physicalconstant(1.4965078974e-26, "kg")
-""" ## `m_be9` = 1.4965078974e-26 <br> (mass of 9Be)"""
-const m_be9 = physicalconstant(1.4965078974e-26, "kg")
-""" ## `m_yb` = 1.4965078974e-26 <br> (mass of 9Be)"""
-const m_yb = physicalconstant(1.4965078974e-26, "kg")
-""" ## `m_ba` = 1.4965078974e-26 <br> (mass of 9Be)"""
-const m_ba = physicalconstant(1.4965078974e-26, "kg")
-""" ## `m_bsr` = 1.4965078974e-26 <br> (mass of 9Be)"""
-const m_sr = physicalconstant(1.4965078974e-26, "kg")
-""" ## `m_mg` = 1.4965078974e-26 <br> (mass of 9Be)"""
-const m_mg = physicalconstant(1.4965078974e-26, "kg")
-""" ## `m_hg` = 1.4965078974e-26 <br> (mass of 9Be)"""
-const m_hg = physicalconstant(1.4965078974e-26, "kg")
+
+""" ## `m_ca40` = 6.6359443331e-26 kg <br> (mass of 40Ca)"""
+const m_ca40 = physicalconstant(6.6359443331e-26, "kg")
+
+""" ## `m_ca43` = 7.133470993e-26 <br> (mass of 43Ca)"""
+const m_ca43 = physicalconstant(7.133470993e-26, "kg")
+
+""" ## `m_be9` = 1.496508205e-26 <br> (mass of 9Be)"""
+const m_be9 = physicalconstant(1.496508205e-26, "kg")
+
+""" ## `m_yb171` = 2.838464542e-25 <br> (mass of 171Yb)"""
+const m_yb171 = physicalconstant(2.838464542e-25, "kg")
+
+""" ## `m_ba138` = 2.2899705013e-25 <br> (mass of 138Ba)"""
+const m_ba138 = physicalconstant(2.2899705013e-25, "kg")
+
+""" ## `m_sr88` = 1.459707037e-25 <br> (mass of 88Sr)"""
+const m_sr88 = physicalconstant(1.459707037e-25, "kg")
+
+""" ## `m_mg25` = 4.1489958410e-26 <br> (mass of 25Mg)"""
+const m_mg25 = physicalconstant(4.1489958410e-26, "kg")
+
+""" ## `m_hg198` = 3.2873155315e-25 <br> (mass of 198Hg)"""
+const m_hg198 = physicalconstant(3.2873155315e-25, "kg")
+
+""" ## `m_hg199` = 3.3039460302e-25 <br> (mass of 199Hg)"""
+const m_hg199 = physicalconstant(3.3039460302e-25, "kg")
+
 """ ## `c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
 const c = physicalconstant(2.99792458e8, "m/s")
 """ ## `e` = 1.60217662e-19 C <br> (charge of electron)"""
