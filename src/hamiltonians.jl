@@ -8,7 +8,7 @@ export hamiltonian
 """
     hamiltonian(
             T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
-            rwa_cutoff::Real=Inf, displacement="truncated, time_dep_eta=false"
+            rwa_cutoff::Real=Inf, displacement="truncated, time_dependent_eta=false"
         )      
 Constructs the Hamiltonian for `T` as a function of time. Return type is a function 
 `h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
@@ -39,20 +39,20 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
    
    If `"analytic"` is selected, then the matrix elements are computed assuming an infinite-
    dimensional Hilbert space.
-* `time_dep_eta::Bool`: In addition to impacting the vibrational subspace directly, a change
-   in the trap frequency, ``δν``, will also change the Lamb-Dicke parameter. Since typically
-   ``δν≪ν``, this effect will be small ``η ≈ η₀(1 + δν/2ν)`` and doesn't warrant the 
-   additional computational resources needed to calculate and update it in time. In this case,
-   we can set `time_dep_eta=false` (default), which will set ``η(t) = η₀``.
+* `time_dependent_eta::Bool`: In addition to impacting the vibrational subspace directly, a 
+   change in the trap frequency, ``δν``, will also change the Lamb-Dicke parameter. Since 
+   typically ``δν≪ν``, this effect will be small ``η ≈ η₀(1 + δν/2ν)`` and doesn't warrant 
+   the additional computational resources needed to calculate and update it in time. In this 
+   case, we can set `time_dependent_eta=false` (default), which will set ``η(t) = η₀``.
 
 """
 function hamiltonian(
         T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
-        rwa_cutoff::Real=Inf, displacement::String="truncated", time_dep_eta::Bool=false
+        rwa_cutoff::Real=Inf, displacement::String="truncated", time_dependent_eta::Bool=false
     ) 
     hamiltonian(
             T, T.configuration, timescale, lamb_dicke_order, rwa_cutoff, displacement,
-            time_dep_eta
+            time_dependent_eta
         ) 
 end
 
@@ -66,10 +66,10 @@ end
 function hamiltonian(
         T::Trap, configuration::LinearChain, timescale::Real, 
         lamb_dicke_order::Union{Vector{Int},Int}, rwa_cutoff::Real, displacement::String,
-        time_dep_eta::Bool
+        time_dependent_eta::Bool
     )
     b, indxs, cindxs = _setup_base_hamiltonian(
-            T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dep_eta
+            T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dependent_eta
         )
     aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(T, timescale)
     S = SparseOperator(get_basis(T))
@@ -152,7 +152,7 @@ Also, we have: <m|D(α)|n> = (-1)^(n-m) × conjugate(<n|D(α)|m>). We keep track
 additional vector of vectors of indices.
 =#
 function _setup_base_hamiltonian(
-        T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dep_eta
+        T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dependent_eta
     )
     modes = reverse(get_vibrational_modes(T.configuration))
     L = length(modes)
@@ -261,7 +261,7 @@ function _setup_base_hamiltonian(
             functions[indxs_dict[row, col]] = 
                 let 
                     a = functions[indxs_dict[row, col]]
-                    if !time_dep_eta
+                    if !time_dependent_eta
                         FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
                             t -> a(t) .+ _D_constant_eta(
                                 Ω(t), Δ, νlist, timescale, sub_indxs, D, t, L))
@@ -272,7 +272,7 @@ function _setup_base_hamiltonian(
                     end
                 end
         else
-            if !time_dep_eta
+            if !time_dependent_eta
                 f = FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
                         t -> _D_constant_eta(Ω(t), Δ, νlist, timescale, sub_indxs, D, t, L))
             else
