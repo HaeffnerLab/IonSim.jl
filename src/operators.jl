@@ -285,7 +285,7 @@ function _Dnm(ξ::Number, n::Int, m::Int)
     for i in m+1:n
         s *= i
     end
-    ret = sqrt(1 / s) *  ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
+    ret = sqrt(1 / s) * ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
     if isnan(ret)
         if n == m 
             return 1.0 
