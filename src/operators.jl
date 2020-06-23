@@ -1,6 +1,5 @@
 using QuantumOptics: projector, tensor, SparseOperator, DenseOperator, basisstate, Ket
 using LinearAlgebra: diagm
-using PolynomialRoots: roots
 import QuantumOptics: displace, thermalstate, coherentthermalstate, fockstate
 
 
@@ -249,13 +248,18 @@ end
 
 # computes the matrix elements ⟨m|Dˢ(α)|n⟩ for the truncated displacement operator Dˢ(α)
 # which exists in a Hilbert space of dimension s
-function _Dtrunc(m_α, p_α, rs, s, n, m)
-    prefactor = _pf(s, n, m) * exp(im * (m-n) * p_α)
-    val = 0.
-    for r in rs
-        val += exp(im * r * m_α) * _fHe(r, m) * _fHe(r, n) / _fHe(r, s)^2
+function _Dtrunc(Ω, Δ, η, ν, rs, s, n, prefactor, timescale, L, t)
+    d = complex(1, 0)
+    for i in 1:L
+        val = 0.
+        for r in rs[i]
+            val += exp(im * r * η[i]) * _fHe(r, n[2][i]) * _fHe(r, n[1][i]) / _fHe(r, s[i])^2
+        end
+        d *= val * prefactor[i] * exp(im * (n[2][i]-n[2][i]) * (2π * ν[i] * timescale * t + π/2))
+        d *= (-1)^(n[1][i] < n[2][i] && isodd(n[2][i] - n[1][i]))
     end
-    prefactor * val
+    @fastmath g = Ω * exp(-1im * t * Δ)
+    g * d, g * conj(d)
 end
 
 # associated Laguerre polynomial
