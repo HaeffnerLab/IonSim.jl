@@ -1,5 +1,6 @@
 using SparseArrays: rowvals, nzrange, nonzeros
 using FunctionWrappers: FunctionWrapper
+using PolynomialRoots: roots
 using QuantumOptics: SparseOperator, embed
 
 export hamiltonian
@@ -8,7 +9,7 @@ export hamiltonian
 """
     hamiltonian(
             T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
-            rwa_cutoff::Real=Inf, displacement="truncated, time_dependent_eta=false"
+            rwa_cutoff::Real=Inf, displacement="truncated", time_dependent_eta=false
         )      
 Constructs the Hamiltonian for `T` as a function of time. Return type is a function 
 `h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
@@ -39,6 +40,9 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
    
    If `"analytic"` is selected, then the matrix elements are computed assuming an infinite-
    dimensional Hilbert space.
+
+   For small displacements (``η ≪ N``, where ``N`` is the dimension of the motion's Hilbert
+   space), both of these methods will be good approximations.
 * `time_dependent_eta::Bool`: In addition to impacting the vibrational subspace directly, a 
    change in the trap frequency, ``δν``, will also change the Lamb-Dicke parameter. Since 
    typically ``δν≪ν``, this effect will be small ``η ≈ η₀(1 + δν/2ν)`` and doesn't warrant 
@@ -150,6 +154,7 @@ a vector of vectors of indices that keep track of this redundancy.
 
 Also, we have: <m|D(α)|n> = (-1)^(n-m) × conjugate(<n|D(α)|m>). We keep track of this in an
 additional vector of vectors of indices.
+TODO: break this function down into smaller pieces
 =#
 function _setup_base_hamiltonian(
         T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dependent_eta
@@ -169,23 +174,27 @@ function _setup_base_hamiltonian(
     mode_dims = [mode.N+1 for mode in modes]
     N = prod(mode_dims)
     if typeof(lamb_dicke_order) <: Int
-    lamb_dicke_order = [lamb_dicke_order for _ in 1:L]
+        lamb_dicke_order = [lamb_dicke_order for _ in 1:L]
     else
-    @assert length(lamb_dicke_order) == length(modes) (
-        "if typeof(lamb_dicke_order)<:Vector, then length of lamb_dicke_order must " *
-        "equal number of modes"
-    )
-    reverse!(lamb_dicke_order)
+        @assert length(lamb_dicke_order) == length(modes) string(
+            "if typeof(lamb_dicke_order)<:Vector, then length of lamb_dicke_order must ",
+            "equal number of modes"
+        )
+        reverse!(lamb_dicke_order)
     end
     ld_arrays = []
+    rootlist = []
     for (i, dim) in enumerate(mode_dims)
-    array = zeros(Float64, dim, dim)
-    for k in 1:dim, l in 1:dim
-        if abs(k - l) <= lamb_dicke_order[i]
-            array[k, l] = exp((l - k) * νlist[i] * timescale)
+        array = zeros(Float64, dim, dim)
+        for k in 1:dim, l in 1:dim
+            if abs(k - l) <= lamb_dicke_order[i]
+                array[k, l] = exp((l - k) * νlist[i] * timescale)
+            end
         end
-    end
-    push!(ld_arrays, array)
+        push!(ld_arrays, array)
+        if displacement == "truncated" && time_dependent_eta
+            push!(rootlist, real.(roots(_He(dim+1))))
+        end
     end
     νarray = zeros(Float64, N, N)
     indx_array = zeros(ComplexF64, N, N)
@@ -207,8 +216,12 @@ function _setup_base_hamiltonian(
         continue 
     end  
 
-    # Perform Lamb-Dicke approx. + RWA by constructing an array of indices with nonzero 
-    # values only when matrix element satisfies both.
+    # Construct a complex array where each element has a value z, with real(z) equal to the
+    # corresponding row and imag(z) equal to the corresponding column. We will construct a 
+    # kronecker product with this array taking the place of a deisplacement operator and then
+    # use z to determine where the elements have been mapped. Also, performs Lamb-Dicke 
+    # approx. + RWA by constructing an array of indices with nonzero values only when matrix 
+    # element satisfies both. 
     νarray .*= 0.; indx_array .*= 0.
     if length(ld_arrays) > 1
         νarray .= kron([ηbool[l] ? one(ld_arrays[l]) : ld_arrays[l] for l in 1:L]...)
@@ -227,6 +240,13 @@ function _setup_base_hamiltonian(
     ion_op = sigma(ions[n], tr[2], tr[1])
     mode_op = SparseOperator(⊗(reverse(modes)...), indx_array)
     A = embed(get_basis(T), [n, collect(length(ions)+1:length(ions)+L)], [ion_op, mode_op]).data
+
+    if displacement == "truncated" && !time_dependent_eta
+        D_arrays = []
+        for (i, mode) in enumerate(modes)
+            push!(D_arrays, real.(displace(mode, ηlist(0)[i]).data))
+        end
+    end
 
     # See where subspace operators have been mapped after embedding
     for i in 1:N, j in (rwa_cutoff == Inf ? collect(1:i) : 1:N)
@@ -253,9 +273,15 @@ function _setup_base_hamiltonian(
             s_cri = []
         end
 
-        # push information to top-level lists, construct time-dep function
+        # push information to top-level lists/ construct time-dep function
+        if displacement == "truncated" && !time_dependent_eta
+            D = [D_arrays[i][sub_indxs[1][i], sub_indxs[2][i]] for i in 1:L]
+        elseif displacement == "analytic" && !time_dependent_eta
+            D = [_Dnm_constant_eta(ηlist(0)[i], sub_indxs[1][i], sub_indxs[2][i]) for i in 1:L]
+        elseif displacement == "truncated"
+            pflist = [_pf(mode_dims[i], sub_indxs[1][i], sub_indxs[2][i]) for i in 1:L]
+        end
         row, col = s_ri[1]
-        D = [_Dnm_constant_eta(ηlist(0)[i], sub_indxs[1][i], sub_indxs[2][i]) for i in 1:L]
         if haskey(indxs_dict, s_ri[1]) 
             # this will happen when multiple lasers address the same transition
             functions[indxs_dict[row, col]] = 
@@ -265,19 +291,29 @@ function _setup_base_hamiltonian(
                         FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
                             t -> a(t) .+ _D_constant_eta(
                                 Ω(t), Δ, νlist, timescale, sub_indxs, D, t, L))
-                    else
+                    elseif displacement == "analytic"
                         FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
                             t -> a(t) .+ _D(
                                 Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L))
+                    elseif displacement == "truncated"
+                        FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
+                            t -> a(t) .+ _Dtrunc( 
+                                Ω(t), Δ, ηlist(t), νlist, rootlist, mode_dims, sub_indxs,
+                                pflist, timescale, L, t))
                     end
                 end
         else
             if !time_dependent_eta
                 f = FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
                         t -> _D_constant_eta(Ω(t), Δ, νlist, timescale, sub_indxs, D, t, L))
-            else
+            elseif displacement == "analytic"
                 f = FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
                         t -> _D(Ω(t), Δ, ηlist(t), νlist, timescale, sub_indxs, t, L))
+            elseif displacement == "truncated"
+                f = FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
+                            t -> _Dtrunc( 
+                                Ω(t), Δ, ηlist(t), νlist, rootlist, mode_dims, sub_indxs,
+                                pflist, timescale, L, t))
             end
             push!(functions, f)
             push!(repeated_indices, s_ri)
@@ -328,9 +364,9 @@ end
 # each ion and creates an array (global_B_scales), which encodes the magnetic field
 # susceptibility of each level. It also returns an array of indices (global_B_indices), that
 # keeps track of the indices of the full 2D array that represents the tensored system, 
-# corresponding to the energy of each level. Finally it returns a function (bfunc) encoding the 
-# time-dependence of δB. When the system is integrated, the Hamiltonian terms will be updated
-# at each time step by by bfunc(t) times the individual susceptibilities.
+# corresponding to the energy of each level. Finally it returns a function (bfunc) encoding 
+# the time-dependence of δB. When the system is integrated, the Hamiltonian terms will be 
+# updated at each time step by by bfunc(t) times the individual susceptibilities.
 function _setup_global_B_hamiltonian(T, timescale)
     ions = T.configuration.ions
     global_B_indices = Vector{Vector{Int64}}(undef, 0)
@@ -478,8 +514,8 @@ end
 function _D_constant_eta(Ω, Δ, ν, timescale, n, D, t, L)
     d = complex(1, 0)
     @simd for i in 1:L
-        d *= D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π/2)) 
-            #  *(-1)^(n[1][i] < n[2][i] && isodd(n[2][i] - n[1][i])))
+        d *= (D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π/2)) 
+             *(-1)^(n[1][i] < n[2][i] && isodd(n[2][i] - n[1][i])))
     end
     @fastmath g = Ω * exp(-1im * t * Δ)
     g * d, g * conj(d)
