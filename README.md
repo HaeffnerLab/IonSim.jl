@@ -96,4 +96,4 @@ julia> Pkg.update("IonSim")
 [twitter-url]: https://twitter.com/Berkeley_ions
 [twitter-badge]: https://img.shields.io/twitter/follow/Berkeley_ions.svg?style=social&label=@Berkeley_ions
 
-[logo-url]: https://github.com/HaeffnerLab/IonSim.jl/blob/media/small_logo.png?raw=true
+[logo-url]: https://github.com/HaeffnerLab/IonSim.jl/blob/media/smaller_logo.png?raw=true
