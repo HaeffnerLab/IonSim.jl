@@ -1,18 +1,27 @@
 using QuantumOptics: displace, FockBasis, dagger, ⊗, embed, DenseOperator
 using LinearAlgebra: diagm, norm
 using Test, IonSim
+using Suppressor
+
+
+@suppress_err begin
 
 
 @testset "hamiltonians -- misc functions" begin
-#     # _D
-#     d1, _ = IonSim._Ds(2, 8.9, 0.1, 9, 1, 10, 9, 1)
-#     @test  d1 ≈ 0.28728756457152516 - 0.49624435859832966im rtol=1e-4
-#     d2, d3 = IonSim._Ds(1, 0, 0.1, 1, 1, 10, 9, 1)
-#     @test d2 ≈ conj(d3)
-#     d4, d5 = IonSim._Ds(1, 0, 0.1, 1, 1, 10, 8, 1)
-#     @test d4 ≈ conj(d5) rtol=1e-4
-
-    # _Ds
+    # make sure _D and _D_constant_eta return the same thing for constant eta
+    L = 10
+    Ω = 1e6randn()
+    Δ = 10randn()
+    η = [abs(randn()) for _ in 1:L]
+    ν = [10randn() for _ in 1:L]
+    timescale = 10randn()
+    n = [[rand(1:20) for _ in 1:L], [rand(1:5) for _ in 1:L]]
+    t = randn()
+    d1 = IonSim._D(Ω, Δ, η, ν, timescale, n, t, L)
+    D = [IonSim._Dnm_constant_eta(η[i], n[1][i], n[2][i]) for i in 1:L]
+    d2 = IonSim._D_constant_eta(Ω, Δ, ν, timescale, n, D, t, L)
+    @test abs(sum(d1 .- d2)) < 1e-8
+    
 
     # _flattenall (this function should completely flatten nested arrays)
     a = [[[1], [2], [3]], [[4], [5], [6]]]
@@ -135,104 +144,139 @@ end
     @test η[1, 1, 3](0.0) ≈ 2 * η[1, 1, 3](3) 
 end
 
-# @testset "setup_functions" begin
-#     # _setup_global_B_hamiltonian
-#     C = ca40()
-#     L = laser()
-#     chain = linearchain(
-#         ions=[C], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[], y=[], z=[1])
-#     )
-#     T = trap(configuration=chain, lasers=[L], δB=0)
-#     global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
+@testset "hamiltonians -- setup functions" begin
+    # tests for _setup_global_B_hamiltonian
+    
+    # setup system
+    C = Ca40()
+    L = Laser()
+    chain = LinearChain(
+        ions=[C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1])
+    )
+    T = Trap(configuration=chain, lasers=[L], δB=0)
+    global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
 
-#     ## T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays 
-#     @test length(global_B_indices) == 0 && length(global_B_scales) == 0
+    # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays 
+    @test length(global_B_indices) == 0 && length(global_B_scales) == 0
+    # and bfunc should be identically zero like T.δB
+    @test sum(bfunc.(0:1e4)) == 0
 
-#     T.δB = sin 
-#     t = 0:0.1:10
-#     T.configuration.vibrational_modes.z[1].N = 3
-#     global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
-#     indxs = [[i + 8j for j in 0:2] for i in 1:8]
-#     matched = unique([indxs; global_B_indices])
-#     @test length(matched) == 8
-#     @test bfunc.(t) == 2π .* sin.(t)
-#     @test global_B_scales[end] == zeeman_shift(1, C.selected_level_structure["D+5/2"]) 
+    # now let's test nontrivial T.δB
+    T.δB = sin 
+    t = 0:0.1:10
+    T.configuration.vibrational_modes.z[1].N = 3
+    global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
+    # make sure bfunc is correct
+    @test bfunc.(t) == 2π .* sin.(t)
+    # make sure all energy levels are being recorded
+    @test sort(IonSim._flattenall(global_B_indices)) == collect(1:32)
+    # and make sure that the susceptibilites are correct
+    zs = [zeeman_shift(1, sls) for sls in values(C.selected_level_structure)]
+    @test length(unique([global_B_scales; zs])) == length(zs) 
     
 
-#     # _setup_δν_hamiltonian
-#     ## should return empty arrays if δν=0
-#     δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
-#     @test length(δν_indices) == 0 && length(δν_functions) == 0
+    # test _setup_δν_hamiltonian
+
+    # setup system 
+    chain = LinearChain(
+        ions=[C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1])
+    )
+    T = Trap(configuration=chain, lasers=[L], δB=0)
+    # should return empty arrays if δν=0
+    δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+    @test length(δν_indices) == 0 && length(δν_functions) == 0
     
-#     T.configuration.vibrational_modes.z[1].N = 10
-#     T.configuration.vibrational_modes.z[1].δν = 1
-#     indxs = [[8j + i for i in 1:8] for j in 1:9]
-#     δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
-#     matched = unique([indxs; δν_indices])
-#     @test length(matched) == 10
-#     @test length(δν_functions) == 1
+    # test output for simple case
+    T.configuration.vibrational_modes.z[1].N = 3
+    T.configuration.vibrational_modes.z[1].δν = 1
+    δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+    indxs = [[8j + i for i in 1:8] for j in 1:3]
+    @test δν_indices[1] == indxs
+    
+    # add another mode with δν=0 and test output
+    chain = LinearChain(
+        ions=[C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(y=[1], z=[1])
+    )
+    T = Trap(configuration=chain, lasers=[L], δB=0)
+    T.configuration.vibrational_modes.y[1].N = 3
+    T.configuration.vibrational_modes.z[1].N = 3
+    T.configuration.vibrational_modes.z[1].δν = 1
+    δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+    indxs1 = [[8*4*j + i for i in 1:8*4] for j in 1:3]
+    @test δν_indices[1] == indxs1
 
-#     chain = linearchain(
-#         ions=[C], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[1], y=[], z=[1])
-#     )
-#     T = trap(configuration=chain, lasers=[L], δB=0)
-#     T.configuration.vibrational_modes.x[1].δν = cos
-#     T.configuration.vibrational_modes.z[1].δν = sin
-#     δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
-#     t = 0:0.1:10
-#     @test δν_functions[1].(t) == 2π .* cos.(t)
-#     @test δν_functions[2].(t) == 2π .* sin.(t)
+    # test output when both modes have nonzero δν
+    T.configuration.vibrational_modes.z[1].δν = 1
+    T.configuration.vibrational_modes.y[1].δν = 1
+    δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+    indxs = [[8*j + i for i in 1:8*8] for j in 1:3]
+    @test δν_indices[1][1] == [vcat([[8*(4(j-1)+1) + i for i in 1:8] for j in 1:4]...);]
+    @test δν_indices[2] == indxs1
+    # we have two modes but only one nontrivial δν, so length(δν_functions) should equal 1
+    @test length(δν_functions) == 2
+
+    # finally, make sure δν_functions are being constructed appropriately
+    T.configuration.vibrational_modes.y[1].δν = cos
+    T.configuration.vibrational_modes.z[1].δν = sin
+    δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+    t = 0:0.1:10
+    @test δν_functions[1].(t) == 2π .* cos.(t)
+    @test δν_functions[2].(t) == 2π .* sin.(t)
 
 
-#     # _setup_fluctuation_hamiltonian
-#     T = trap(configuration=chain, lasers=[L], δB=1)
-#     T.configuration.vibrational_modes.x[1].δν = cos
-#     T.configuration.vibrational_modes.z[1].δν = sin
-#     δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
-#     global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
-#     all_unique_indices, gbi, gbs, bfunc1, δνi, δνfuncs = IonSim._setup_fluctuation_hamiltonian(T, 1)
-#     @test any(gbi .== global_B_indices)
-#     @test any(gbs .== global_B_scales)
-#     @test bfunc(17.0) == bfunc1(17.0)
-#     @test any(δνi .== δν_indices)
-#     @test δνfuncs[end](92.0) == δν_functions[end](92.0)
+    # _setup_fluctuation_hamiltonian
+    T = Trap(configuration=chain, lasers=[L], δB=1)
+    T.configuration.vibrational_modes.y[1].δν = cos
+    T.configuration.vibrational_modes.z[1].δν = sin
+    δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+    global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
+    all_unique_indices, gbi, gbs, bfunc1, δνi, δνfuncs = IonSim._setup_fluctuation_hamiltonian(T, 1)
+    # make sure information from _setup_global_B_hamiltonian and _setup_δν_hamiltonian
+    # is propagated appropriately
+    @test any(gbi .== global_B_indices)
+    @test any(gbs .== global_B_scales)
+    @test bfunc(17.0) == bfunc1(17.0)
+    @test any(δνi .== δν_indices)
+    @test δνfuncs[end](92.0) == δν_functions[end](92.0)
 
 
-#     # _setup_base_hamiltonian
-#     ## we can check that the functional description is correct when test hamiltonian and/or
-#     ## the time-evolution. For now let' just make sure elements are getting assinged to the 
-#     ## correct places. We'll look at two 2-level ions coupled to a single mode with dim=2.
-#     ## Note: qo embed performs tensor product in backwards order compared to what we'd usually
-#     ## expect
-#     C = ca40(selected_level_structure=["S-1/2", "D-1/2"])
-#     L = laser()
-#     chain = linearchain(ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[], y=[], z=[1]))
-#     T = trap(configuration=chain, B=4e-4, Bhat=(x=0,y=0,z=1), lasers=[L])
-#     mode = T.configuration.vibrational_modes.z[1]
-#     mode.N = 2
+    # _setup_base_hamiltonian
+    ## we can check that the functional description is correct when test hamiltonian and/or
+    ## the time-evolution. For now let' just make sure elements are getting assinged to the 
+    ## correct places. We'll look at two 2-level ions coupled to a single mode with dim=2.
+    ## Note: qo embed performs tensor product in backwards order compared to what we'd usually
+    ## expect
+    C = Ca40(["S-1/2", "D-1/2"])
+    L = Laser()
+    chain = LinearChain(
+            ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1])
+        )
+    T = Trap(configuration=chain, B=4e-4, Bhat=ẑ, lasers=[L])
+    mode = T.configuration.vibrational_modes.z[1]
+    mode.N = 2
 
-#     ## first just shine light on 1st ion 
-#     L.pointing = [(1, 1.0)]
-#     _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10)
-#     ion1_indxs = [(2,1), (4,3), (2,5), (4,7), (6,1), (8,3), (8,7), (6,5)]
-#     unique_els = unique([IonSim._flattenall(repeated_indices); ion1_indxs])
-#     # @test length(repeated_indices) == 4
-#     # @test length(unique_els) == 8
+    ## first just shine light on 1st ion 
+    L.pointing = [(1, 1.0)]
+    ion1_indxs = [(2,1), (4,3), (2,5), (4,7), (6,1), (8,3), (8,7), (6,5)]
+    _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10, "analytic", true)
+    unique_els = unique([IonSim._flattenall(repeated_indices); ion1_indxs])
+    @test length(repeated_indices) == 0
+    @test length(unique_els) == 8
 
-#     ## now just shine light on second ion
-#     L.pointing = [(2, 1.0)]
-#     _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10)
-#     ion2_indxs = [(3,1), (4,2), (4,6), (3,5), (7,1), (8,2), (7,5), (8,6)]
-#     unique_els = unique([IonSim._flattenall(repeated_indices); ion2_indxs])
-#     # @test length(repeated_indices) == 4
-#     # @test length(unique_els) == 8
+    ## now just shine light on second ion
+    L.pointing = [(2, 1.0)]
+    _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10, "analytic", true)
+    ion2_indxs = [(3,1), (4,2), (4,6), (3,5), (7,1), (8,2), (7,5), (8,6)]
+    unique_els = unique([IonSim._flattenall(repeated_indices); ion2_indxs])
+    @test length(repeated_indices) == 0
+    @test length(unique_els) == 8
 
-#     ## now shine light on both ions
-#     L.pointing = [(1, 1.0), (2, 1.0)]
-#     _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10)
-#     unique_els = unique([IonSim._flattenall(repeated_indices); ion1_indxs; ion2_indxs])
-#     # @test length(repeated_indices) == 8
-#     # @test length(unique_els) == 16
+    ## now shine light on both ions
+    L.pointing = [(1, 1.0), (2, 1.0)]
+    _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10, "analytic", true)
+    unique_els = unique([IonSim._flattenall(repeated_indices); ion1_indxs; ion2_indxs])
+    @test length(repeated_indices) == 0
+    @test length(unique_els) == 16
 
 #     ## now lets set lamb_dicke_order = 0
 #     _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 0, 1e10)
@@ -254,7 +298,7 @@ end
 #     unique_els = unique([IonSim._flattenall(conj_repeated_indices); expected_conj_repeated_indices])
 #     # @test length(repeated_indices) == 6
 #     # @test length(unique_els) == 5  # 4 actual indices plus (-1,0) flag
-# end
+end
 
 
 # @testset "hamiltonian" begin
@@ -303,3 +347,4 @@ end
 #     # @test norm(real.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 0.05  
 #     # @test norm(imag.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 0.05
 # end
+end  # end suppress
