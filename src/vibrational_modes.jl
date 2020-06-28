@@ -21,6 +21,7 @@ export VibrationalMode
         one of the basis vectors `x̂`, `ŷ` or `ẑ`.
 #### derived fields
 * `shape::Vector{Int}`: Indicates dimension of used Hilbert space (`=[N+1]`).
+* `_cnst_δν::Bool`: A Boolean flag signifying whether or not `δν` is a constant function.
 
 Note: the iᵗʰ Fock state (|i⟩) can be obtained by indexing as `v=VibrationalMode(...); v[i]`
 """
@@ -31,9 +32,16 @@ mutable struct VibrationalMode <: IonSimBasis
     N::Int
     shape::Vector{Int}
     axis::NamedTuple{(:x,:y,:z)}
+    _cnst_δν::Bool
     function VibrationalMode(ν, mode_structure; δν=0., N=10, axis=ẑ)
-        typeof(δν) <: Number ? δνt(t) = δν : δνt = δν
-        new(ν, mode_structure, δνt, N, [N+1], axis)
+        if typeof(δν) <: Number
+            _cnst_δν = true
+            δνt(t) = δν
+        else
+            _cnst_δν = false
+            δνt = δν
+        end
+        new(ν, mode_structure, δνt, N, [N+1], axis, _cnst_δν)
     end
 end
 
@@ -52,7 +60,7 @@ Base.show(io::IO, V::VibrationalMode) = print(io,
     "VibrationalMode(ν=$(round(V.ν,sigdigits=4)), axis=$(_print_axis(V.axis)), N=$(V.N))")
 
 function Base.setproperty!(V::VibrationalMode, s::Symbol, v)
-    if s == :mode_structure || s == :axis
+    if s == :mode_structure || s == :axis || s == :_cnst_δν
         return
     end
     if s == :N
@@ -63,8 +71,15 @@ function Base.setproperty!(V::VibrationalMode, s::Symbol, v)
     elseif s == :shape
         return
     elseif s == :δν
-        typeof(v) <: Number ? vt(t) = v : vt = v
+        if typeof(v) <: Number
+            _cnst_δν = true
+            vt(t) = v
+        else
+            _cnst_δν = false
+            vt = v
+        end
         Core.setproperty!(V, s, vt)
+        Core.setproperty!(V, :_cnst_δν, _cnst_δν)
         return
     end
     Core.setproperty!(V, s, v)

@@ -9,8 +9,10 @@ using Suppressor
     t = 0:1:100
     ones = [1 for _ in t]
     @test vm.δν.(t) == ones
+    @test vm._cnst_δν
     vm.δν = sin
     @test vm.δν.(t) == sin.(t)
+    @test !vm._cnst_δν
 
     # test ==
     vm1 = VibrationalMode(1, [1, 1], δν=1)
