@@ -1,7 +1,60 @@
-using QuantumOptics: displace, FockBasis, dagger, ⊗, embed, DenseOperator
+using QuantumOptics: DenseOperator
 using LinearAlgebra: diagm, norm
 using Test, IonSim
 using Suppressor
+
+
+Base.:(*)(s::String, i::Int) = i==1 ? s : 0
+Base.:(*)(i::Int, s::String) = Base.:(*)(s, i)
+Base.:(+)(s::String, i::Int) = i==0 ? s : nothing
+Base.:(+)(i::Int, s::String) = Base.:(+)(s, i)
+
+function get_indices(ion_participation, vibrational_mode_dimension, two_modes; cutoff=[Inf,Inf])
+    N = vibrational_mode_dimension[1]
+    σ1 = [0 0; "a" 0]; σ2 = [0 0; "b" 0]; I = [1 0; 0 1]
+    c = ["c$i$j," for i in 1:N, j in 1:N]
+    if two_modes
+        M = vibrational_mode_dimension[2]
+        d = ["d$i$j," for i in 1:M, j in 1:M]
+        subarrays = [[d, c, I, σ1], [d, c, σ2, I]]
+    else
+        subarrays = [[c, I, σ1], [c, σ2, I]]
+    end
+    if ion_participation == 1
+        k = kron(subarrays[1]...)
+    elseif ion_participation == 2
+        k = kron(subarrays[2]...)
+    elseif ion_participation == 12
+        k = kron(subarrays[1]...) + kron(subarrays[2]...)
+    end
+    ridxs = Dict()
+    cidxs = Dict()
+    nzidxs = []
+    for i in 1:size(k, 2), j in 1:size(k, 2)
+        if k[i, j] == 0
+            continue
+        end
+        mn = map(x->[parse(Int,x[2]),parse(Int,x[3])], split(k[i,j], ",")[1:end-1])
+        if sum([abs(x[1] - x[2]) > cutoff[l] for (l,x) in enumerate(mn)]) > 0
+            continue
+        end
+        if i > j
+            if !(k[i, j] in keys(ridxs))
+                ridxs[k[i, j]] = [(i,j)]
+            else
+                push!(ridxs[k[i,j]], (i,j))
+            end
+        else
+            if !(k[i, j] in keys(cidxs))
+                parity = sum(map(x->isodd(abs(x[1]-x[2])), mn))
+                cidxs[k[i, j]] = [(-1 * isodd(parity),0), (i,j)]
+            else
+                push!(cidxs[k[i,j]], (i,j))
+            end
+        end
+    end
+    collect(values(ridxs)), collect(values(cidxs))
+end
 
 
 @suppress_err begin
@@ -18,8 +71,8 @@ using Suppressor
     n = [[rand(1:20) for _ in 1:L], [rand(1:5) for _ in 1:L]]
     t = randn()
     d1 = IonSim._D(Ω, Δ, η, ν, timescale, n, t, L)
-    D = [IonSim._Dnm_constant_eta(η[i], n[1][i], n[2][i]) for i in 1:L]
-    d2 = IonSim._D_constant_eta(Ω, Δ, ν, timescale, n, D, t, L)
+    D = [IonSim._Dnm_cnst_eta(η[i], n[1][i], n[2][i]) for i in 1:L]
+    d2 = IonSim._D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
     @test abs(sum(d1 .- d2)) < 1e-8
     
 
@@ -28,9 +81,9 @@ using Suppressor
     @test IonSim._flattenall(a) == collect(1:6)
 
     # _get_kron_indxs
-    a = ["a11," "a12," "a13,"; "a21," "a22," "a23,"; "a31," "a32," "a33,"]
-    b = ["b11," "b12," "b13,"; "b21," "b22," "b23,"; "b31," "b32," "b33,"]
-    c = ["c11," "c12," "c13,"; "c21," "c22," "c23,"; "c31," "c32," "c33,"]
+    a = ["a$i$j," for i in 1:3, j in 1:3]
+    b = ["b$i$j," for i in 1:3, j in 1:3]
+    c = ["c$i$j," for i in 1:3, j in 1:3]
     abc = kron(a, b, c)
     z = 1:3
     i1 = rand(z); i2 = rand(z)
@@ -39,7 +92,7 @@ using Suppressor
     ijk = [(i1, i2), (j1, j2), (k1, k2)]
     (I, J) = IonSim._get_kron_indxs([(i1, i2), (j1, j2), (k1, k2)], [3, 3, 3])
     @test [(parse(Int,i[2]), parse(Int,i[3])) for i in split(abc[I, J], ",")[1:end-1]] == ijk
-    # ^ the above tests that  abc[I, J] = a[i1,i2] * a[j1,j2] * c[k1,k2]
+    # ^this tests that  abc[I, J] = a[i1,i2] * a[j1,j2] * c[k1,k2]
 
     # _inv_get_kron_indxs
     indxs = IonSim._inv_get_kron_indxs((I, J), (3,3,3))
@@ -124,24 +177,24 @@ end
     L3 = Laser(); L3.pointing = [(1, 1.0), (2, 1.0)]
     L3.k = ẑ
     T = Trap(configuration=chain, lasers=[L1, L2, L3])
-    η = IonSim._ηmatrix(T, 1e-6)
+    η = IonSim._ηmatrix(T)
 
     # η[1,1,1] corresponds laser1, ion1, mode1 (x̂) and η[1,1,3] corresponds laser1, ion1, 
     # mode3 (ẑ). They both have the same projection on L1.k, but the frequency of mode1 is
     # twice as large as mode2, so it's L-D factor should be √2 times smaller 
-    @test abs(η[1, 1, 1](1.0)) ≈ abs(η[1, 1, 3](1.0) / √2)
+    @test abs(η[1, 1, end](1.0)) ≈ abs(η[1, 1, end-2](1.0) / √2)
     # With this setup, the L-D factor should be the same for ion1 and ion2
-    @test η[1, 1, 1](1.0) ≈ η[2, 1, 1](1.0)
+    @test η[1, 1, end](1.0) ≈ η[2, 1, end](1.0)
     # η[1, 2, 2] is the 1st ion, 2nd laser and y-stretch-mode. The L-D factor should be 
     # opposite in sign, equal in magnitude to the 2nd ion, 2nd laser and y-stretch-mode
-    @test η[1, 2, 2](1.0) ≈ -η[2, 2, 2](1.0)
+    @test η[1, 2, end-1](1.0) ≈ -η[2, 2, end-1](1.0)
     # L3, which is in the ẑ direction should ony have projection on zmode (mode3)
-    @test η[1, 3, 1](1.0) ≈ 0 && η[1, 3, 2](1.0) ≈ 0 && η[1, 3, 3](1.0) !== 0
+    @test η[1, 3, end](1.0) ≈ 0 && η[1, 3, end-1](1.0) ≈ 0 && η[1, 3, end-2](1.0) !== 0
     # test construction of time-dep δν. If δν = 1e6*t, then after 3e-6 seconds (and since
     # ν=1e6), √(ν+δν(t)) = √2 * √(ν) = √2 * √(ν+δν(0))
     chain.vibrational_modes.z[1].δν = t -> 1e6t
-    η = IonSim._ηmatrix(T, 1e-6)
-    @test η[1, 1, 3](0.0) ≈ 2 * η[1, 1, 3](3) 
+    η = IonSim._ηmatrix(T)
+    @test η[1, 1, end-2](0.0) ≈ 2 * η[1, 1, end-2](3) 
 end
 
 @testset "hamiltonians -- setup functions" begin
@@ -241,110 +294,170 @@ end
 
 
     # _setup_base_hamiltonian
-    ## we can check that the functional description is correct when test hamiltonian and/or
-    ## the time-evolution. For now let' just make sure elements are getting assinged to the 
-    ## correct places. We'll look at two 2-level ions coupled to a single mode with dim=2.
-    ## Note: qo embed performs tensor product in backwards order compared to what we'd usually
-    ## expect
+    # Let's make sure that _setup_base_hamiltonian is recording the appropriate indices.
     C = Ca40(["S-1/2", "D-1/2"])
     L = Laser()
     chain = LinearChain(
             ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1])
         )
-    T = Trap(configuration=chain, B=4e-4, Bhat=ẑ, lasers=[L])
+    T = Trap(configuration=chain, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L])
     mode = T.configuration.vibrational_modes.z[1]
-    mode.N = 2
+    mode.N = rand(1:8)
+    N = mode.N + 1
+    Efield_from_rabi_frequency!(1e6, T, 1, 1, ("S-1/2", "D-1/2"))
 
     ## first just shine light on 1st ion 
     L.pointing = [(1, 1.0)]
-    ion1_indxs = [(2,1), (4,3), (2,5), (4,7), (6,1), (8,3), (8,7), (6,5)]
-    _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10, "analytic", true)
-    unique_els = unique([IonSim._flattenall(repeated_indices); ion1_indxs])
-    @test length(repeated_indices) == 0
-    @test length(unique_els) == 8
+    ridxs, cidxs = get_indices(1, [N], false)
+    _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+    @test length(unique([ridxs; r])) == (N^2 + N) / 2 == length(ridxs)
+    @test length(unique([cidxs; c]))-1 == (N^2 - N) / 2 == length(cidxs)
 
     ## now just shine light on second ion
     L.pointing = [(2, 1.0)]
-    _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10, "analytic", true)
-    ion2_indxs = [(3,1), (4,2), (4,6), (3,5), (7,1), (8,2), (7,5), (8,6)]
-    unique_els = unique([IonSim._flattenall(repeated_indices); ion2_indxs])
-    @test length(repeated_indices) == 0
-    @test length(unique_els) == 8
+    ridxs, cidxs = get_indices(2, [N], false)
+    _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+    @test length(unique([ridxs; r])) == (N^2 + N) / 2 == length(ridxs)
+    @test length(unique([cidxs; c]))-1 == (N^2 - N) / 2 == length(cidxs)
 
     ## now shine light on both ions
     L.pointing = [(1, 1.0), (2, 1.0)]
-    _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e10, "analytic", true)
-    unique_els = unique([IonSim._flattenall(repeated_indices); ion1_indxs; ion2_indxs])
-    @test length(repeated_indices) == 0
-    @test length(unique_els) == 16
+    ridxs, cidxs = get_indices(12, [N], false)
+    _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+    @test length(unique([ridxs; r])) == (N^2 + N) == length(ridxs)
+    @test length(unique([cidxs; c]))-1 == (N^2 - N) == length(cidxs)
 
-#     ## now lets set lamb_dicke_order = 0
-#     _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 0, 1e10)
-#     ld_indxs = [(2,1), (4,3), (3,1), (4,2), (8,7), (6,5), (7,5), (8,6)]
-#     unique_els = unique([IonSim._flattenall(repeated_indices); ld_indxs])
-#     # @test length(repeated_indices) == 4
-#     # @test length(unique_els) == 8
+    ## test for two modes
+    C1 = Ca40(["S-1/2", "D-1/2"])
+    L1 = Laser()
+    chain1 = LinearChain(
+            ions=[C1, C1], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1,2])
+        )
+    T1 = Trap(configuration=chain1, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L1])
+    mode1 = T1.configuration.vibrational_modes.z[1]
+    mode2 = T1.configuration.vibrational_modes.z[2]
+    mode1.N = N-1
+    mode2.N = rand(1:8)
+    M = mode2.N + 1
+    NM = N*M
+    Efield_from_rabi_frequency!(1e6, T1, 1, 1, ("S-1/2", "D-1/2"))
 
-#     ## when laser tuned to carrier, setting an rwa_cutoff below the vibrationl_mode frequency should hvae the same affect
-#     L.Δ = transition_frequency(T, C, ("S-1/2", "D-1/2"))
-#     _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, 1e5)
-#     unique_els = unique([IonSim._flattenall(repeated_indices); ld_indxs])
-#     # @test length(repeated_indices) == 4
-#     # @test length(unique_els) == 8
+    ridxs, cidxs = get_indices(12, [N, M], true)
+    _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+    @test length(unique([ridxs; r])) == (NM^2 + NM) == length(ridxs)
+    @test length(unique([cidxs; c]))-1 == (NM^2 - NM) == length(cidxs)
+   
 
-#     ## finally lets make sure the conj_repeated_indices are going to the right places
-#     _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T, 1, 100, Inf)
-#     expected_conj_repeated_indices = [(2,5), (4,7), (4,6), (3,5)]
-#     unique_els = unique([IonSim._flattenall(conj_repeated_indices); expected_conj_repeated_indices])
-#     # @test length(repeated_indices) == 6
-#     # @test length(unique_els) == 5  # 4 actual indices plus (-1,0) flag
+    ## now set non-trivial lamb_dicke_order
+    lamb_dicke_order = [rand(1:N), rand(1:M)]
+    ridxs, cidxs = get_indices(12, [N, M], true, cutoff=reverse(lamb_dicke_order))
+    _, r, c = IonSim._setup_base_hamiltonian(T1, 1e-6, lamb_dicke_order, Inf, "analytic", true)
+    @test length(unique([ridxs; r])) == length(ridxs)
+    @test length(unique([cidxs; c]))-1 == length(cidxs)
+
+    ## when laser tuned to carrier, setting an rwa_cutoff below the vibrationl_mode frequency 
+    ## should have the same effect
+    L.Δ = transition_frequency(T1, C1, ("S-1/2", "D-1/2"))
+    _, repeated_indices, conj_repeated_indices = IonSim._setup_base_hamiltonian(T1, 1, 100, 1e5, "analytic", true)
+    @test length(unique([ridxs; r])) == length(ridxs)
+    @test length(unique([cidxs; c]))-1 == length(cidxs)
 end
 
 
-# @testset "hamiltonian" begin
-#     C = ca40(selected_level_structure=["S-1/2", "D-1/2"])
-#     L = laser()
-#     L.pointing = [(1, 1.0), (2, 1.0)]
-#     chain = linearchain(ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[], y=[], z=[1]))
-#     T = trap(configuration=chain, B=4e-4, Bhat=(x=0,y=0,z=1), lasers=[L])
-#     mode = T.configuration.vibrational_modes.z[1]
-#     L.Δ = transition_frequency(T, C, ("S-1/2", "D-1/2")) + 2e5
-#     L.ϕ = 1/2
-#     mode.N = 30
-#     Efield_from_rabi_frequency!(0.5e6, T, 1, 1, ("S-1/2", "D-1/2"))
+@testset "hamiltonian" begin
+    C1 = Ca40(["S-1/2", "D-1/2"])
+    C2 = Ca40(["S-1/2", "D-1/2"])
+    L = Laser()
+    L.pointing = [(1, 1.0), (2, 1.0)]
+    chain = LinearChain(
+                ions=[C1, C2], com_frequencies=(x=3e6,y=3e6,z=1e6), 
+                vibrational_modes=(;z=[1,2])
+            )
+    T = Trap(configuration=chain, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L])
+    mode1 = T.configuration.vibrational_modes.z[1]
+    mode2 = T.configuration.vibrational_modes.z[2]
+    Δ = round(randn(), digits=5) * 1e5  # TODO: this begins to fail at below 1 Hz!
+    L.Δ = transition_frequency(T, C1, ("S-1/2", "D-1/2")) + Δ
+    ϕ = randn()
+    L.ϕ = ϕ
+    mode1.N = 10
+    mode2.N = 9
+    Ω = randn()
+    Efield_from_rabi_frequency!(Ω * 1e6, T, 1, 1, ("S-1/2", "D-1/2"))
 
     
-#     # full hamiltonian (w/o conj_repeated_indices)
-#     # full hamiltonian (w/o conj_repeated_indices)
-#     ion1_op(t) = π/2 * exp(-im * 2π *(0.2t + 1/2)) * C["D-1/2"] ⊗ C["S-1/2"]'
-#     ion2_op(t) = π/2 * exp(-im * 2π * (0.2t + 1/2)) * C["D-1/2"] ⊗ C["S-1/2"]'
-#     η = IonSim.get_η(mode, L, C)
-#     mode_op(t) = displace(mode.basis, im * η * exp(im * 2π * t))
-#     Hp(t) = embed(get_basis(T), [1, 3], [ion1_op(t), mode_op(t)]) + embed(get_basis(T), [2, 3], [ion2_op(t), mode_op(t)])
-#     qoH(t) = Hp(t) + dagger(Hp(t))
-#     H = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=1e10)
-#     # @test norm(real.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 1e-6
-#     # @test norm(imag.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 1e-6
+    # full hamiltonian (w conj_repeated_indices)
+    timescale = 1e-6
+    ion_op(t) = Ω * π * exp(-im * (2π * Δ*t*timescale + ϕ)) * C1["D-1/2"] ⊗ C1["S-1/2"]'
+    η11 = get_η(mode1, L, C1)
+    η12 = get_η(mode2, L, C1)
+    η21 = get_η(mode1, L, C2)
+    η22 = get_η(mode2, L, C2)
+    mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
+    mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
+    Hp(t) = (ion_op(t) ⊗ one(C2) ⊗ mode_op1(t, η=η11) ⊗ mode_op2(t, η=η12) 
+             + one(C1) ⊗ ion_op(t) ⊗ mode_op1(t, η=η21) ⊗ mode_op2(t, η=η22))
+    qoH(t) = Hp(t) + dagger(Hp(t))
+    tp = abs(1001randn())
+
+    H = hamiltonian(T, lamb_dicke_order=101)
+    H1 = hamiltonian(T, lamb_dicke_order=101, time_dependent_eta=true)
+    @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+    @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
+
+    mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
+    mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="analytic")
+    H1 = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=false)
+    H = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=true)
+    @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+    @test H1(tp, 0).data ≈ H(tp, 0).data  
 
 
-#     # full hamiltonian (w/ conj_repeated_indices)
-#     H = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=Inf)
-#     # @test norm(real.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 1e-6
-#     # @test norm(imag.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 1e-6
+    # full hamiltonian (w/o conj_repeated_indices)
+    H = hamiltonian(T, lamb_dicke_order=101, rwa_cutoff=1e10)
+    H1 = hamiltonian(T, lamb_dicke_order=101, time_dependent_eta=true, rwa_cutoff=1e10)
+    mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
+    mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
+    @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+    @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
+
+    mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
+    mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="analytic")
+    H1 = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=false, rwa_cutoff=1e10)
+    H = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=true, rwa_cutoff=1e10)
+    @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+    @test H1(tp, 0).data ≈ H(tp, 0).data
     
-#     # Lamb-Dicke
-#     mode_op(t) = DenseOperator(mode.basis, diagm(0 => [1 - η^2 * i for i in 0:29]))
-#     Hp(t) = embed(get_basis(T), [1, 3], [ion1_op(t), mode_op(t)]) + embed(get_basis(T), [2, 3], [ion2_op(t), mode_op(t)])
-#     qoH(t) = Hp(t) + dagger(Hp(t))
-#     H = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf)
-#     # only considering first order corrections to carrier (propto η^2) so this won't be perfect
-#     # @test norm(real.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 0.05  
-#     # @test norm(imag.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 0.05
+    # # Lamb-Dicke
+    mode_op11 = DenseOperator(mode1, diagm(0 => [1 - η11^2 * i for i in 0:mode1.N]))
+    mode_op12 = DenseOperator(mode2, diagm(0 => [1 - η12^2 * i for i in 0:mode2.N]))
+    mode_op21 = DenseOperator(mode1, diagm(0 => [1 - η21^2 * i for i in 0:mode1.N]))
+    mode_op22 = DenseOperator(mode2, diagm(0 => [1 - η22^2 * i for i in 0:mode2.N]))
+    mode_op1 = mode_op11 ⊗ mode_op12
+    mode_op2 = mode_op21 ⊗ mode_op22
+    Hp(t) = ion_op(t) ⊗ one(C2) ⊗ mode_op1 + one(C1) ⊗ ion_op(t) ⊗ mode_op2
+    qoH(t) = Hp(t) + dagger(Hp(t))
+    H = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf)
+    H1 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, time_dependent_eta=true)
+    H2 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic")
+    H3 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic", time_dependent_eta=true)
+    # only considering first order corrections to carrier (propto η^2) so this won't be perfect
+    @test norm((qoH(tp) - H(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H1(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H2(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H3(tp, 0)).data) < 1
 
-#     # RWA
-#     H = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5)
-#     # only considering first order corrections to carrier (propto η^2) so this won't be perfect
-#     # @test norm(real.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 0.05  
-#     # @test norm(imag.((qoH(1027.32) - H(1027.32, 0)).data[1:10, 1:10])) < 0.05
-# end
+    # RWA
+    H = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5)
+    H1 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, time_dependent_eta=true)
+    H2 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic")
+    H3 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic", time_dependent_eta=true)
+    # only considering first order corrections to carrier (propto η^2) so this won't be perfect
+    @test norm((qoH(tp) - H(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H1(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H2(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H3(tp, 0)).data) < 1
+
+    @test_throws AssertionError hamiltonian(T, lamb_dicke_order=[1, 2, 3], rwa_cutoff=3e5)
+end
 end  # end suppress
