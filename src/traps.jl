@@ -31,6 +31,7 @@ interacting with laser light.
         scaling factor for the strength of that interaction (to be used, e.g., for 
         modeling cross-talk).
 #### derived fields:
+* `_cnst_δB::Bool`: A Boolean flag signifying whether or not `δB` is a constant function.
 * `basis<:CompositeBasis`: The basis for describing the combined system, ions + vibrational
         modes. If constructing the Hamiltonian explictly (with [`hamiltonian`](@ref)), then
         the ordering of the basis is set, by convention, as 
@@ -61,6 +62,7 @@ mutable struct Trap
     δB::Function
     lasers::Array{<:Laser}
     basis::CompositeBasis
+    _cnst_δB::Bool
     function Trap(;
             configuration::LinearChain, B=0, Bhat=ẑ, ∇B=0, δB=0, lasers=Laser[]
         )
@@ -88,22 +90,35 @@ mutable struct Trap
                  $(length(configuration.ions)) ions."""
             )
         end
-        typeof(δB) <: Number ?  δBt(t) = δB : δBt = δB
+        if typeof(δB) <: Number
+            _cnst_δB = true
+            δBt(t) = δB
+        else
+            _cnst_δB = false
+            δBt = δB
+        end
         basis = tensor(
             configuration.ions..., 
             configuration.vibrational_modes.x...,
             configuration.vibrational_modes.y...,
             configuration.vibrational_modes.z...,
         )
-        new(configuration, B, Bhat, ∇B, δBt, lasers, basis) 
+        new(configuration, B, Bhat, ∇B, δBt, lasers, basis, _cnst_δB) 
     end
 end
 
 function Base.setproperty!(T::Trap, s::Symbol, v)
     if s == :δB
-        typeof(v) <: Number ? vt(t) = v : vt = v
+        if typeof(v) <: Number
+            _cnst_δB = true
+            vt(t) = v
+        else
+            _cnst_δB = false
+            vt = v
+        end
         Core.setproperty!(T, s, vt)
-    elseif s == :basis
+        Core.setproperty!(T, :_cnst_δB, _cnst_δB)
+    elseif s == :basis || s == :_cnst_δB
         return
     elseif s == :configuration
         Core.setproperty!(T, s, v)

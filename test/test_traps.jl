@@ -28,8 +28,10 @@ chain = LinearChain(
     ones = [1 for _ in t]
     T.δB = 1
     @test T.δB.(t) == ones
+    @test T._cnst_δB
     T.δB = sin
     @test T.δB.(t) == sin.(t)
+    @test !T._cnst_δB
 
     # test for warning when lasers=[L, L, L, ...] where L point to the same thing
     warn = "Some lasers point to the same thing. Making copies."
