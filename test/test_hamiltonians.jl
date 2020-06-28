@@ -123,18 +123,22 @@ end
     
     # coupling strength between ion1-laser1 and ion2-laser2 should be identical for all
     # transitions since the ions are identical
-    @test [i(t) for i in Ωnmkj[1, 1]] == [i(t) for i in Ωnmkj[2, 1]]
+    resolve(x, t) = typeof(x)<:Number ? x : x(t)
+    @test [resolve(i, t) for i in Ωnmkj[1, 1]] == [resolve(i, t) for i in Ωnmkj[2, 1]]
 
     # coupling strength between ion1-laser1 and ion1-laser2 should be proportional according
     # to the factor 2exp(-2im) due to the differences we've set in L2.E and L2.ϕ
-    @test [2exp(-2im)*i(t) for i in Ωnmkj[1, 1]] == [i(t) for i in Ωnmkj[1, 2]]
-    @test [2exp(-2im)*i(t) for i in Ωnmkj[2, 1]] == [i(t) for i in Ωnmkj[2, 2]]
+    @test [2exp(-2im)*resolve(i,t) for i in Ωnmkj[1, 1]] == [resolve(i,t) for i in Ωnmkj[1, 2]]
+    @test [2exp(-2im)*resolve(i,t) for i in Ωnmkj[2, 1]] == [resolve(i,t) for i in Ωnmkj[2, 2]]
 
     # make sure time-dep L.E and L.ϕ propagate appropriately
     L1.E = cos; L1.ϕ = t -> t^2
     Ωnmkj = IonSim._Ωmatrix(T, 1)
     t = 0:1e-3:100
     for Ω in Ωnmkj[1, 1]
+        if typeof(Ω)<:Number
+            continue
+        end
         @test Ω.(t) ≈ @.(Ω(0) * cos(t) * exp(-im * t^2))
     end
 
@@ -188,8 +192,10 @@ end
     # η[1, 2, 2] is the 1st ion, 2nd laser and y-stretch-mode. The L-D factor should be 
     # opposite in sign, equal in magnitude to the 2nd ion, 2nd laser and y-stretch-mode
     @test η[1, 2, end-1](1.0) ≈ -η[2, 2, end-1](1.0)
-    # L3, which is in the ẑ direction should ony have projection on zmode (mode3)
-    @test η[1, 3, end](1.0) ≈ 0 && η[1, 3, end-1](1.0) ≈ 0 && η[1, 3, end-2](1.0) !== 0
+    # L3, which is in the ẑ direction should only have projection on zmode (mode3)
+    @test η[1, 3, end] ≡ 0 
+    @test η[1, 3, end-1] ≡ 0
+    @test η[1, 3, end-2](0.0) != 0
     # test construction of time-dep δν. If δν = 1e6*t, then after 3e-6 seconds (and since
     # ν=1e6), √(ν+δν(t)) = √2 * √(ν) = √2 * √(ν+δν(0))
     chain.vibrational_modes.z[1].δν = t -> 1e6t
@@ -398,7 +404,7 @@ end
     Hp(t) = (ion_op(t) ⊗ one(C2) ⊗ mode_op1(t, η=η11) ⊗ mode_op2(t, η=η12) 
              + one(C1) ⊗ ion_op(t) ⊗ mode_op1(t, η=η21) ⊗ mode_op2(t, η=η22))
     qoH(t) = Hp(t) + dagger(Hp(t))
-    tp = abs(1001randn())
+    tp = abs(51randn())
 
     H = hamiltonian(T, lamb_dicke_order=101)
     H1 = hamiltonian(T, lamb_dicke_order=101, time_dependent_eta=true)
@@ -453,10 +459,10 @@ end
     H2 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic")
     H3 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic", time_dependent_eta=true)
     # only considering first order corrections to carrier (propto η^2) so this won't be perfect
-    @test norm((qoH(tp) - H(tp, 0)).data) < 1
-    @test norm((qoH(tp) - H1(tp, 0)).data) < 1
-    @test norm((qoH(tp) - H2(tp, 0)).data) < 1
-    @test norm((qoH(tp) - H3(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H(tp, 0)).data) < 2
+    @test norm((qoH(tp) - H1(tp, 0)).data) < 2
+    @test norm((qoH(tp) - H2(tp, 0)).data) < 2
+    @test norm((qoH(tp) - H3(tp, 0)).data) < 2
 
     @test_throws AssertionError hamiltonian(T, lamb_dicke_order=[1, 2, 3], rwa_cutoff=3e5)
 end
