@@ -204,6 +204,7 @@ end
 
 # computes iⁿ(-i)ᵐ * (s! / ((s+1) * √(m!n!)))
 function _pf(s::Int, n::Int, m::Int)
+    n -= 1; m -= 1; s -= 1;
     @assert n<=s && m<=s
     val = 1. / (s+1)
     for i in 0:s-2
@@ -217,7 +218,7 @@ function _pf(s::Int, n::Int, m::Int)
             val *= (s-i)
         end
     end
-    1im^n * (-1im)^m * val 
+    (-1im)^n * 1im^m * val 
 end
 
 # computes the coefficients for the 'probabilist's' Hermite polynomial of order n
@@ -236,6 +237,7 @@ end
 
 # computes He_n(x) (nth order Hermite polynomial)
 function _fHe(x::Real, n::Int)
+    n -= 1
     He = 1.0, x
     if n < 2
         return He[n+1]
@@ -252,13 +254,14 @@ function _Dtrunc(Ω, Δ, η, ν, rs, s, n, prefactor, timescale, L, t)
     d = complex(1, 0)
     for i in 1:L
         val = 0.
+        Δn = n[1][i] - n[2][i]
         for r in rs[i]
-            val += exp(im * r * η[i]) * _fHe(r, n[2][i]) * _fHe(r, n[1][i]) / _fHe(r, s[i])^2
+            val += exp(im * r * abs(η[i])) * _fHe(r, n[2][i]) * _fHe(r, n[1][i]) / _fHe(r, s[i])^2
         end
-        d *= val * prefactor[i] * exp(im * (n[2][i]-n[2][i]) * (2π * ν[i] * timescale * t + π/2))
-        d *= (-1)^(n[1][i] < n[2][i] && isodd(n[2][i] - n[1][i]))
+        d *= (exp(im * Δn * (2π * ν[i] * timescale * t + π/2 + π * (sign(η[i] < 0))))
+              * val * prefactor[i])
     end
-    @fastmath g = Ω * exp(-1im * t * Δ)
+    g = Ω * exp(-1im * t * Δ)
     g * d, g * conj(d)
 end
 
@@ -278,11 +281,7 @@ end
 # infinite-dimensional Hilbert space. https://doi.org/10.1103/PhysRev.177.1857
 function _Dnm(ξ::Number, n::Int, m::Int)
     if n < m 
-        if isodd(abs(n-m))
-            return -conj(_Dnm(ξ, m, n)) 
-        else
-            return conj(_Dnm(ξ, m, n))
-        end
+        return (-1)^isodd(abs(n-m)) * conj(_Dnm(ξ, m, n)) 
     end
     n -= 1; m -= 1
     s = 1.0
@@ -291,11 +290,7 @@ function _Dnm(ξ::Number, n::Int, m::Int)
     end
     ret = sqrt(1 / s) * ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
     if isnan(ret)
-        if n == m 
-            return 1.0 
-        else
-            return 0.0
-        end
+        return 1.0 * (n==m)
     end
     ret
 end

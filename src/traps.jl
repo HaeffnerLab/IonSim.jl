@@ -173,7 +173,7 @@ function Efield_from_pi_time(
     p = laser.pointing
     (γ, ϕ) = map(x -> rad2deg(acos(ndot(Bhat, x))), [laser.ϵ, laser.k])
     s_indx = findall(x -> x[1] == ion.number, p)
-    @assert length(p) > 0 "This laser doesn't shine on any ions"
+    @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
     s = laser.pointing[s_indx[1]][2]
     Ω = s * ion.selected_matrix_elements[tuple(transition...)](1, γ, ϕ)
     if Ω < 1e-15
