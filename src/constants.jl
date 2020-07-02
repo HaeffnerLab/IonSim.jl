@@ -2,7 +2,7 @@ module PhysicalConstants
 
 import Base.sqrt
 
-export μB, ħ, m_ca40, c, e, α, ϵ₀, kB, ca40_qubit_transition_frequency
+export μB, ħ, m_ca40, m_ca43, m_be9, m_yb171, m_ba138, m_sr88, m_mg25, m_hg198, m_hg199, c, e, α, ϵ₀, kB, ca40_qubit_transition_frequency
 
 """
     PhysicalConstant(x::Real)
@@ -14,12 +14,29 @@ struct PhysicalConstant <: Real
 end
 
 # some useful constants, everything in SI units
+""" ## `m_ca40` = 6.6359443331e-26 kg <br> (mass of 40Ca)"""
+const m_ca40 = PhysicalConstant(6.6359443331e-26, "kg")
+""" ## `m_ca43` = 7.133470993e-26 <br> (mass of 43Ca)"""
+const m_ca43 = PhysicalConstant(7.133470993e-26, "kg")
+""" ## `m_be9` = 1.496508205e-26 <br> (mass of 9Be)"""
+const m_be9 = PhysicalConstant(1.496508205e-26, "kg")
+""" ## `m_yb171` = 2.838464542e-25 <br> (mass of 171Yb)"""
+const m_yb171 = PhysicalConstant(2.838464542e-25, "kg")
+""" ## `m_ba138` = 2.2899705013e-25 <br> (mass of 138Ba)"""
+const m_ba138 = PhysicalConstant(2.2899705013e-25, "kg")
+""" ## `m_sr88` = 1.459707037e-25 <br> (mass of 88Sr)"""
+const m_sr88 = PhysicalConstant(1.459707037e-25, "kg")
+""" ## `m_mg25` = 4.1489958410e-26 <br> (mass of 25Mg)"""
+const m_mg25 = PhysicalConstant(4.1489958410e-26, "kg")
+""" ## `m_hg198` = 3.2873155315e-25 <br> (mass of 198Hg)"""
+const m_hg198 = PhysicalConstant(3.2873155315e-25, "kg")
+""" ## `m_hg199` = 3.3039460302e-25 <br> (mass of 199Hg)"""
+const m_hg199 = PhysicalConstant(3.3039460302e-25, "kg")
+
 """ ## `μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
 const μB = PhysicalConstant(9.27400994e-24, "J⋅T⁻¹")
 """ ## `ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
 const ħ = PhysicalConstant(1.0545718e-34, "m²kg/s")
-""" ## `m_ca40` = 6.635943757345042e-26 kg <br> (mass of 40Ca)"""
-const m_ca40 = PhysicalConstant(6.635943757345042e-26, "kg")
 """ ## `c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
 const c = PhysicalConstant(2.99792458e8, "m/s")
 """ ## `e` = 1.60217662e-19 C <br> (charge of electron)"""
