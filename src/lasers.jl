@@ -30,9 +30,9 @@ mutable struct Laser
     λ::Real
     pointing::Vector
     function Laser(; 
-            E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, λ=c/ca40_qubit_transition_frequency, 
+            E::TE=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ::Tϕ=0, λ=c/ca40_qubit_transition_frequency, 
             pointing=Array{Tuple{Int,<:Real}}(undef, 0)
-        )
+        ) where {TE, Tϕ}
         rtol = 1e-6
         @assert isapprox(norm(ϵ), 1, rtol=rtol) "!(|ϵ| = 1)"
         @assert isapprox(norm(k), 1, rtol=rtol) "!(|k| = 1)"
@@ -45,8 +45,8 @@ mutable struct Laser
         for s in scaling
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
-        typeof(E) <: Number ?  Et(t) = E : Et = E
-        typeof(ϕ) <: Number ? ϕt(t) = ϕ : ϕt = ϕ
+        TE <: Number ?  Et(t) = E : Et = E
+        Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
         new(Et, Δ, ϵ, k, ϕt, λ, pointing)
     end
     # for copying
@@ -71,7 +71,7 @@ function Base.print(L::Laser)
     println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
 end
 
-function Base.setproperty!(L::Laser, s::Symbol, v)
+function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where{Tv}
     rtol = 1e-6
     if s == :ϵ
         @assert isapprox(norm(v), 1, rtol=rtol) "!(|ϵ| = 1)"
@@ -84,7 +84,7 @@ function Base.setproperty!(L::Laser, s::Symbol, v)
             @warn "!(ϵ ⟂ k)"
         end 
     elseif s == :pointing
-        b = typeof(v)<:Vector{Tuple{Int64,Float64}} || typeof(v)<:Vector{Tuple{Int64,Int64}}
+        b = Tv <: Vector{Tuple{Int64,Float64}} || Tv <: Vector{Tuple{Int64,Int64}}
         @assert b  "type != Vector{Tuple{Int,Real}}"
         (ion_num, scaling) = map(x->getfield.(v, x), fieldnames(eltype(v)))
         @assert length(ion_num) == length(unique(ion_num)) (
@@ -94,7 +94,7 @@ function Base.setproperty!(L::Laser, s::Symbol, v)
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
     elseif s == :E || s == :ϕ 
-        typeof(v) <: Number ? vt(t) = v : vt = v
+        Tv <: Number ? vt(t) = v : vt = v
         Core.setproperty!(L, s, vt)
         return
     end

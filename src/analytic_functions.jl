@@ -22,7 +22,7 @@ function two_ion_ms(tspan, Ω::Real, ν::Real, δ::Real, η::Real, n̄::Real)
         ρgg_t  = 0.0
         for n in 0:200
             pn = _Pn(n̄, n)
-            if isnan(pn) continue end
+            isnan(pn) && continue
             t1_1 = _laguerre((F^2 + G^2) / 2, n) * cos(A + (1/2) * F * G) * term1
             t2_2 = _laguerre(2 * (F^2 + G^2), n) * term2
             ρgg_t += pn * (t1_1 + t2_2)

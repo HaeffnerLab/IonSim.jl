@@ -64,8 +64,8 @@ mutable struct Trap
     basis::CompositeBasis
     _cnst_δB::Bool
     function Trap(;
-            configuration::LinearChain, B=0, Bhat=ẑ, ∇B=0, δB=0, lasers=Laser[]
-        )
+            configuration::LinearChain, B=0, Bhat=ẑ, ∇B=0, δB::δB=0, lasers=Laser[]
+        ) where {δB}
         warn = nothing
         for i in 1:length(lasers)
             if length(lasers[i].pointing) == 0
@@ -90,7 +90,7 @@ mutable struct Trap
                  $(length(configuration.ions)) ions."""
             )
         end
-        if typeof(δB) <: Number
+        if TδB <: Number
             _cnst_δB = true
             δBt(t) = δB
         else
@@ -107,9 +107,9 @@ mutable struct Trap
     end
 end
 
-function Base.setproperty!(T::Trap, s::Symbol, v)
+function Base.setproperty!(T::Trap, s::Symbol, v::Tv) where{Tv}
     if s == :δB
-        if typeof(v) <: Number
+        if Tv <: Number
             _cnst_δB = true
             vt(t) = v
         else

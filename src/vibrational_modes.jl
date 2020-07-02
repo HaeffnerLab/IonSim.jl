@@ -33,8 +33,8 @@ mutable struct VibrationalMode <: IonSimBasis
     shape::Vector{Int}
     axis::NamedTuple{(:x,:y,:z)}
     _cnst_δν::Bool
-    function VibrationalMode(ν, mode_structure; δν=0., N=10, axis=ẑ)
-        if typeof(δν) <: Number
+    function VibrationalMode(ν, mode_structure; δν::Tδν=0., N=10, axis=ẑ) where {Tδν}
+        if Tδν <: Number
             _cnst_δν = true
             δνt(t) = δν
         else
@@ -59,19 +59,19 @@ end
 Base.show(io::IO, V::VibrationalMode) = print(io, 
     "VibrationalMode(ν=$(round(V.ν,sigdigits=4)), axis=$(_print_axis(V.axis)), N=$(V.N))")
 
-function Base.setproperty!(V::VibrationalMode, s::Symbol, v)
+function Base.setproperty!(V::VibrationalMode, s::Symbol, v::Tv) where {Tv}
     if s == :mode_structure || s == :axis || s == :_cnst_δν
         return
     end
     if s == :N
-        @assert typeof(v) <: Int "N must be a positive integer"
+        @assert Tv <: Int "N must be a positive integer"
         @assert v >= 0 "N must be a nonnegative integer"
         Core.setproperty!(V, :N, v)
         Core.setproperty!(V, :shape, Int[v+1])
     elseif s == :shape
         return
     elseif s == :δν
-        if typeof(v) <: Number
+        if Tv <: Number
             _cnst_δν = true
             vt(t) = v
         else

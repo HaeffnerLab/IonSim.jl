@@ -255,7 +255,7 @@ function zero_stark_shift(I::Ion)
     end
 end
 
-function Base.setproperty!(I::Ion, s::Symbol, v)
+function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where{Tv}
     if (s == :mass || 
         s == :level_structure || 
         s == :shape || 
@@ -265,7 +265,7 @@ function Base.setproperty!(I::Ion, s::Symbol, v)
         s == :position)
         return
     elseif s == :selected_level_structure
-        @assert typeof(v) == Vector{String} "type must be Vector{String}" 
+        @assert Tv == Vector{String} "type must be Vector{String}" 
         _, sls_dict, _, me_dict = _structure(v)
         Core.setproperty!(I, :selected_level_structure, sls_dict)
         Core.setproperty!(I, :selected_matrix_elements, me_dict)
