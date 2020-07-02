@@ -1,8 +1,10 @@
-# IonSim.jl
+![][logo-url]
+___
 
-[![Build Status](https://travis-ci.org/HaeffnerLab/IonSim.jl.svg?branch=master)](https://travis-ci.org/HaeffnerLab/IonSim.jl)
-[![codecov](https://codecov.io/gh/HaeffnerLab/IonSim.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/HaeffnerLab/IonSim.jl)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/HaeffnerLab/IonSim.jl/blob/master/LICENSE.md)
+[![Build Status][travis-badge]][travis-url]
+[![codecov][codecov-badge]][codecov-url]
+[![License: MIT][license-badge]][license-url]
+[![Twitter][twitter-badge]][twitter-url]
 
 A simple tool, built on top of [QuantumOptics.jl](https://qojulia.org/), for simulating the dynamics of a configuration of 
 trapped ions interacting with laser light.
@@ -17,6 +19,7 @@ The functional form of the Hamiltonian can then be used as input to any of the s
 + Main code: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/src](https://github.com/HaeffnerLab/IonSim.jl/tree/master/src)
 + Documentation: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/doc](https://github.com/HaeffnerLab/IonSim.jl/tree/master/doc)
 + Examples: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/examples](https://github.com/HaeffnerLab/IonSim.jl/tree/master/examples)
++ Benchmarks: 
  
 ## Installation
 
@@ -81,3 +84,16 @@ julia> Pkg.update("IonSim")
 ```
 
 
+[license-url]: https://github.com/HaeffnerLab/IonSim.jl/blob/master/LICENSE.md
+[license-badge]: https://img.shields.io/badge/License-MIT-green.svg
+
+[codecov-url]: https://codecov.io/gh/HaeffnerLab/IonSim.jl
+[codecov-badge]: https://codecov.io/gh/HaeffnerLab/IonSim.jl/branch/master/graph/badge.svg
+
+[travis-url]: https://travis-ci.org/HaeffnerLab/IonSim.jl
+[travis-badge]: https://travis-ci.org/HaeffnerLab/IonSim.jl.svg?branch=master
+
+[twitter-url]: https://twitter.com/Berkeley_ions
+[twitter-badge]: https://img.shields.io/twitter/follow/Berkeley_ions.svg?style=social&label=@Berkeley_ions
+
+[logo-url]: https://github.com/HaeffnerLab/IonSim.jl/blob/media/smaller_logo.png?raw=true

@@ -1,10 +1,9 @@
 using LinearAlgebra: eigen
 using NLsolve: nlsolve
+using .PhysicalConstants: e, ϵ₀
 
-export IonConfiguration
-export label, ions
-export linear_equilibrium_positions, Anm, linearchain, characteristic_length_scale
-export get_vibrational_modes
+export IonConfiguration, ions, linear_equilibrium_positions, Anm, LinearChain, 
+       characteristic_length_scale, get_vibrational_modes
 
 
 """
@@ -15,12 +14,11 @@ interactions of their center of mass motion.
 abstract type IonConfiguration end
 
 # required functions
-label(I::IonConfiguration)::String = I.label
 ions(I::IonConfiguration)::Vector{Ion} = I.ions
 
 
 #############################################################################################
-# linearchain - a linear Coulomb crystal
+# LinearChain - a linear Coulomb crystal
 #############################################################################################
 
 """
@@ -32,27 +30,27 @@ all ions have the same mass.
 function linear_equilibrium_positions(N::Int) 
     function f!(F, x, N) 
         for i in 1:N
-            F[i] = begin
-                x[i] - 
-                sum([1 / (x[i] - x[j])^2 for j in 1:i-1]) + 
-                sum([1 / (x[i] - x[j])^2 for j in i+1:N])
-            end
+            F[i] = (
+                x[i]
+              - sum([1 / (x[i] - x[j])^2 for j in 1:i-1])
+              + sum([1 / (x[i] - x[j])^2 for j in i+1:N])
+            )
         end
     end
     
     function j!(J, x, N)
         for i in 1:N, j in 1:N
             if i ≡ j
-                J[i, j] = begin
-                    1 + 
-                    2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1]) - 
-                    2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
-                end
+                J[i, j] = (
+                    1 
+                  + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1])
+                  - 2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
+            )
             else
-                J[i, j] = begin
-                    -2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1]) + 
-                    2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
-                end
+                J[i, j] = (
+                  - 2 * sum([1 / (x[i] - x[j])^3 for j in 1:i-1])
+                  + 2 * sum([1 / (x[i] - x[j])^3 for j in i+1:N])
+            )
             end
         end
     end
@@ -74,21 +72,16 @@ and with axial trap frequency 2π × ν.
 characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1/3)
 
 """
-    Anm(N::Real, com::NamedTuple; axis::NamedTuple{(:x,:y,:z)}=ẑ)
-Computes the normal modes and corresponding trap frequencies for a collection of N ions in a 
-linear Coloumb crystal.
+    Anm(N::Real, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
+Computes the normal modes and corresponding trap frequencies along a particular `axis` for a 
+collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first 
+element the frequency of the normal mode and 2nd element the corresponding eigenvector.
 
-#### args
-* `N`: number of ions
-* `com`: NamedTuple of COM frequencies for the different axes, `(x=Real, y=Real, z=Real)`. 
-    The ``z``-axis is taken to be parallel to the axis of the crystal.
-* `axis`: the axis for which to compute the normal modes
-
-#### returns
-An array of tuples with first element the frequency of the normal mode and 2nd element the 
-corresponding eigenvector.
+`com` should be a `NamedTuple` of COM frequences for the different axes: 
+`(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of 
+the crystal.
 """
-function Anm(N::Int, com::NamedTuple{(:x,:y,:z)}; axis::NamedTuple{(:x,:y,:z)}=ẑ)
+function Anm(N::Int, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
     @assert axis in [x̂, ŷ, ẑ] "axis can be x̂, ŷ, ẑ"
     axis == ẑ ? a = 2 : a = -1
     l = linear_equilibrium_positions(N)
@@ -125,54 +118,59 @@ end
 _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 
 """
-    linearchain(;
-            label::String="", ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
-            vibrational_modes::NamedTuple{(:x,:y,:z)}
+    LinearChain(;
+            ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
+            vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
         )
 
+Contains all of the information necessary to describe a collection of ions trapped in a 3D
+harmonic potential and forming a linear coulomb crystal.
+
 #### user-defined fields
-* `label`: convenience label
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
-* `com_frequencies::NamedTuple{(:x,:y,:z)}`: Describes the COM frequencies 
-        `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be parallel to the crystal's 
-        symmetry axis.
+* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
+        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
+        parallel to the crystal's symmetry axis.
 * `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
-    mode away from the COM of that axis. For example, `selected_modes=(z=[2])` would 
+    mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
+    Note: `vibrational_modes=(x=[],y=[],z=[1])`, `vibrational_modes=(y=[],z=[1])`
+    and `vibrational_modes=(;z=[1])` are all acceptable and equivalent.
 #### derived fields
 * `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an 
     array of tuples where the first element is a vibrational frequency [Hz] and the second
     element is a vector describing the corresponding normalized normal mode structure.
 """
-struct linearchain <: IonConfiguration
-    label::String
+struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x,:y,:z)}
-    vibrational_modes::(NamedTuple{(:x,:y,:z),
-        Tuple{Vector{vibrational_mode},Vector{vibrational_mode},Vector{vibrational_mode}}})
+    vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
     full_normal_mode_description::NamedTuple{(:x,:y,:z)}
-    function linearchain(; 
-            label="", ions, com_frequencies, selected_modes::NamedTuple{(:x,:y,:z)}, 
-            
+    function LinearChain(; 
+            ions, com_frequencies, vibrational_modes::NamedTuple, 
         )
-        for i in 1:length(ions)-1, j in i+1:length(ions)
-            if ions[j] == ions[i]
+        vibrational_modes = _construct_vibrational_modes(vibrational_modes)
+        warn = nothing
+        for i in 1:length(ions), j in i+1:length(ions)
+            if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
-                @warn "some ions point to the same thing. Making copies."
-                break
+                if isnothing(warn)
+                    warn = "Some ions point to the same thing. Making copies."
+                    @warn warn
+                end
             end
         end
         N = length(ions)
-        A = (x=Anm(N, com_frequencies, axis=x̂), 
-             y=Anm(N, com_frequencies, axis=ŷ),
-             z=Anm(N, com_frequencies, axis=ẑ))
-        vm = (x=Vector{Vibration}(undef, 0),
-              y=Vector{Vibration}(undef, 0),
-              z=Vector{Vibration}(undef, 0))
+        A = (x=Anm(N, com_frequencies, x̂), 
+             y=Anm(N, com_frequencies, ŷ),
+             z=Anm(N, com_frequencies, ẑ))
+        vm = (x=Vector{VibrationalMode}(undef, 0),
+              y=Vector{VibrationalMode}(undef, 0),
+              z=Vector{VibrationalMode}(undef, 0))
         r = [x̂, ŷ, ẑ]
-        for (i, modes) in enumerate(selected_modes), mode in modes
-            push!(vm[i], vibrational_mode("mode$mode", A[i][mode]..., axis=r[i]))
+        for (i, modes) in enumerate(vibrational_modes), mode in modes
+            push!(vm[i], VibrationalMode(A[i][mode]..., axis=r[i]))
         end
         l = linear_equilibrium_positions(length(ions))
         l0 = characteristic_length_scale(m_ca40, com_frequencies.z) 
@@ -180,30 +178,42 @@ struct linearchain <: IonConfiguration
             Core.setproperty!(ion, :number, i)
             Core.setproperty!(ion, :position, l[i] * l0)
         end
-        new(label, ions, com_frequencies, vm, A)
+        new(ions, com_frequencies, vm, A)
     end
 end
 
-function get_vibrational_modes(lc::linearchain)
+"""
+    get_vibrational_modes(lc::LinearChain)
+Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
+The order is `[lc.x..., lc.y..., lc.z...]`.
+"""
+function get_vibrational_modes(lc::LinearChain)
     collect(Iterators.flatten(lc.vibrational_modes))
 end
 
-function Base.print(lc::linearchain)
-    print("$(length(lc.ions)) ions\n")
-    print("com frequencies: $(lc.com_frequencies)\n")
-    print("selected vibrational_modes: $(lc.vibrational_modes)\n")
+function Base.print(lc::LinearChain)
+    println("$(length(lc.ions)) ions")
+    println("com frequencies: $(lc.com_frequencies)")
+    println("selected vibrational_modes: $(lc.vibrational_modes)")
 end
 
-function Base.show(io::IO, lc::linearchain)  # suppress long output
-    print(io, "linearchain($(length(lc.ions)) ions)")
+function Base.show(io::IO, lc::LinearChain)  # suppress long output
+    print(io, "LinearChain($(length(lc.ions)) ions)")
 end
 
-function Base.getindex(lc::linearchain, s::String)
-    v = lc.vibrational_modes
-    V = vcat(v.x, v.y, v.z)
-    for obj in V
-        if obj.label == s
-            return obj
+# Takes e.g. (y=[1]) to (x=[], y=[1], z=[])
+function _construct_vibrational_modes(x)
+    k = collect(keys(x))
+    xyz = [:x, :y, :z]
+    @assert isnothing(findfirst(x -> x ∉ xyz, k)) "keys of `vibrational_modes` must be `:x`, `:y` or `:z`"
+    indxs = findall(x -> x ∉ k, xyz)
+    values = []
+    for i in 1:3
+        if i in indxs
+            push!(values, Int[])
+        else
+            push!(values, x[xyz[i]])
         end
     end
+    (; zip(xyz, values)...)
 end

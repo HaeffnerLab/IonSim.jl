@@ -1,7 +1,7 @@
 using Test, IonSim, IonSim.analytical
 
 
-@testset "MolmerSorensen" begin
+@testset "analytic_functions -- MolmerSorensen" begin
     t = 0:100:10000
     ν = 1
     Ω = 0.025
@@ -36,24 +36,15 @@ using Test, IonSim, IonSim.analytical
 end
 
 
-@testset "RabiFlop" begin
-    # TODO: uptdate tests for new rabi_flop function 
-
+@testset "analyticfunctions -- RabiFlop" begin
     # # test carrier with motion in ground state
-    # t = 0:0.01:1
-    # Ω = 1
-    # n̄ = 0
-    # η = 0.1
-    # @test rabi_flop(t, Ω , η, n̄) ≈ @.(sin(2π * t)^2)
+    t = 0:0.01:1
+    Ω = 1
+    n̄ = 0
+    η = 0
+    @test rabi_flop(t, Ω , η, n̄) ≈ @.(sin(2π * t / 2)^2) rtol=1e-5
 
-    # # test bluesideband, Ω̃ ≈ ηΩ
-    # @test rabi_flop(t, Ω , η, n̄, blue_sideband=true) ≈ @.(sin(2π * η * t)^2) rtol=5e-2
-
-    # # test hot carrier, η²n̄ = 0.2 should reduce maximum excitation by ≈ 0.1
-    # n̄ = 20
-    # @test maximum(rabi_flop(t, Ω , η, n̄)) ≈ 0.9 rtol=1e-3
-
-    # # test multiple vibrational modes 
-    # @test rabi_flop(t, 1, η, 2n̄) ≈ rabi_flop(t, 1, [η, η], [n̄, n̄])
-
+    # test bluesideband, Ω̃ ≈ ηΩ
+    η = 0.1
+    @test rabi_flop(t, Ω , η, n̄, s=1) ≈ @.(sin(2π * η * t / 2)^2) rtol=1e-2
 end

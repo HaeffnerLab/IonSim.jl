@@ -50,28 +50,22 @@ const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
 """ ## `ca40_qubit_transition_frequency` = c / 729.147e-9 ``Hz`` """
 const ca40_qubit_transition_frequency = PhysicalConstant(2.99792458e8 / 729.147e-9, "Hz")
 
-
 Base.print(pc::PhysicalConstant) = print("$(pc.x) [$(pc.units)]")
 Base.show(io::IO, pc::PhysicalConstant) = print(io, "$(pc.x) [$(pc.units)]")
 
-Base.:*(x1::PhysicalConstant, x2::Number) = x1.x * x2
-Base.:*(x1::Number, x2::PhysicalConstant) = x1 * x2.x
+Base.convert(::Type{<:Number}, x::PhysicalConstant) = map(x->x.x, x)
+Base.promote_rule(::Number, ::PhysicalConstant) = Number
+Base.Fix2(f, x::PhysicalConstant) = Base.Fix2(f, x.x)
+
 Base.:*(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x * x2.x
 Base.:/(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x / x2.x
-Base.:/(x1::Number, x2::PhysicalConstant) = x1 / x2.x
-Base.:/(x1::PhysicalConstant, x2::Number) = x1.x / x2
-Base.:+(x1::PhysicalConstant, x2::Number) = x1.x + x2
-Base.:+(x1::Number, x2::PhysicalConstant) = x1 + x2.x
 Base.:+(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x + x2.x
 Base.:-(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x - x2.x
-Base.:-(x1::Number, x2::PhysicalConstant) = x1 - x2.x
-Base.:-(x1::PhysicalConstant, x2::Number) = x1.x - x2
-Base.:^(x1::PhysicalConstant, x2::Number) = x1.x^x2
-Base.:^(x1::PhysicalConstant, x2::Integer) = x1.x^x2
-Base.:^(x1::Number, x2::PhysicalConstant) = x1^x2.x
 Base.:^(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x^x2.x
-Base.:(==)(x1::PhysicalConstant, x2::Number) = Base.:(==)(x1.x, x2)
-Base.:(==)(x1::Number, x2::PhysicalConstant) = Base.:(==)(x1, x2.x)
+Base.:(>)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(>)(x1.x, x2.x)
+Base.:(<)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(<)(x1.x, x2.x)
+Base.:(≥)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(≥)(x1.x, x2.x)
+Base.:(≤)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(≤)(x1.x, x2.x)
 
 sqrt(x1::PhysicalConstant) = sqrt(x1.x)
 
@@ -83,6 +77,18 @@ export x̂, ŷ, ẑ, ndot
 const x̂ = (x=1, y=0, z=0)
 const ŷ = (x=0, y=1, z=0)
 const ẑ = (x=0, y=0, z=1)
+
+function _print_axis(a::NamedTuple{(:x,:y,:z)})
+    if a == x̂
+        return "x̂"
+    elseif a == ŷ
+        return "ŷ"
+    elseif a == ẑ
+        return "ẑ"
+    else
+        return string(a)
+    end
+end
 
 ndot(a::NamedTuple{(:x,:y,:z)}, b::NamedTuple{(:x,:y,:z)}) = a.x * b.x + a.y * b.y + a.z * b.z
 function Base.:+(a::NamedTuple{(:x,:y,:z)}, b::NamedTuple{(:x,:y,:z)})
