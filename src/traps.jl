@@ -64,7 +64,7 @@ mutable struct Trap
     basis::CompositeBasis
     _cnst_δB::Bool
     function Trap(;
-            configuration::LinearChain, B=0, Bhat=ẑ, ∇B=0, δB::δB=0, lasers=Laser[]
+            configuration::LinearChain, B=0, Bhat=ẑ, ∇B=0, δB::TδB=0, lasers=Laser[]
         ) where {TδB}
         warn = nothing
         for i in 1:length(lasers)
