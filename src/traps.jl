@@ -65,7 +65,7 @@ mutable struct Trap
     _cnst_δB::Bool
     function Trap(;
             configuration::LinearChain, B=0, Bhat=ẑ, ∇B=0, δB::δB=0, lasers=Laser[]
-        ) where {δB}
+        ) where {TδB}
         warn = nothing
         for i in 1:length(lasers)
             if length(lasers[i].pointing) == 0
