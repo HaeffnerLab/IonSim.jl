@@ -165,7 +165,7 @@ returned by `ion[ψᵢ]`.
 
 If ψ2 is not given, then ``|ψ1\\rangle\\langle ψ1|`` is returned.
 """
-sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}} = projector(ion[ψ1], dagger(ion[ψ2]))
+sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}} = sparse(projector(ion[ψ1], dagger(ion[ψ2])))
 sigma(ion::Ion, ψ1::Union{String,Int}) = sigma(ion, ψ1, ψ1)
 
 """
