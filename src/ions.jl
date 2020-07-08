@@ -160,20 +160,30 @@ _ca40_geo = [
             end
     ]
 
-function _ca40_matrix_elements(
+function _matrix_elements(
         transition::Tuple{NamedTuple,NamedTuple}, Efield::Real, γ::Real, ϕ::Real
     )
     t1 = transition[1]
     t2 = transition[2]
     Δl = t2.l - t1.l
-    Δm = Int(abs(t2.mⱼ - t1.mⱼ))
-    if Δl ≡ 0 || abs(Δm) > 2 
+    Δj = t2.j - t1.j
+    Δm = Int(abs(t2.m - t1.m))
+    if abs(Δm) > 2
         return nothing
     end
-    λ = c / ca40_qubit_transition_frequency
-    Ω = (e * Efield / ħ) * √(5λ^3 * (1/1.17) / (2 * π^3 * c * α)) / (2π)
-    wig = abs(wigner3j(t1.j, t2.j - t1.j, t2.j, -t1.mⱼ, t1.mⱼ - t2.mⱼ, t2.mⱼ))
-    Ω * _ca40_geo[Δm+1](γ, ϕ) * wig
+    Ω_E1 = 0
+    Ω_E2 = 0
+    Ω_M1 = 0
+    if (Δl ≡ 1 || Δl ≡ -1) && (abs(Δj) <= 1)
+        #Ω_E1 = E1 matrix element
+    end
+    if (Δl ≡ 0 || Δl ≡ 2 || Δl ≡ -2) && (abs(Δj) <= 2)
+        #Ω_E2 = E2 matrix element
+    end
+    if (Δl ≡ 0) && (abs(Δj) <= 1)
+        #Ω_M1 = M1 matrix element
+    end
+    Ω_E1, Ω_E2, Ω_M1
 end
 
 """
