@@ -116,8 +116,8 @@ function _structure(selected_level_structure)
     k = fls.keys
     for i in eachindex(k), j in i+1:length(k)
         t1, t2 = fls[k[i]], fls[k[j]]
-        if ! (typeof(_ca40_matrix_elements((t1, t2), 0, 0, 0)) <: Nothing)
-            f(Efield, γ, ϕ) = _ca40_matrix_elements((t1, t2), Efield, γ, ϕ)
+        if ! (typeof(_matrix_elements((t1, t2), 0, 0, 0)) <: Nothing)
+            f(Efield, γ, ϕ) = _matrix_elements((t1, t2), Efield, γ, ϕ)
             push!(me, (k[i], k[j]) => f)
         end
     end
@@ -204,7 +204,7 @@ Only considers linearly polarized light fields.
 function matrix_element(C::Ca40, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
     t1 = C.level_structure[transition[1]]
     t2 = C.level_structure[transition[2]]
-    _ca40_matrix_elements((t1, t2), Efield, γ, ϕ)
+    _matrix_elements((t1, t2), Efield, γ, ϕ)
 end
 
 function Base.print(I::Ca40)
