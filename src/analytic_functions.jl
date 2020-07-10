@@ -22,7 +22,7 @@ function two_ion_ms(tspan, Ω::Real, ν::Real, δ::Real, η::Real, n̄::Real)
         ρgg_t  = 0.0
         for n in 0:200
             pn = _Pn(n̄, n)
-            if isnan(pn) continue end
+            isnan(pn) && continue
             t1_1 = _laguerre((F^2 + G^2) / 2, n) * cos(A + (1/2) * F * G) * term1
             t2_2 = _laguerre(2 * (F^2 + G^2), n) * term2
             ρgg_t += pn * (t1_1 + t2_2)
@@ -37,7 +37,6 @@ end
 """
     rabi_flop(tspan, Ω::Real, η::Real, n̄::Real; s::Int=0) <br>
 Single ion rabi flop. Returns:
-
 ``\\sum_{n=0}^∞ p_n sin^2(\\Omega_n t)`` <br> with
 ``\\Omega_n = Ωe^{-η^2/2}η^s\\sqrt{\\frac{n!}{(n+s)!}}L_{n}^{s}(η^2)`` <br>
 where ``s`` is the order of the (blue) sideband that we are driving and ``L_{n}^{s}`` is the
@@ -68,5 +67,5 @@ function _laguerre(x, n)
     L[2]
 end
 
-_Pn(n̄::Real, n::Int) = n̄^n / ((n̄ + 1)^(n + 1))
+_Pn(n̄::Real, n::Int) = (n̄ / (n̄ + 1))^n / (n̄ + 1)
 

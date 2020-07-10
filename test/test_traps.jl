@@ -1,74 +1,151 @@
 using QuantumOptics: NLevelBasis, CompositeBasis, FockBasis
 using Test, IonSim
+using IonSim.PhysicalConstants: ħ, ca40_qubit_transition_frequency, c, m_ca40
+using Suppressor
 
 
-@testset "traps-required_fields" begin
-    C = ca40()
-    L1 = laser(); L1.pointing = [(1, 1.0), (2, 1.0)]
-    L2 = laser(); L2.pointing = [(1, 1.0), (2, 1.0)]
-    lasers = [L1, L2]
-    chain = linearchain(ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[1], y=[], z=[1]))
-    T = trap(label="mytrap", configuration=chain, B=6e-4, ∇B=2, Bhat=(x̂ + ẑ)/√2, δB=1, lasers=lasers);
-    @test label(T) == "mytrap"
-    @test configuration(T) == chain
-    @test Bhat(T) == (x̂ + ẑ)/√2
-    @test gradB(T) == 2
-    @test get_lasers(T) == lasers
+@suppress_err begin
+
+
+# setup system
+C = Ca40()
+L1 = Laser(); L2 = Laser()
+chain = LinearChain(
+            ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1])
+        )
+
+
+@testset "traps -- Trap" begin
+    T = Trap(configuration=chain, lasers=[L1, L1]) 
+    
+    # test construction of CompositeBasis
+    @test T.basis.bases[1] ≡ T.configuration.ions[1]
+    @test T.basis.bases[2] ≡ T.configuration.ions[2]
+    @test T.basis.bases[3] ≡ T.configuration.vibrational_modes.z[1]
+
+    # test construction of T.δB
     t = 0:1:100
     ones = [1 for _ in t]
-    @test deltaB(T).(t) == ones
+    T.δB = 1
+    @test T.δB.(t) == ones
+    @test T._cnst_δB
     T.δB = sin
-    @test deltaB(T).(t) == sin.(t)
-    @test typeof(get_basis(T)) == CompositeBasis{Array{Int64,1},Tuple{NLevelBasis{Int64},NLevelBasis{Int64},FockBasis{Int64},FockBasis{Int64}}}
+    @test T.δB.(t) == sin.(t)
+    @test !T._cnst_δB
+
+    # test for warning when lasers=[L, L, L, ...] where L point to the same thing
+    warn = "Some lasers point to the same thing. Making copies."
+    @test_logs (:warn, warn) Trap(configuration=chain, lasers=[L1, L1, L1])
+    # and test that, in this case, copies are made
+    T1 = Trap(configuration=chain, lasers=[L1, L1, L1, L1])
+    for i in 1:4, j in i+1:4
+        @test !(T1.lasers[i] ≡ T1.lasers[j])
+    end
+
+    # test setproperty for Trap
+    # setting T.δB to a constant
+    T.δB = 100
+    @test T.δB(0) == 100
+    # setting the :basis directly should have no effect
+    basis = T.basis
+    T.basis = 100
+    @test T.basis == basis
+    # changing the configuration should also update the basis
+    chain1 = LinearChain(
+            ions=[C, C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1])
+        )
+    @test length(T.basis.bases) ≡ 3
+    T.configuration = chain1
+    @test T.configuration ≡ chain1
+    @test length(T.basis.bases) ≡ 4
+    
+    # make sure print/show doesn't throw errors
+    print(T); show(T)   
 end
 
 
-@testset "traps-main" begin
-    C = ca40()
-    L1 = laser(); L1.pointing = [(1, 1.0), (2, 1.0)]
-    L2 = laser(); L2.pointing = [(1, 1.0), (2, 1.0)]
-    lasers = [L1, L2]
-    chain = linearchain(ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[1], y=[], z=[1]))
-    T = trap(configuration=chain, lasers=[L1, L1]) 
-    @test T.lasers[1] !== T.lasers[2]
-    @test_throws AssertionError trap(configuration=chain, lasers=[L1], Bhat=(x=2, y=0, z=0))
-    L3 = laser(); L3.pointing = [(3, 1.0)]
-    @test_throws AssertionError trap(configuration=chain, lasers=[L3])
-    C.label = "ion1"
-    C2 = ca40(); C2.label = "ion2"
-    chain.vibrational_modes.x[1].label = "radial"
-    chain.vibrational_modes.z[1].label = "axial"
-    T = trap(label="mytrap", configuration=chain, B=6e-4, ∇B=2, Bhat=(x̂ + ẑ)/√2, δB=1, lasers=lasers);
-    @test T["ion1"] == C
-    @test T["axial"] == chain.vibrational_modes.z[1]
-end
+@testset "traps -- general functions" begin
+    Bhat = (x̂ + ŷ + ẑ)/√3
+    T = Trap(configuration=chain, lasers=[L1], Bhat=Bhat)
 
+    # get_basis
+    @test T.basis == get_basis(T)
 
-@testset "traps-general" begin
-    C = ca40()
-    C1 = copy(C)
-    L = laser(); L.pointing = [(1, 1.0)]
-    lasers = [L]
-    chain = linearchain(ions=[C, C1], com_frequencies=(x=3e6,y=3e6,z=1e6), selected_modes=(x=[], y=[], z=[1]))
-    T = trap(configuration=chain, lasers=[L], Bhat=(x̂ + ŷ + ẑ)/√3) 
+    # global_beam!
+    L = Laser()
+    global_beam!(T, L)
+    @test L.pointing == [(1, 1.0), (2, 1.0)]
     
     # Efield_from_pi_time
-    @test Efield_from_pi_time(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2")) ≈ 153739.56 rtol=1e-4
-    @test Efield_from_pi_time(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2")) == Efield_from_pi_time(1e-6, T, 1, 1, ("S-1/2", "D-1/2"))
-    Efield_from_pi_time!(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
-    @test T.lasers[1].E(0) == Efield_from_pi_time(1e-6, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
+    ion_index = 1
+    laser_index = 1
+    ion = T.configuration.ions[ion_index]
+    transition = ("S-1/2", "D-1/2")
+    # compare to specific pre-computed value for both methods
+    E1 = Efield_from_pi_time(1e-6, Bhat, L1, ion, transition)
+    E2 = Efield_from_pi_time(1e-6, T, laser_index, ion_index, transition)
+    @test E1 ≈ 153739.56 rtol=1e-2
+    @test E1 == E2
+    # confirm in-place versions work
+    Efield_from_pi_time!(1e-6, Bhat, L1, ion, transition)
+    @test L1.E(0) == E1
+    Efield_from_pi_time!(1e-6, T, laser_index, ion_index, transition)
+    @test L1.E(0) == E1
+    # shouldn't be able to have a laser argument where laser.pointing = []
+    L = Laser()
+    @test_throws AssertionError Efield_from_pi_time(1e-6, Bhat, L, ion, transition)
 
+    
     # Efield_from_rabi_frequency
-    @test T.lasers[1].E(0) ≈ Efield_from_rabi_frequency(1 / (2 * 1e-6), (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
-    Efield_from_rabi_frequency!(5e-3, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
-    @test T.lasers[1].E(0) == Efield_from_rabi_frequency(5e-3, (x̂ + ŷ + ẑ)/√3, L, T.configuration.ions[1], ("S-1/2", "D-1/2"))
+    ion_index = 1
+    laser_index = 1
+    ion = T.configuration.ions[ion_index]
+    transition = ("S-1/2", "D-1/2")
+    # compare to specific pre-computed value for both methods
+    E1 = Efield_from_rabi_frequency(5e5, Bhat, L1, ion, transition)
+    E2 = Efield_from_rabi_frequency(5e5, T, laser_index, ion_index, transition)
+    @test E1 ≈ 153739.56 rtol=1e-2
+    @test E1 == E2
+    # confirm in-place versions work
+    Efield_from_rabi_frequency!(5e5, Bhat, L1, ion, transition)
+    @test L1.E(0) == E1
+    Efield_from_rabi_frequency!(5e5, T, laser_index, ion_index, transition)
+    @test L1.E(0) == E1
+    # shouldn't be able to have a laser argument where laser.pointing = []
+    L = Laser()
+    @test_throws AssertionError Efield_from_rabi_frequency(5e5, Bhat, L, ion, transition)
 
-    # transition_frequency
+    # transition_frequency (test against pre-computed values)
     T.B = 4e-4
-    @test transition_frequency(T, C, ("S-1/2", "D-1/2")) ≈ 2.2393e6 rtol=1e-4
+    f = transition_frequency(T, C, transition)
+    @test f ≈ 2.2393e6 rtol=1e-4
+    @test transition_frequency(T.B, C, transition) == f
+    @test transition_frequency(T, 1, transition) == f
 
     # set_gradient
-    f = transition_frequency(T, C, ("S-1/2", "D-1/2"))
-    set_gradient!(T, (C.number, C1.number), ("S-1/2", "D-1/2"), 1e6)
-    @test transition_frequency(T, C, ("S-1/2", "D-1/2")) ≈ f - 1e6 / 2 rtol=1e-4
+    set_gradient!(T, (1, 2), transition, 1e6)
+    f1 = transition_frequency(T, T.configuration.ions[1], transition)
+    f2 = transition_frequency(T, T.configuration.ions[2], transition)
+    @test abs(f1 - f2) ≈ 1e6
+
+    # test :(==)
+    chain1 = LinearChain(
+            ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(x=[1], z=[1])
+        )
+    T = Trap(configuration=chain1, lasers=[L1, L2])
+    xmode = chain1.vibrational_modes.x[1]
+    zmode = chain1.vibrational_modes.z[1]
+    cb = get_basis(T)
+    @test cb == C ⊗ C ⊗ xmode ⊗ zmode
+    @test cb != C ⊗ C ⊗ zmode ⊗ xmode
+
+    # test get_η
+    f = ca40_qubit_transition_frequency
+    λ = c/f
+    # η = |k|cos(θ) * √(ħ / (2M ⋅ N ⋅ 2πν)); cos(θ) ≡ k̂ ⋅ mode_axis; N ≡ number of ions
+    η(ν) = (2π/λ) * sqrt(ħ / (2 * m_ca40 * 2 * 2π * ν))
+    @test abs(get_η(zmode, L, C)) ≈ η(zmode.ν)
+    L.k = (x̂ + ẑ) / √2
+    @test abs(get_η(xmode, L, C)) ≈ η(xmode.ν) / √2
 end
+end  # end suppress
