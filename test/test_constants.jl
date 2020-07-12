@@ -37,10 +37,17 @@ using Test, IonSim, IonSim.PhysicalConstants, Suppressor
     @test c.x ≤ c
     @test c ≤ c.x
     @test c ≤ c
+    @test α < c
+    @test α > ħ
 
     # test print/show for physicalconstants
     out = @capture_out print(c)
     @test out == "$(c.x) [$(c.units)]"
+
+    @test IonSim._print_axis(x̂) == "x̂"
+    @test IonSim._print_axis(ŷ) == "ŷ"
+    @test IonSim._print_axis(ẑ) == "ẑ"
+    @test IonSim._print_axis((x=1,y=1,z=1)) == string((x=1,y=1,z=1))
 end
 
 @testset "constants -- other constants" begin

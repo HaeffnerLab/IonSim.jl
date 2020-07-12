@@ -105,7 +105,7 @@ function hamiltonian(
                 return S
             else
                 @simd for indx in aui
-                    S.data[indx, indx] = complex(0)
+                    S.data[indx, indx] = complex(0.)
                 end
                 @simd for i in 1:length(gbi)
                     zeeman_t = bfunc(t)::Float64
@@ -357,7 +357,7 @@ function _setup_global_B_hamiltonian(T, timescale)
     global_B_scales = Vector{Float64}(undef, 0)
     δB = T.δB
     τ = timescale
-    bfunc = FunctionWrapper{Float64,Tuple{Float64}}(t -> 2π * δB(t) * τ)
+    bfunc = FunctionWrapper{Float64,Tuple{Float64}}(t -> 2π * δB(t * τ))
     if T._cnst_δB && δB(0) == 0
         return global_B_indices, global_B_scales, bfunc
     end
