@@ -1,7 +1,6 @@
-using WignerSymbols: wigner3j
-using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
-
-
+using WignerSymbols: wigner3j,wigner6j
+using PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
+using JuMP, Tensors
 export mass, level_structure, selected_level_structure, stark_shift,
        selected_matrix_elements, matrix_element, get_basis, ion_number, ion_position,
        gJ, zeeman_shift, matrix_elements, zero_stark_shift, Ion, Ca40
@@ -27,7 +26,6 @@ ion_number(I::Ion)::Union{Int,Missing} = I.number
 ion_position(I::Ion)::Union{Real,Missing} = I.position
 stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 
-
 #############################################################################################
 # Ca40 Ion
 #############################################################################################
@@ -36,17 +34,17 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
     Ca40(selected_level_structure::Vector{String}[, stark_shift])
 
 #### user-defined fields
-* `selected_level_structure`: 
+* `selected_level_structure`:
     keys ⊂ `["S-1/2", "S+1/2", "D-5/2", "D-3/2", "D-1/2", "D+1/2", "D+3/2", "D+5/2"]`.
     Values are a `NamedTuple` with:
     * `l`: orbital angular momentum
     * `j`: total angular momentum
     * `mⱼ`: projection of total angular momentum along quantization axis
     * `E`: relative energies
-    Note: indexing the instantiated structure with one of these strings will return 
+    Note: indexing the instantiated structure with one of these strings will return
     the corresponding `Ket`.
-* `stark_shift`: A dictionary with keys denoting the selected levels and values, a real 
-    number for describing a shift of the level's energy. This is just a convenient way to add 
+* `stark_shift`: A dictionary with keys denoting the selected levels and values, a real
+    number for describing a shift of the level's energy. This is just a convenient way to add
     Stark shifts to the simulation without additional resources.
 #### fixed fields
 * `mass::Real`: The ion's mass in kg.
@@ -54,14 +52,14 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 * `matrix_elements::OrderedDict{Tuple,Function}`: Same as `selected_matrix_elements` but for
     all of the ion's allowed transitions.
 #### derived fields
-* `selected_matrix_elements`: Functions for the allowed transitions (contained in the 
-    selected levels) that return the corresponding coupling strengths. These functions take 
+* `selected_matrix_elements`: Functions for the allowed transitions (contained in the
+    selected levels) that return the corresponding coupling strengths. These functions take
     as arguments:
     * `Efield`: magnitude of the electric field at the position of the ion [V/m]
-    * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
+    * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field)
     * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
 * `shape::Vector{Int}`: Indicates the dimension of the used Hilbert space.
-* `number`: When the ion is added to an `IonConfiguration`, this value keeps track of its 
+* `number`: When the ion is added to an `IonConfiguration`, this value keeps track of its
     order in the chain.
 * `position`: @hen the ion is added to an `IonConfiguration`, this value keeps track of its
     physical position in meters.
@@ -87,7 +85,7 @@ mutable struct Ca40 <: Ion
     end
     Ca40(;ss=Dict()) = Ca40("default", ss=ss)
     # for copying
-    function Ca40(  
+    function Ca40(
             mass, level_structure, selected_level_structure, shape, matrix_elements,
             selected_matrix_elements, stark_shift, number, position
         )
@@ -95,7 +93,7 @@ mutable struct Ca40 <: Ion
         shape = copy(shape)
         selected_matrix_elements = deepcopy(selected_matrix_elements)
         stark_shift = deepcopy(stark_shift)
-        new(mass, level_structure, selected_level_structure, shape, matrix_elements, 
+        new(mass, level_structure, selected_level_structure, shape, matrix_elements,
             selected_matrix_elements, stark_shift, number, position)
     end
 end
@@ -121,7 +119,7 @@ function _structure(selected_level_structure)
             push!(me, (k[i], k[j]) => f)
         end
     end
-    if selected_level_structure == "default" 
+    if selected_level_structure == "default"
         sls = collect(keys(fls))
     else
         sls = selected_level_structure
@@ -140,36 +138,117 @@ function _structure(selected_level_structure)
     return fls, sls_dict, me, me_dict
 end
 
-# geometric part of the matrix element for 40Ca S1/2 <-> D5/2 transitions, 
+# geometric part of the matrix element for 40Ca S1/2 <-> D5/2 transitions,
 # assuming linearly polarized light
 _ca40_geo = [
-        (γ, ϕ) -> begin 
-                γ = deg2rad(γ)
-                ϕ = deg2rad(ϕ) 
-                (1/2)abs(cos(γ)sin(2ϕ)) 
-            end,
-        (γ, ϕ) -> begin 
+        (γ, ϕ) -> begin
                 γ = deg2rad(γ)
                 ϕ = deg2rad(ϕ)
-                sqrt(1/6)abs(cos(γ)cos(2ϕ) + im*sin(γ)cos(ϕ)) 
+                (1/2)abs(cos(γ)sin(2ϕ))
             end,
-        (γ, ϕ) -> begin 
+        (γ, ϕ) -> begin
                 γ = deg2rad(γ)
                 ϕ = deg2rad(ϕ)
-                sqrt(1/6)abs((1/2)cos(γ)sin(2ϕ) + im*sin(γ)sin(ϕ)) 
+                sqrt(1/6)abs(cos(γ)cos(2ϕ) + im*sin(γ)cos(ϕ))
+            end,
+        (γ, ϕ) -> begin
+                γ = deg2rad(γ)
+                ϕ = deg2rad(ϕ)
+                sqrt(1/6)abs((1/2)cos(γ)sin(2ϕ) + im*sin(γ)sin(ϕ))
             end
     ]
 
-function _ca40_matrix_elements(
+
+function coupling(
+            t1::NamedTuple,t2::NamedTuple, Efield::Real,τ::Real, k::Real,
+            transition:: String = "quadrupole"
+                    )
+    # Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
+    # application to quantum computation. Appl. Phys. B 66, 181 (1998)."
+
+    # This is the modified reduced matrix element when the couple basis is
+    # extended to include fine structure coupling. The reduced matrix element
+    # is the same as that in D.F.V. James, but j-> F and we multiply by
+    # an additional factor sqrt((2*t1.F+1)(2*t2.F+1)
+    # See "A.R. Edmunds. Angular Momentum in Quantum Mechanics" equation 7.1.7
+    # for relations between reduced matrix elements in different bases
+
+    rme = sqrt((2*t1.F+1)(2*t2.F+1)(2*t2.j+1))*
+            wigner6j(t2.j,t2.F,t2.I,t1.F,t1.j,1)*
+            sqrt(15/(τ*c*α*k⁵))
+
+    # cquad = cᵢⱼ in D.F.V. James written out in matrix form
+
+    cquad = cat(1/sqrt(6)*[[1,im,0] [im,-1,0] [0,0,0]],
+            1/sqrt(6)*[[0,0,1] [0,0,im] [1,im,0]],
+                  1/3*[[-1,0,0] [0,-1,0] [0,0,2]],
+            1/sqrt(6)*[[0,0,-1] [0,0,im] [-1,im,0]],
+            1/sqrt(6)*[[1,-im,0] [-im,-1,0] [0,0,0]];dims = 3)
+
+    # geofactor is the spatial term that comes from the sum over q from -2 to 2
+    # in D.F.V. James. Here it is written as the matrix contraction
+    # n.cquad.ϵ where n and ϵ are the laser direction and polarization, respectively
+
+    geofactor = sum([wigner3j(t2.F,2,t1.F,-t2.mF,q,t1.mf)*(transpose(n)*cquad[:,:,q+3]*ϵ)
+                for q = collect(-2:2)])
+
+    #collecting terms- note the extra factor of k that differs from the dipole.
+    #This term is abosorbed into the square root in D.F.V. James, here it is
+    #separated because rme is written explicitely above
+
+    quadrupole = abs(e*Efield/(2*ħ)*(k*rme)*geofactor)
+
+    return quadrupole
+end
+
+function coupling(
+                    t1::NamedTuple,t2::NamedTuple, Efield::Real,τ::Real, k::Real,
+                    transition::String = "quadrupole"
+                    )
+    # Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
+    # application to quantum computation. Appl. Phys. B 66, 181 (1998)."
+
+    # The reduced matrix element is the same as for the quadrupole matrix
+    # element, with a slight difference O(unity) in the last term.
+    rme = sqrt((2*t2.F+1)(2*t1.F+1)(2*t2.j+1)*
+          wigner6j(t2.j,t2.F,t2.I,t1.F,t1.j,1)*
+          sqrt(3/(4*τ*c*α*k³)))
+
+    #cᵢ in D.F.V. James
+    cdip = [1/sqrt(2)*[1 im 0];[0 0 1];-1/sqrt(2)*[1 -im 0]]
+
+    # geofactor is the spatial term that comes from the sum over q from -1 to 1
+    # in D.F.V. James. Here it is written as the matrix contraction
+    #cdip.ϵ where ϵ is the polarization
+
+    geofactor = sum([wigner3j(t2.F,2,t1.F,-t1.mF,q,t2.mf)*(cdip[q+2,:]*ϵ)
+                for q = collect(-1:1)])
+
+    # combining terms- note the factor of 2 difference from the first term
+    # when compared to the quadrupole moment
+
+    dipole = abs((e*Efield/ħ)*rme*geofactor)
+
+    return dipole
+end
+
+
+function matrix_elements(
         transition::Tuple{NamedTuple,NamedTuple}, Efield::Real, γ::Real, ϕ::Real
     )
     t1 = transition[1]
     t2 = transition[2]
     Δl = t2.l - t1.l
     Δm = Int(abs(t2.mⱼ - t1.mⱼ))
-    if Δl ≡ 0 || abs(Δm) > 2 
+    if Δl ≡ 0 || abs(Δm) > 2
         return nothing
     end
+
+
+    k = 2*π*ω/c
+    A = 1/τ
+    Ω = (e * Efield / ħ)*sqrt(A/(c*α*k³))*σ
+
     λ = c / ca40_qubit_transition_frequency
     Ω = (e * Efield / ħ) * √(5λ^3 * (1/1.17) / (2 * π^3 * c * α)) / (2π)
     wig = abs(wigner3j(t1.j, t2.j - t1.j, t2.j, -t1.mⱼ, t1.mⱼ - t2.mⱼ, t2.mⱼ))
@@ -180,7 +259,7 @@ end
     matrix_element(transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
 
 Computes the coupling strengths of the various S ⟷ D transitions in ⁴⁰Ca.
-See e.g. page 30 of 
+See e.g. page 30 of
 [Roos's thesis](https://quantumoptics.at/images/publications/dissertation/roos_diss.pdf).
 Only considers linearly polarized light fields.
 
@@ -188,7 +267,7 @@ Only considers linearly polarized light fields.
 * `C`: Ca40 ion
 * `transition`: i.e. ["S-1/2", "D-1/2"]
 * `Efield`: magnitude of the electric field at the position of the ion [V/m]
-* `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
+* `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field)
 * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
 """
 function matrix_element(C::Ca40, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
@@ -256,16 +335,16 @@ function zero_stark_shift(I::Ion)
 end
 
 function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where{Tv}
-    if (s == :mass || 
-        s == :level_structure || 
-        s == :shape || 
+    if (s == :mass ||
+        s == :level_structure ||
+        s == :shape ||
         s == :matrix_elements ||
         s == :selected_matrix_elements ||
         s == :number ||
         s == :position)
         return
     elseif s == :selected_level_structure
-        @assert Tv == Vector{String} "type must be Vector{String}" 
+        @assert Tv == Vector{String} "type must be Vector{String}"
         _, sls_dict, _, me_dict = _structure(v)
         Core.setproperty!(I, :selected_level_structure, sls_dict)
         Core.setproperty!(I, :selected_matrix_elements, me_dict)
