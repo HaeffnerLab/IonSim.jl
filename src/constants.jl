@@ -12,6 +12,7 @@ struct PhysicalConstant <: Real
     x::Real
     units::String
 end
+
 # some useful constants, everything in SI units
 """ ## `m_ca40` = 6.6359443331e-26 kg <br> (mass of 40Ca)"""
 const m_ca40 = PhysicalConstant(6.6359443331e-26, "kg")
