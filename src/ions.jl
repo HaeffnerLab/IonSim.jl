@@ -169,7 +169,7 @@ function coupling(
     # application to quantum computation. Appl. Phys. B 66, 181 (1998)."
 
     # This is the modified reduced matrix element when the couple basis is
-    # extended to include fine structure coupling. The reduced matrix element
+    # extended to include hyperfine structure coupling. The reduced matrix element
     # is the same as that in D.F.V. James, but j-> F and we multiply by
     # an additional factor sqrt((2*t1.F+1)(2*t2.F+1)
     # See "A.R. Edmunds. Angular Momentum in Quantum Mechanics" equation 7.1.7
