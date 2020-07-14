@@ -162,6 +162,7 @@ _ca40_geo = [
 
 function coupling(
             t1::NamedTuple,t2::NamedTuple, Efield::Real,τ::Real, k::Real,
+            ϵ::NamedTuple, n::NamedTuple
             transition:: String = "quadrupole"
                     )
     # Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
@@ -173,9 +174,11 @@ function coupling(
     # an additional factor sqrt((2*t1.F+1)(2*t2.F+1)
     # See "A.R. Edmunds. Angular Momentum in Quantum Mechanics" equation 7.1.7
     # for relations between reduced matrix elements in different bases
+    ϵ = [ϵ.x,ϵ.y,ϵ.z]
+    n = [n.x,n.y,n.z]
 
     rme = sqrt((2*t1.F+1)(2*t2.F+1)(2*t2.j+1))*
-            wigner6j(t2.j,t2.F,t2.I,t1.F,t1.j,1)*
+            wigner6j(t2.j,t2.F,t1.I,t1.F,t1.j,2)*
             sqrt(15/(τ*c*α*k⁵))
 
     # cquad = cᵢⱼ in D.F.V. James written out in matrix form
@@ -186,15 +189,21 @@ function coupling(
             1/sqrt(6)*[[0,0,-1] [0,0,im] [-1,im,0]],
             1/sqrt(6)*[[1,-im,0] [-im,-1,0] [0,0,0]];dims = 3)
 
+    # cquad = (1/sqrt(6)*((1,im,0),(im,-1,0),(0,0,0)),
+    #         1/sqrt(6)*((0,0,1),(0,0,im),(1,im,0)),
+    #               1/3*((-1,0,0),(0,-1,0),(0,0,2)),
+    #         1/sqrt(6)*((0,0,-1),(0,0,im),(-1,im,0)),
+    #         1/sqrt(6)*((1,-im,0),(-im,-1,0),(0,0,0)))
+
     # geofactor is the spatial term that comes from the sum over q from -2 to 2
     # in D.F.V. James. Here it is written as the matrix contraction
     # n.cquad.ϵ where n and ϵ are the laser direction and polarization, respectively
 
-    geofactor = sum([wigner3j(t2.F,2,t1.F,-t2.mF,q,t1.mf)*(transpose(n)*cquad[:,:,q+3]*ϵ)
+    geofactor = sum([wigner3j(t2.F,2,t1.F,-t2.mF,q,t1.mF)*(transpose(n)*cquad[:,:,q+3]*ϵ)
                 for q = collect(-2:2)])
 
     #collecting terms- note the extra factor of k that differs from the dipole.
-    #This term is abosorbed into the square root in D.F.V. James, here it is
+    #This term is abosorbsumed into the square root in D.F.V. James, here it is
     #separated because rme is written explicitely above
 
     quadrupole = abs(e*Efield/(2*ħ)*(k*rme)*geofactor)
@@ -204,15 +213,18 @@ end
 
 function coupling(
                     t1::NamedTuple,t2::NamedTuple, Efield::Real,τ::Real, k::Real,
-                    transition::String = "quadrupole"
+                    ϵ::NamedTuple,
+                    transition::String = "dipole"
                     )
     # Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
     # application to quantum computation. Appl. Phys. B 66, 181 (1998)."
 
     # The reduced matrix element is the same as for the quadrupole matrix
     # element, with a slight difference O(unity) in the last term.
+    ϵ = [ϵ.x,ϵ.y,ϵ.z]
+
     rme = sqrt((2*t2.F+1)(2*t1.F+1)(2*t2.j+1)*
-          wigner6j(t2.j,t2.F,t2.I,t1.F,t1.j,1)*
+          wigner6j(t2.j,t2.F,t1.I,t1.F,t1.j,1)*
           sqrt(3/(4*τ*c*α*k³)))
 
     #cᵢ in D.F.V. James
@@ -222,7 +234,7 @@ function coupling(
     # in D.F.V. James. Here it is written as the matrix contraction
     #cdip.ϵ where ϵ is the polarization
 
-    geofactor = sum([wigner3j(t2.F,2,t1.F,-t1.mF,q,t2.mf)*(cdip[q+2,:]*ϵ)
+    geofactor = sum([wigner3j(t2.F,1,t1.F,-t2.mF,q,t1.mf)*(cdip[q+2,:]*ϵ)
                 for q = collect(-1:1)])
 
     # combining terms- note the factor of 2 difference from the first term
@@ -249,11 +261,11 @@ function _matrix_elements(
     Ω_M1 = 0
     if (Δl ≡ 1 || Δl ≡ -1) && (abs(Δj) <= 1)
         #Ω_E1 = E1 matrix element
-        Ω_E1 = coupling(t1,t2,Efield,τ,k,transition = "dipole")
+        Ω_E1 = coupling(t1,t2,Efield,τ,k,ϵ,transition = "dipole")
     end
     if (Δl ≡ 0 || Δl ≡ 2 || Δl ≡ -2) && (abs(Δj) <= 2)
         #Ω_E2 = E2 matrix element
-        Ω_E2 = coupling(t1,t2,Efield,τ,k,transition = "quadrupole")
+        Ω_E2 = coupling(t1,t2,Efield,τ,k,ϵ,n,transition = "quadrupole")
     end
     if (Δl ≡ 0) && (abs(Δj) <= 1)
         #Ω_M1 = M1 matrix element
