@@ -287,3 +287,6 @@ function Base.:(==)(b1::T, b2::T) where {T<:Ion}
         b1.stark_shift == b2.stark_shift
     )
 end
+
+# Add code for individual ion species
+include("species/include_species.jl")
