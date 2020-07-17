@@ -25,7 +25,7 @@ shape(I::Ion)::Vector{Int} = I.shape
 full_transitions(I::Ion)::Dict{Tuple,PhysicalConstant} = I.full_transitions
 selected_transitions(I::Ion)::Dict{Tuple,PhysicalConstant} = I.selected_transitions
 stark_shift(I::Ion)::Dict{Tuple,Real} = I.stark_shift
-nonlinear_zeeman(I::ion)::Dict{Tuple,Function} = I.nonlinear_zeeman
+nonlinear_zeeman(I::Ion)::Dict{Tuple,Function} = I.nonlinear_zeeman
 ion_number(I::Ion)::Union{Int,Missing} = I.number
 ion_position(I::Ion)::Union{Real,Missing} = I.position
 
@@ -35,8 +35,8 @@ function _structure(selected_levels, full_level_structure, full_transitions)
     for manifold in selected_levels
         # Ensure that the string is a valid level
         key = manifold[1]
-        @assert key in keys(full_level_structure) "Invalid level $key"
-        @assert key ∉ [k[1] for k in keys(selected_level_structure)] "Multiple instances of level $key in ion constructor call"
+        @assert key in keys(full_level_structure) "invalid level $key"
+        @assert key ∉ [k[1] for k in keys(selected_level_structure)] "multiple instances of level $key in ion constructor call"
         level_structure = full_level_structure[key]
 
         # Add chosen sublevels
@@ -51,7 +51,7 @@ function _structure(selected_levels, full_level_structure, full_transitions)
         for m in sublevels
             m = Rational(m)
             @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $key with f = $f"
-            @assert (key, m) ∉ keys(selected_level_structure) "Repeated instance of sublevel $m in state $key"
+            @assert (key, m) ∉ keys(selected_level_structure) "repeated instance of sublevel $m in state $key"
             push!(selected_level_structure, (key, m) => (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E, alias=nothing))
         end
     end

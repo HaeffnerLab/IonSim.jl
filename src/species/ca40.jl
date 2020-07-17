@@ -14,8 +14,10 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                      "P3/2" => (l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
                                                     ),
 
-                        default_level_structure = [("S1/2", "all"),
-                                                   ("D5/2", "all")]
+                         default_level_selection = [
+                                                    ("S1/2", "all"),
+                                                    ("D5/2", "all")
+                                                   ],
 
                          full_transitions = Dict(
                                                  ("S1/2", "D5/2") => PhysicalConstant(8.562e-1, "s⁻¹"),
@@ -28,9 +30,9 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                 ),
 
                         nonlinear_zeeman = Dict(
-                                             ("S1/2", -1//2) => B->1.3e-4*B^2,
-                                             ("D5/2", -5//2) => B->4.5e-4*B^2,
-                                            )
+                                                ("S1/2", -1//2) => B->1.3e-4*B^2,
+                                                ("D5/2", -5//2) => B->4.5e-4*B^2,
+                                               )
                         )
 
 
@@ -111,29 +113,34 @@ mutable struct Ca40 <: Ion
     full_level_structure::Dict{String,NamedTuple}
     selected_level_structure::OrderedDict{Tuple,NamedTuple}
     shape::Vector{Int}
-    full_transitions::Dict{Tuple,PhysicalConstant}
-    selected_transitions::Dict{Tuple,PhysicalConstant}
+    full_transitions::Dict{Tuple,Real}
+    selected_transitions::Dict{Tuple,Real}
     stark_shift::Dict{Tuple,Real}
     nonlinear_zeeman::Dict{Tuple,Function}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    function Ca40(selected_levels::Array{Tuple{String,Any},1}; ss=Dict())
-        
+    function Ca40(selected_levels::Union{Array{Tuple{String,Any},1},Nothing}=nothing; stark_shift=Dict())
         properties = properties_ca40
         
+        if selected_levels === nothing
+            if :default_level_selection in keys(properties)
+                selected_levels = properties.default_level_selection
+            else
+                @error "no level structure specified in constructor, and no default level structure specified for this ion species"
+            end
+        end
         m = properties.mass
         fls = properties.full_level_structure
         ft = properties.full_transitions
         sls, st = _structure(selected_levels, fls, ft)
         shape = [length(sls)]
         ss_full = OrderedDict{String,Float64}()
-        nlz = properties.nonlinear_zeeman
         for level in keys(sls)
-            haskey(ss, level) ? ss_full[level] = ss[level] : ss_full[level] = 0.
+            haskey(stark_shift, level) ? ss_full[level] = stark_shift[level] : ss_full[level] = 0.
         end
+        nlz = properties.nonlinear_zeeman
         new(m, fls, sls, shape, ft, st, ss_full, nlz, missing, missing)
     end
-    Ca40(;ss=Dict()) = Ca40("default", ss=ss)
     # for copying
     function Ca40(  
             mass, full_level_structure, selected_level_structure, shape, full_transitions,
