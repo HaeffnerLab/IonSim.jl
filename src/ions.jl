@@ -19,126 +19,55 @@ abstract type Ion <: IonSimBasis end
 
 # required fields
 mass(I::Ion)::Real = I.mass
-level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.level_structure
-selected_level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.selected_level_structure
-matrix_elements(I::Ion)::OrderedDict = I.matrix_elements
-selected_matrix_elements(I::Ion)::OrderedDict = I.selected_matrix_elements
+full_level_structure(I::Ion)::Dict{String,NamedTuple} = I.full_level_structure
+selected_level_structure(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.selected_level_structure
+shape(I::Ion)::Vector{Int} = I.shape
+full_transitions(I::Ion)::Dict{Tuple,PhysicalConstant} = I.full_transitions
+selected_transitions(I::Ion)::Dict{Tuple,PhysicalConstant} = I.selected_transitions
+stark_shift(I::Ion)::Dict{Tuple,Real} = I.stark_shift
+nonlinear_zeeman(I::ion)::Dict{Tuple,Function} = I.nonlinear_zeeman
 ion_number(I::Ion)::Union{Int,Missing} = I.number
 ion_position(I::Ion)::Union{Real,Missing} = I.position
-stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 
+function _structure(selected_levels, full_level_structure, full_transitions)
+    # First, construct the dictionary for selected_level_structure
+    selected_level_structure = OrderedDict{Tuple{String,Rational},NamedTuple}()
+    for manifold in selected_levels
+        # Ensure that the string is a valid level
+        key = manifold[1]
+        @assert key in keys(full_level_structure) "Invalid level $key"
+        @assert key ∉ [k[1] for k in keys(selected_level_structure)] "Multiple instances of level $key in ion constructor call"
+        level_structure = full_level_structure[key]
 
-#############################################################################################
-# Ca40 Ion
-#############################################################################################
-
-"""
-    Ca40(selected_level_structure::Vector{String}[, stark_shift])
-
-#### user-defined fields
-* `selected_level_structure`: 
-    keys ⊂ `["S-1/2", "S+1/2", "D-5/2", "D-3/2", "D-1/2", "D+1/2", "D+3/2", "D+5/2"]`.
-    Values are a `NamedTuple` with:
-    * `l`: orbital angular momentum
-    * `j`: total angular momentum
-    * `mⱼ`: projection of total angular momentum along quantization axis
-    * `E`: relative energies
-    Note: indexing the instantiated structure with one of these strings will return 
-    the corresponding `Ket`.
-* `stark_shift`: A dictionary with keys denoting the selected levels and values, a real 
-    number for describing a shift of the level's energy. This is just a convenient way to add 
-    Stark shifts to the simulation without additional resources.
-#### fixed fields
-* `mass::Real`: The ion's mass in kg.
-* `level_structure`: A full description of the ion's electronic structure.
-* `matrix_elements::OrderedDict{Tuple,Function}`: Same as `selected_matrix_elements` but for
-    all of the ion's allowed transitions.
-#### derived fields
-* `selected_matrix_elements`: Functions for the allowed transitions (contained in the 
-    selected levels) that return the corresponding coupling strengths. These functions take 
-    as arguments:
-    * `Efield`: magnitude of the electric field at the position of the ion [V/m]
-    * `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
-    * `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
-* `shape::Vector{Int}`: Indicates the dimension of the used Hilbert space.
-* `number`: When the ion is added to an `IonConfiguration`, this value keeps track of its 
-    order in the chain.
-* `position`: @hen the ion is added to an `IonConfiguration`, this value keeps track of its
-    physical position in meters.
-"""
-mutable struct Ca40 <: Ion
-    mass::Real
-    level_structure::OrderedDict{String,NamedTuple}
-    selected_level_structure::OrderedDict{String,NamedTuple}
-    shape::Vector{Int}
-    matrix_elements::OrderedDict{Tuple,Function}
-    selected_matrix_elements::OrderedDict{Tuple,Function}
-    stark_shift::OrderedDict{String,Real}
-    number::Union{Int,Missing}
-    position::Union{Real,Missing}
-    function Ca40(selected_level_structure; ss=Dict())
-        fls, sls_dict, me, me_dict=_structure(selected_level_structure)
-        shape = [length(sls_dict)]
-        ss_full = OrderedDict{String,Float64}()
-        for level in keys(sls_dict)
-            haskey(ss, level) ? ss_full[level] = ss[level] : ss_full[level] = 0.
+        # Add chosen sublevels
+        sublevels = manifold[2]
+        f = level_structure.f
+        m_allowed = Array(-f:f)
+        if sublevels == "all"
+            sublevels = m_allowed
+        elseif ~(typeof(sublevels) <: Array)
+            sublevels = [sublevels]
         end
-        new(m_ca40, fls, sls_dict, shape, me, me_dict, ss_full, missing, missing)
+        for m in sublevels
+            m = Rational(m)
+            @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $key with f = $f"
+            @assert (key, m) ∉ keys(selected_level_structure) "Repeated instance of sublevel $m in state $key"
+            push!(selected_level_structure, (key, m) => (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E, alias=nothing))
+        end
     end
-    Ca40(;ss=Dict()) = Ca40("default", ss=ss)
-    # for copying
-    function Ca40(  
-            mass, level_structure, selected_level_structure, shape, matrix_elements,
-            selected_matrix_elements, stark_shift, number, position
-        )
-        selected_level_structure = deepcopy(selected_level_structure)
-        shape = copy(shape)
-        selected_matrix_elements = deepcopy(selected_matrix_elements)
-        stark_shift = deepcopy(stark_shift)
-        new(mass, level_structure, selected_level_structure, shape, matrix_elements, 
-            selected_matrix_elements, stark_shift, number, position)
+
+    # Then, construct the dictionary for selected_transitions
+    selected_transitions = Dict{Tuple{String,String},PhysicalConstant}()
+    levels = [manifold[1] for manifold in selected_levels]
+    for (level_pair, value) in full_transitions
+        if level_pair[1] in levels && level_pair[2] in levels
+            push!(selected_transitions, level_pair => value)
+        end
     end
+
+    return selected_level_structure, selected_transitions
 end
 
-function _structure(selected_level_structure)
-    ED = ca40_qubit_transition_frequency
-    fls = OrderedDict(
-            "S-1/2" => (l=0, j=1//2, mⱼ=-1//2, E=0),
-            "S+1/2" => (l=0, j=1//2, mⱼ=1//2, E=0),
-            "D-5/2" => (l=2, j=5//2, mⱼ=-5//2, E=ED),
-            "D-3/2" => (l=2, j=5//2, mⱼ=-3//2, E=ED),
-            "D-1/2" => (l=2, j=5//2, mⱼ=-1//2, E=ED),
-            "D+1/2" => (l=2, j=5//2, mⱼ=1//2, E=ED),
-            "D+3/2" => (l=2, j=5//2, mⱼ=3//2, E=ED),
-            "D+5/2" => (l=2, j=5//2, mⱼ=5//2, E=ED)
-        )
-    me = OrderedDict{Tuple,Function}()
-    k = fls.keys
-    for i in eachindex(k), j in i+1:length(k)
-        t1, t2 = fls[k[i]], fls[k[j]]
-        if ! (typeof(_ca40_matrix_elements((t1, t2), 0, 0, 0)) <: Nothing)
-            f(Efield, γ, ϕ) = _ca40_matrix_elements((t1, t2), Efield, γ, ϕ)
-            push!(me, (k[i], k[j]) => f)
-        end
-    end
-    if selected_level_structure == "default" 
-        sls = collect(keys(fls))
-    else
-        sls = selected_level_structure
-    end
-    sls_dict = OrderedDict{String,NamedTuple}()
-    for k in sls
-        @assert k in fls.keys "invalid level $k"
-        push!(sls_dict, k => fls[k])
-    end
-    me_dict = OrderedDict{Tuple,Function}()
-    for (k, v) in me
-        if k[1] in sls && k[2] in sls
-            push!(me_dict, k => v)
-        end
-    end
-    return fls, sls_dict, me, me_dict
-end
 
 # geometric part of the matrix element for 40Ca S1/2 <-> D5/2 transitions, 
 # assuming linearly polarized light

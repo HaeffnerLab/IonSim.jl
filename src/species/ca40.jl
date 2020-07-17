@@ -6,13 +6,16 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 
                          i = 0,
 
-                         full_level_structure = OrderedDict(
-                                                            "S1/2" => (l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
-                                                            "D3/2" => (l=2, j=3//2, f=3//2, E=PhysicalConstant(4.09335071228e14, "Hz")),
-                                                            "D5/2" => (l=2, j=5//2, f=5//2, E=PhysicalConstant(4.1115503183857306e14, "Hz")),
-                                                            "P1/2" => (l=1, j=1//2, f=1//2, E=PhysicalConstant(7.554e14, "Hz")),
-                                                            "P3/2" => (l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
-                                                            ),
+                         full_level_structure = Dict(
+                                                     "S1/2" => (l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
+                                                     "D3/2" => (l=2, j=3//2, f=3//2, E=PhysicalConstant(4.09335071228e14, "Hz")),
+                                                     "D5/2" => (l=2, j=5//2, f=5//2, E=PhysicalConstant(4.1115503183857306e14, "Hz")),
+                                                     "P1/2" => (l=1, j=1//2, f=1//2, E=PhysicalConstant(7.554e14, "Hz")),
+                                                     "P3/2" => (l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
+                                                    ),
+
+                        default_level_structure = [("S1/2", "all"),
+                                                   ("D5/2", "all")]
 
                          full_transitions = Dict(
                                                  ("S1/2", "D5/2") => PhysicalConstant(8.562e-1, "s⁻¹"),
@@ -24,7 +27,7 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                  ("D5/2", "P3/2") => PhysicalConstant(9.901e6, "s⁻¹"),
                                                 ),
 
-                        nonlin_zeeman = Dict(
+                        nonlinear_zeeman = Dict(
                                              ("S1/2", -1//2) => B->1.3e-4*B^2,
                                              ("D5/2", -5//2) => B->4.5e-4*B^2,
                                             )
@@ -105,34 +108,43 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 """
 mutable struct Ca40 <: Ion
     mass::Real
-    level_structure::OrderedDict{String,NamedTuple}
-    selected_level_structure::OrderedDict{String,NamedTuple}
+    full_level_structure::Dict{String,NamedTuple}
+    selected_level_structure::OrderedDict{Tuple,NamedTuple}
     shape::Vector{Int}
-    matrix_elements::OrderedDict{Tuple,Function}
-    selected_matrix_elements::OrderedDict{Tuple,Function}
-    stark_shift::OrderedDict{String,Real}
+    full_transitions::Dict{Tuple,PhysicalConstant}
+    selected_transitions::Dict{Tuple,PhysicalConstant}
+    stark_shift::Dict{Tuple,Real}
+    nonlinear_zeeman::Dict{Tuple,Function}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    function Ca40(selected_level_structure; ss=Dict())
-        fls, sls_dict, me, me_dict=_structure(selected_level_structure)
-        shape = [length(sls_dict)]
+    function Ca40(selected_levels::Array{Tuple{String,Any},1}; ss=Dict())
+        
+        properties = properties_ca40
+        
+        m = properties.mass
+        fls = properties.full_level_structure
+        ft = properties.full_transitions
+        sls, st = _structure(selected_levels, fls, ft)
+        shape = [length(sls)]
         ss_full = OrderedDict{String,Float64}()
-        for level in keys(sls_dict)
+        nlz = properties.nonlinear_zeeman
+        for level in keys(sls)
             haskey(ss, level) ? ss_full[level] = ss[level] : ss_full[level] = 0.
         end
-        new(m_ca40, fls, sls_dict, shape, me, me_dict, ss_full, missing, missing)
+        new(m, fls, sls, shape, ft, st, ss_full, nlz, missing, missing)
     end
     Ca40(;ss=Dict()) = Ca40("default", ss=ss)
     # for copying
     function Ca40(  
-            mass, level_structure, selected_level_structure, shape, matrix_elements,
-            selected_matrix_elements, stark_shift, number, position
+            mass, full_level_structure, selected_level_structure, shape, full_transitions,
+            selected_transitions, stark_shift, nonlinear_zeeman, number, position
         )
         selected_level_structure = deepcopy(selected_level_structure)
         shape = copy(shape)
-        selected_matrix_elements = deepcopy(selected_matrix_elements)
+        selected_transitions = deepcopy(selected_transitions)
         stark_shift = deepcopy(stark_shift)
-        new(mass, level_structure, selected_level_structure, shape, matrix_elements, 
-            selected_matrix_elements, stark_shift, number, position)
+        nonlinear_zeeman = deepcopy(nonlinear_zeeman)
+        new(mass, full_level_structure, selected_level_structure, shape, full_transitions, 
+        selected_transitions, stark_shift, nonlinear_zeeman, number, position)
     end
 end
