@@ -14,7 +14,7 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                     ),
 
                          default_sublevel_selection = [("S1/2", "all"),
-                                                       ("D5/2", "all")
+                                                       ("D5/2", "all"),
                                                       ],
 
                          full_transitions = Dict(("S1/2", "D5/2") => PhysicalConstant(8.562e-1, "s⁻¹"),
@@ -117,7 +117,7 @@ mutable struct Ca40 <: Ion
     nonlinear_zeeman::Dict{Tuple,Function}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    function Ca40(selected_sublevels::Union{Array{Tuple{String,Any},1},Nothing}=nothing; stark_shift=Dict())
+    function Ca40(selected_sublevels::Union{Vector{Tuple{String,Any}},Nothing}=nothing; stark_shift=Dict())
         
         properties = properties_ca40
         
