@@ -437,11 +437,11 @@ function _Δmatrix(T, timescale)
         Btot = B + ∇B * ions[n].position
         v = Vector{Float64}(undef, 0)
         for t in transitions
-            L1 = ions[n].selected_level_structure[t[1]]
-            L2 = ions[n].selected_level_structure[t[2]]
-            stark_shift = ions[n].stark_shift[t[1]] - ions[n].stark_shift[t[2]]
+            L1 = sublevel_structure(ions[n], t[1])
+            L2 = sublevel_structure(ions[n], t[2])
+            ss = stark_shift(ions[n], t[1]) - stark_shift(ions[n], t[2])
             ωa = (abs(L1.E  + zeeman_shift(Btot, L1) - (L2.E + zeeman_shift(Btot, L2)))
-                  + stark_shift)
+                  + ss)
             push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - ωa))
         end
         Δnmkj[n, m] = v
@@ -471,7 +471,7 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 = 2π * timescale * s * ions[n].selected_matrix_elements[t](1.0, γ, ϕ) / 2.0
+            Ω0 = 2π * timescale * s * matrix_element(ions[n], t, T, lasers[m]) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else

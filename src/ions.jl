@@ -85,7 +85,7 @@ end
 """
 This needs a docstring
 """
-function alias2sublevel(I::Ion, alias)
+function alias2sublevel(I::Ion, alias::String)
     all_aliases = I.sublevel_aliases
     @assert alias in keys(all_aliases) "no sublevel with alias $alias"
     return all_aliases[alias]
@@ -99,85 +99,35 @@ sublevel_structure(I::Ion, alias::String) = sublevel_structure(I, alias2sublevel
 
 """
 This needs a docstring
+"""
+einsteinA(I::Ion, L1::Tuple{String,Real}, L2::Tuple{String,Real}) = I.selected_transitions[(L1, L2)]
+einsteinA(I::Ion, L1::Tuple{String,Real}, L2::String) = I.selected_transitions[(L1, alias2sublevel(I, L2))]
+einsteinA(I::Ion, L1::String, L2::Tuple{String,Real}) = I.selected_transitions[(alias2sublevel(I, L1), L2)]
+einsteinA(I::Ion, L1::String, L2::String) = I.selected_transitions[(alias2sublevel(I, L1), alias2sublevel(I, L2))]
+
+"""
+This needs a docstring
 (Don't forget that there's a method above for just stark_shift(I::Ion))
 """
 stark_shift(I::Ion, sublevel::Tuple{String,Real}) = I.stark_shift[sublevel]
 stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 
-# geometric part of the matrix element for 40Ca S1/2 <-> D5/2 transitions, 
-# assuming linearly polarized light
-# _ca40_geo = [
-#         (γ, ϕ) -> begin 
-#                 γ = deg2rad(γ)
-#                 ϕ = deg2rad(ϕ) 
-#                 (1/2)abs(cos(γ)sin(2ϕ)) 
-#             end,
-#         (γ, ϕ) -> begin 
-#                 γ = deg2rad(γ)
-#                 ϕ = deg2rad(ϕ)
-#                 sqrt(1/6)abs(cos(γ)cos(2ϕ) + im*sin(γ)cos(ϕ)) 
-#             end,
-#         (γ, ϕ) -> begin 
-#                 γ = deg2rad(γ)
-#                 ϕ = deg2rad(ϕ)
-#                 sqrt(1/6)abs((1/2)cos(γ)sin(2ϕ) + im*sin(γ)sin(ϕ)) 
-#             end
-#     ]
-
-# function _ca40_matrix_elements(
-#         transition::Tuple{NamedTuple,NamedTuple}, Efield::Real, γ::Real, ϕ::Real
-#     )
-#     t1 = transition[1]
-#     t2 = transition[2]
-#     Δl = t2.l - t1.l
-#     Δm = Int(abs(t2.mⱼ - t1.mⱼ))
-#     if Δl ≡ 0 || abs(Δm) > 2 
-#         return nothing
-#     end
-#     λ = c / ca40_qubit_transition_frequency
-#     Ω = (e * Efield / ħ) * √(5λ^3 * (1/1.17) / (2 * π^3 * c * α)) / (2π)
-#     wig = abs(wigner3j(t1.j, t2.j - t1.j, t2.j, -t1.mⱼ, t1.mⱼ - t2.mⱼ, t2.mⱼ))
-#     Ω * _ca40_geo[Δm+1](γ, ϕ) * wig
-# end
-
-"""
-    matrix_element(transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
-
-Computes the coupling strengths of the various S ⟷ D transitions in ⁴⁰Ca.
-See e.g. page 30 of 
-[Roos's thesis](https://quantumoptics.at/images/publications/dissertation/roos_diss.pdf).
-Only considers linearly polarized light fields.
-
-### args
-* `C`: Ca40 ion
-* `transition`: i.e. ["S-1/2", "D-1/2"]
-* `Efield`: magnitude of the electric field at the position of the ion [V/m]
-* `γ`: ``ϵ̂⋅B̂`` (angle between laser polarization and B-field) 
-* `ϕ`: ``k̂⋅B̂`` (angle between laser k-vector and B-field)
-"""
-# function matrix_element(C::Ca40, transition::Vector{String}, Efield::Real, γ::Real, ϕ::Real)
-#     t1 = C.level_structure[transition[1]]
-#     t2 = C.level_structure[transition[2]]
-#     _ca40_matrix_elements((t1, t2), Efield, γ, ϕ)
-# end
-
 """
 This needs a docstring
-These are currently placeholder methods
+Main method is currently a placeholder
 """
-function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::Int, ΔE::Real, A12::Real, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;ẑ=0))
+function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::Int, ΔE::Real, A12::Real, Efield::Function, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
     # Decide type of transition
     # Rotate unit vectors so that B is in z-direction?
     # Calculate matrix element
+    # Return a function of time
 end
-function matrix_element(I::Ion, transition, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;ẑ=0))
-    # from I and transition determine Δl, j1, j2, f1, f2, Δm, ΔE, A12
-    matrix_element(Δl, j1, j2, f1, f2, Δm, ΔE, A12, Efield, khat, ϵhat, Bhat)
+function matrix_element(I::Ion, transition::Tuple, Efield::Function, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    sl1 = sublevel_structure(I, transition[1])
+    sl2 = sublevel_structure(I, transition[2])
+    matrix_element(sl2.l-sl2.l, sl1.j, sl2.j, sl1.f, sl2.f, sl2.m-sl1.m, abs(sl2.E-sl1.E), einsteinA(I, sl1, sl2), Efield, khat, ϵhat, Bhat)
 end
-function matrix_element(I::Ion, transition, laser::Laser, T::Trap)
-    # Figure out Efield, khat, ϵhat from laser; Bhat from trap
-    matrix_element(I, transition, Efield, khat, ϵhat, Bhat)
-end
+matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_element(I, transition, laser.E, laser.k, laser.ϵ , T.Bhat)
 
 
 
@@ -220,8 +170,7 @@ zeeman_shift(B::Real, p::NamedTuple) = (μB/ħ) * gJ(p.l, p.j) * B * p.mⱼ / 2�
 zeeman_shift(B::Real, p::Tuple) = zeeman_shift(B, (l=p[1], j=p[2], mⱼ=p[3]))
 zeeman_shift(;B::Real, l::Real, j::Real, mⱼ::Real) = zeeman_shift(B, (l=l, j=j, mⱼ=mⱼ))
 
-Base.getindex(I::Ion, state::String) = ionstate(I, state)
-Base.getindex(I::Ion, state::Int) = ionstate(I, state)
+Base.getindex(I::Ion, state::Union{Tuple{String,Real},String,Int}) = ionstate(I, state)
 
 function Base.getproperty(I::Ion, s::Symbol)
     if s == :number || s == :position
