@@ -2,9 +2,9 @@ using WignerSymbols: wigner3j
 using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
 
 
-export mass, level_structure, selected_level_structure, stark_shift,
-       selected_matrix_elements, matrix_element, get_basis, ion_number, ion_position,
-       gJ, zeeman_shift, matrix_elements, zero_stark_shift, Ion, Ca40
+export mass, full_level_structure, selected_sublevel_structure, sublevel_aliases,
+       full_transitions, selected_transitions, get_basis, stark_shift, ion_number, ion_position,
+       gJ, zeeman_shift, matrix_elements, zero_stark_shift, Ion
 
 
 #############################################################################################
@@ -20,24 +20,28 @@ abstract type Ion <: IonSimBasis end
 # required fields
 mass(I::Ion)::Real = I.mass
 full_level_structure(I::Ion)::Dict{String,NamedTuple} = I.full_level_structure
-selected_level_structure(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.selected_level_structure
+selected_sublevel_structure(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.selected_sublevel_structure
+sublevel_aliases(I::Ion)::Dict{String,Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
-full_transitions(I::Ion)::Dict{Tuple,PhysicalConstant} = I.full_transitions
-selected_transitions(I::Ion)::Dict{Tuple,PhysicalConstant} = I.selected_transitions
-stark_shift(I::Ion)::Dict{Tuple,Real} = I.stark_shift
+full_transitions(I::Ion)::Dict{Tuple,Real} = I.full_transitions
+selected_transitions(I::Ion)::Dict{Tuple,Real} = I.selected_transitions
+stark_shift(I::Ion)::OrderedDict{Tuple,Real} = I.stark_shift
 nonlinear_zeeman(I::Ion)::Dict{Tuple,Function} = I.nonlinear_zeeman
 ion_number(I::Ion)::Union{Int,Missing} = I.number
 ion_position(I::Ion)::Union{Real,Missing} = I.position
 
-function _structure(selected_levels, full_level_structure, full_transitions)
+
+
+
+function _structure(selected_sublevels, full_level_structure, full_transitions)
     # First, construct the dictionary for selected_level_structure
-    selected_level_structure = OrderedDict{Tuple{String,Rational},NamedTuple}()
-    for manifold in selected_levels
+    selected_sublevel_structure = OrderedDict{Tuple{String,Rational},NamedTuple}()
+    for manifold in selected_sublevels
         # Ensure that the string is a valid level
-        key = manifold[1]
-        @assert key in keys(full_level_structure) "invalid level $key"
-        @assert key ∉ [k[1] for k in keys(selected_level_structure)] "multiple instances of level $key in ion constructor call"
-        level_structure = full_level_structure[key]
+        level = manifold[1]
+        @assert level in keys(full_level_structure) "invalid level $key"
+        @assert level ∉ [k[1] for k in keys(selected_sublevel_structure)] "multiple instances of level $key in ion constructor call"
+        level_structure = full_level_structure[level]
 
         # Add chosen sublevels
         sublevels = manifold[2]
@@ -45,27 +49,27 @@ function _structure(selected_levels, full_level_structure, full_transitions)
         m_allowed = Array(-f:f)
         if sublevels == "all"
             sublevels = m_allowed
-        elseif ~(typeof(sublevels) <: Array)
+        elseif !(typeof(sublevels) <: Array)
             sublevels = [sublevels]
         end
         for m in sublevels
             m = Rational(m)
             @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $key with f = $f"
-            @assert (key, m) ∉ keys(selected_level_structure) "repeated instance of sublevel $m in state $key"
-            push!(selected_level_structure, (key, m) => (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E, alias=nothing))
+            @assert (key, m) ∉ keys(selected_sublevel_structure) "repeated instance of sublevel $m in state $key"
+            selected_sublevel_structure[(key, m)] = (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E)
         end
     end
 
     # Then, construct the dictionary for selected_transitions
-    selected_transitions = Dict{Tuple{String,String},PhysicalConstant}()
-    levels = [manifold[1] for manifold in selected_levels]
+    selected_transitions = Dict{Tuple{String,String},Real}()
+    levels = [manifold[1] for manifold in selected_sublevels]
     for (level_pair, value) in full_transitions
         if level_pair[1] in levels && level_pair[2] in levels
-            push!(selected_transitions, level_pair => value)
+            selected_transitions[level_pair] = value
         end
     end
 
-    return selected_level_structure, selected_transitions
+    return selected_sublevel_structure, selected_transitions
 end
 
 
@@ -128,7 +132,7 @@ end
 
 function Base.print(I::Ca40)
     println("⁴⁰Ca\n")
-    for (k, v) in I.selected_level_structure
+    for (k, v) in I.selected_sublevel_structure
         println(k, ": ", v)
     end
 end
@@ -184,6 +188,7 @@ function zero_stark_shift(I::Ion)
     end
 end
 
+# NEEDS TO BE CHANGED
 function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where{Tv}
     if (s == :mass || 
         s == :level_structure || 
@@ -211,7 +216,7 @@ end
 function Base.:(==)(b1::T, b2::T) where {T<:Ion}
     (
         b1.mass == b2.mass &&
-        b1.selected_level_structure == b2.selected_level_structure &&
+        b1.selected_sublevel_structure == b2.selected_sublevel_structure &&
         b1.shape == b2.shape &&
         b1.stark_shift == b2.stark_shift
     )

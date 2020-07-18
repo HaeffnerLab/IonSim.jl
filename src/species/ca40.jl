@@ -6,21 +6,18 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 
                          i = 0,
 
-                         full_level_structure = Dict(
-                                                     "S1/2" => (l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
+                         full_level_structure = Dict("S1/2" => (l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
                                                      "D3/2" => (l=2, j=3//2, f=3//2, E=PhysicalConstant(4.09335071228e14, "Hz")),
                                                      "D5/2" => (l=2, j=5//2, f=5//2, E=PhysicalConstant(4.1115503183857306e14, "Hz")),
                                                      "P1/2" => (l=1, j=1//2, f=1//2, E=PhysicalConstant(7.554e14, "Hz")),
                                                      "P3/2" => (l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
                                                     ),
 
-                         default_level_selection = [
-                                                    ("S1/2", "all"),
-                                                    ("D5/2", "all")
-                                                   ],
+                         default_sublevel_selection = [("S1/2", "all"),
+                                                       ("D5/2", "all")
+                                                      ],
 
-                         full_transitions = Dict(
-                                                 ("S1/2", "D5/2") => PhysicalConstant(8.562e-1, "s⁻¹"),
+                         full_transitions = Dict(("S1/2", "D5/2") => PhysicalConstant(8.562e-1, "s⁻¹"),
                                                  ("S1/2", "P1/2") => PhysicalConstant(1.299e8, "s⁻¹"),
                                                  ("D3/2", "P1/2") => PhysicalConstant(1.060e7, "s⁻¹"),
                                                  ("S1/2", "D3/2") => PhysicalConstant(9.259e-1, "s⁻¹"),
@@ -29,11 +26,11 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                  ("D5/2", "P3/2") => PhysicalConstant(9.901e6, "s⁻¹"),
                                                 ),
 
-                        nonlinear_zeeman = Dict(
-                                                ("S1/2", -1//2) => B->1.3e-4*B^2,
+                        nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
                                                 ("D5/2", -5//2) => B->4.5e-4*B^2,
                                                )
                         )
+
 
 
 
@@ -111,20 +108,22 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 mutable struct Ca40 <: Ion
     mass::Real
     full_level_structure::Dict{String,NamedTuple}
-    selected_level_structure::OrderedDict{Tuple,NamedTuple}
+    selected_sublevel_structure::OrderedDict{Tuple,NamedTuple}
+    sublevel_aliases::Dict{String,Tuple}
     shape::Vector{Int}
     full_transitions::Dict{Tuple,Real}
     selected_transitions::Dict{Tuple,Real}
-    stark_shift::Dict{Tuple,Real}
+    stark_shift::OrderedDict{Tuple,Real}
     nonlinear_zeeman::Dict{Tuple,Function}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    function Ca40(selected_levels::Union{Array{Tuple{String,Any},1},Nothing}=nothing; stark_shift=Dict())
+    function Ca40(selected_sublevels::Union{Array{Tuple{String,Any},1},Nothing}=nothing; stark_shift=Dict())
+        
         properties = properties_ca40
         
-        if selected_levels === nothing
-            if :default_level_selection in keys(properties)
-                selected_levels = properties.default_level_selection
+        if selected_sublevels === nothing
+            if :default_sublevel_selection in keys(properties)
+                selected_sublevels = properties.default_sublevel_selection
             else
                 @error "no level structure specified in constructor, and no default level structure specified for this ion species"
             end
@@ -132,26 +131,27 @@ mutable struct Ca40 <: Ion
         m = properties.mass
         fls = properties.full_level_structure
         ft = properties.full_transitions
-        sls, st = _structure(selected_levels, fls, ft)
-        shape = [length(sls)]
-        ss_full = OrderedDict{String,Float64}()
-        for level in keys(sls)
-            haskey(stark_shift, level) ? ss_full[level] = stark_shift[level] : ss_full[level] = 0.
+        sss, st = _structure(selected_sublevels, fls, ft)
+        shape = [length(sss)]
+        ss_full = OrderedDict{Tuple,Real}()
+        for sublevel in keys(sss)
+            haskey(stark_shift, sublevel) ? ss_full[sublevel] = stark_shift[sublevel] : ss_full[sublevel] = 0.
         end
         nlz = properties.nonlinear_zeeman
-        new(m, fls, sls, shape, ft, st, ss_full, nlz, missing, missing)
+        new(m, fls, sss, Dict(), shape, ft, st, ss_full, nlz, missing, missing)
     end
     # for copying
     function Ca40(  
-            mass, full_level_structure, selected_level_structure, shape, full_transitions,
-            selected_transitions, stark_shift, nonlinear_zeeman, number, position
+            mass, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
+            full_transitions, selected_transitions, stark_shift, nonlinear_zeeman, number, position
         )
-        selected_level_structure = deepcopy(selected_level_structure)
+        selected_sublevel_structure = deepcopy(selected_sublevel_structure)
+        sublevel_aliases = deepcopy(sublevel_aliases)
         shape = copy(shape)
         selected_transitions = deepcopy(selected_transitions)
         stark_shift = deepcopy(stark_shift)
         nonlinear_zeeman = deepcopy(nonlinear_zeeman)
-        new(mass, full_level_structure, selected_level_structure, shape, full_transitions, 
-        selected_transitions, stark_shift, nonlinear_zeeman, number, position)
+        new(mass, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
+        full_transitions, selected_transitions, stark_shift, nonlinear_zeeman, number, position)
     end
 end
