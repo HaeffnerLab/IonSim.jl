@@ -22,8 +22,7 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
     `T.basis`.
     Note: this isn't quite the same thing as the Lamb-Dicke approximation since setting
     `lamb_dicke_order=1` will retain, for example, terms proportional to ``a^\\dagger a ``.
-* `rwa_cutoff`: drop terms in the Hamiltonian that oscillate faster than this cutoff. **Note:
-    if not using an RWA set to `Inf` (rather than a large number) for faster performance.**
+* `rwa_cutoff`: drop terms in the Hamiltonian that oscillate faster than this cutoff.
 * `displacement`: This can be either `"truncated"`(default) or `"analytic"`. 
 
    When an atom is irradiated, both the atom's energy and its momentum will generally be 
