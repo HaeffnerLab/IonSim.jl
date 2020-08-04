@@ -1,4 +1,6 @@
-![][logo-url]
+<p align="center">
+  <img src="https://github.com/HaeffnerLab/IonSim.jl/blob/media/smallest_logo.png?raw=true">
+</p>
 ___
 
 [![Build Status][travis-badge]][travis-url]
