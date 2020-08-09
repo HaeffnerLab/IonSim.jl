@@ -16,6 +16,34 @@ abstract type IonConfiguration end
 # required functions
 ions(I::IonConfiguration)::Vector{Ion} = I.ions
 
+#############################################################################################
+# Ring - a Coulomb crystal in a symmetric point trap
+#############################################################################################
+
+"""
+    ring_equilibrium_positions(N::Int)
+Returns the scaled equilibrium positions of `N` ions in a harmonic potential, assuming that
+all ions have the same mass. 
+"""
+function ring_equilibrium_radius(N::Int)
+    function d_square(i,j)
+        (cos(2π * i / N) - cos(2π * j / N))^2 + (sin(2π * i /N) - sin(2π * j /N))^2
+    end
+    
+    function j_sum(i)
+        sum([1 / d_square(i,j) for j in 1:i-1]) + sum([1 / d_square(i,j) for j in i+1:N])
+    end
+
+    characteristic_ring_scale(m_ca40, com_frequencies.z) * (sum([j_sum(i) for i in 1:N]))^(1/4)
+end
+    
+
+"""
+    characteristic_ring_scale(M::Real, ν::Real)
+Returns the characteristic length scale for a ring of identical ions of mass `M`
+and with axial trap frequency 2π × ν in a symmetric point trap.
+"""
+characteristic_ring_scale(M::Real, ν::Real) = (2 * e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1/4)
 
 #############################################################################################
 # LinearChain - a linear Coulomb crystal
