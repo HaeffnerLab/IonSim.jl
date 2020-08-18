@@ -144,7 +144,7 @@ column vector is located at `index`.
 function ionstate(I::Ion, state::Tuple{String,Real})
     s = keys(I.selected_sublevel_structure)
     @assert state in s "index not in selected_level_structure: $s"
-    i = findall(s .≡ state)[1]
+    i = findall(s .≡ [state])[1]
     basisstate(I, i)
 end
 ionstate(I::Ion, state::String) = ionstate(I, alias2sublevel(I, state))

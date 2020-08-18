@@ -4,14 +4,14 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 
                          charge = 1,
 
-                         i = 0,
+                         nuclearspin = 0,
 
-                         full_level_structure = Dict("S1/2" => (l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
-                                                     "D3/2" => (l=2, j=3//2, f=3//2, E=PhysicalConstant(4.09335071228e14, "Hz")),
-                                                     "D5/2" => (l=2, j=5//2, f=5//2, E=PhysicalConstant(4.1115503183857306e14, "Hz")),
-                                                     "P1/2" => (l=1, j=1//2, f=1//2, E=PhysicalConstant(7.554e14, "Hz")),
-                                                     "P3/2" => (l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
-                                                    ),
+                         full_level_structure = OrderedDict("S1/2" => (l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
+                                                            "D3/2" => (l=2, j=3//2, f=3//2, E=PhysicalConstant(4.09335071228e14, "Hz")),
+                                                            "D5/2" => (l=2, j=5//2, f=5//2, E=PhysicalConstant(4.1115503183857306e14, "Hz")),
+                                                            "P1/2" => (l=1, j=1//2, f=1//2, E=PhysicalConstant(7.554e14, "Hz")),
+                                                            "P3/2" => (l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
+                                                           ),
 
                          default_sublevel_selection = [("S1/2", "all"),
                                                        ("D5/2", "all"),
@@ -107,7 +107,8 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 """
 mutable struct Ca40 <: Ion
     mass::Real
-    full_level_structure::Dict{String,NamedTuple}
+    nuclearspin::Rational
+    full_level_structure::OrderedDict{String,NamedTuple}
     selected_sublevel_structure::OrderedDict{Tuple,NamedTuple}
     sublevel_aliases::Dict{String,Tuple}
     shape::Vector{Int}
@@ -117,7 +118,7 @@ mutable struct Ca40 <: Ion
     nonlinear_zeeman::Dict{Tuple,Function}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    function Ca40(selected_sublevels::Union{Vector{Tuple{String,Any}},Nothing}=nothing; stark_shift=Dict())
+    function Ca40(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T = nothing; stark_shift=Dict())
         
         properties = properties_ca40
         
@@ -127,22 +128,26 @@ mutable struct Ca40 <: Ion
             else
                 @error "no level structure specified in constructor, and no default level structure specified for this ion species"
             end
+        elseif selected_sublevels == "all"
+            selected_sublevels = [(sublevel, "all") for sublevel in keys(properties.full_level_structure)]
         end
         m = properties.mass
+        i = properties.nuclearspin
         fls = properties.full_level_structure
         ft = properties.full_transitions
         sss, st = _structure(selected_sublevels, fls, ft)
         shape = [length(sss)]
         ss_full = OrderedDict{Tuple,Real}()
+        nlz = OrderedDict{Tuple,Function}()
         for sublevel in keys(sss)
             haskey(stark_shift, sublevel) ? ss_full[sublevel] = stark_shift[sublevel] : ss_full[sublevel] = 0.
+            haskey(properties.nonlinear_zeeman, sublevel) ? nlz[sublevel] = properties.nonlinear_zeeman[sublevel] : nlz[sublevel] = B->0.
         end
-        nlz = properties.nonlinear_zeeman
-        new(m, fls, sss, Dict(), shape, ft, st, ss_full, nlz, missing, missing)
+        new(m, i, fls, sss, Dict(), shape, ft, st, ss_full, nlz, missing, missing)
     end
     # for copying
     function Ca40(  
-            mass, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
+            mass, nuclearspin, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
             full_transitions, selected_transitions, stark_shift, nonlinear_zeeman, number, position
         )
         selected_sublevel_structure = deepcopy(selected_sublevel_structure)
@@ -151,7 +156,7 @@ mutable struct Ca40 <: Ion
         selected_transitions = deepcopy(selected_transitions)
         stark_shift = deepcopy(stark_shift)
         nonlinear_zeeman = deepcopy(nonlinear_zeeman)
-        new(mass, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
+        new(mass, nuclearspin, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
         full_transitions, selected_transitions, stark_shift, nonlinear_zeeman, number, position)
     end
 end

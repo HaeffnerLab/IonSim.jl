@@ -2,7 +2,7 @@ using WignerSymbols: wigner3j
 using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
 
 
-export mass, full_level_structure, selected_sublevel_structure, sublevel_aliases,
+export mass, nuclearspin, full_level_structure, selected_sublevel_structure, sublevel_aliases,
        full_transitions, selected_transitions, get_basis, stark_shift, ion_number, ion_position,
        set_sublevel_alias!, gJ, zeeman_shift, matrix_elements, zero_stark_shift, Ion
 
@@ -19,7 +19,8 @@ abstract type Ion <: IonSimBasis end
 
 # required fields
 mass(I::Ion)::Real = I.mass
-full_level_structure(I::Ion)::Dict{String,NamedTuple} = I.full_level_structure
+nuclearspin(I::Ion)::Rational = I.nuclearspin
+full_level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.full_level_structure
 selected_sublevel_structure(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.selected_sublevel_structure
 sublevel_aliases(I::Ion)::Dict{String,Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
@@ -36,8 +37,8 @@ function _structure(selected_sublevels, full_level_structure, full_transitions)
     for manifold in selected_sublevels
         # Ensure that the string is a valid level
         level = manifold[1]
-        @assert level in keys(full_level_structure) "invalid level $key"
-        @assert level ∉ [k[1] for k in keys(selected_sublevel_structure)] "multiple instances of level $key in ion constructor call"
+        @assert level in keys(full_level_structure) "invalid level $level"
+        @assert level ∉ [k[1] for k in keys(selected_sublevel_structure)] "multiple instances of level $level in ion constructor call"
         level_structure = full_level_structure[level]
 
         # Add chosen sublevels
@@ -51,9 +52,9 @@ function _structure(selected_sublevels, full_level_structure, full_transitions)
         end
         for m in sublevels
             m = Rational(m)
-            @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $key with f = $f"
-            @assert (key, m) ∉ keys(selected_sublevel_structure) "repeated instance of sublevel $m in state $key"
-            selected_sublevel_structure[(key, m)] = (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E)
+            @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $level with f = $f"
+            @assert (level, m) ∉ keys(selected_sublevel_structure) "repeated instance of sublevel $m in state $level"
+            selected_sublevel_structure[(level, m)] = (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E)
         end
     end
 
@@ -114,6 +115,12 @@ stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 
 """
 This needs a docstring
+"""
+nonlinear_zeeman(I::Ion, sublevel::Tuple{String,Real}) = I.nonlinear_zeeman[sublevel]
+nonlinear_zeeman(I::Ion, alias::String) = nonlinear_zeeman(I, alias2sublevel(I, alias))
+
+"""
+This needs a docstring
 Main method is currently a placeholder
 """
 function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::Int, ΔE::Real, A12::Real, Efield::Function, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
@@ -127,7 +134,7 @@ function matrix_element(I::Ion, transition::Tuple, Efield::Function, khat::Named
     sl2 = sublevel_structure(I, transition[2])
     matrix_element(sl2.l-sl2.l, sl1.j, sl2.j, sl1.f, sl2.f, sl2.m-sl1.m, abs(sl2.E-sl1.E), einsteinA(I, sl1, sl2), Efield, khat, ϵhat, Bhat)
 end
-matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_element(I, transition, laser.E, laser.k, laser.ϵ , T.Bhat)
+matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_element(I, transition, laser.E, laser.k, laser.ϵ, T.Bhat)
 
 
 
@@ -140,6 +147,7 @@ end
 
 Base.show(io::IO, I::Ca40) = println(io, "⁴⁰Ca")  # suppress long output
 
+Base.getindex(I::Ion, state::Union{Tuple{String,Real},String,Int}) = ionstate(I, state)
 
 #############################################################################################
 # general functions
@@ -154,9 +162,15 @@ Landé g-factor
 * `j`: total angular momentum quantum number
 * `s`: spin angular momentum quantum number (defaults to 1/2)
 """
-gJ(l::Real, j::Real; s::Real=1/2) = 3/2 + (s * (s + 1) - l * (l + 1)) / (2j * (j + 1))
+gJ(l::Real, j::Real, s::Real=1//2) = 3//2 + (s * (s + 1) - l * (l + 1)) / (2j * (j + 1))
+"""
+This needs a docstring
+"""
+gF(l::Real, j::Real, f::Real, i::Real, s::Real=1//2) = gJ(l, j, s)/2 * (1 + ((j*(j+1) - i*(i+1)) / (f*(f+1))))
+
 
 """
+NEEDS TO BE CHANGED
     zeeman_shift(B::Real, l::Real, j::Real, mⱼ::Real)
 ``ΔE = (μ_B/ħ) ⋅ g_J(l, j) ⋅ B ⋅ mⱼ / 2π``
 ### args
@@ -165,10 +179,9 @@ gJ(l::Real, j::Real; s::Real=1/2) = 3/2 + (s * (s + 1) - l * (l + 1)) / (2j * (j
 * `j`: total angular momentum quantum number
 * `mⱼ`: projection of total angular momentum along quantization axis
 """
-zeeman_shift(B::Real, l::Real, j::Real, mⱼ::Real) = zeeman_shift(B, (l=l, j=j, mⱼ=mⱼ))
-zeeman_shift(B::Real, p::NamedTuple) = (μB/ħ) * gJ(p.l, p.j) * B * p.mⱼ / 2π
-zeeman_shift(B::Real, p::Tuple) = zeeman_shift(B, (l=p[1], j=p[2], mⱼ=p[3]))
-zeeman_shift(;B::Real, l::Real, j::Real, mⱼ::Real) = zeeman_shift(B, (l=l, j=j, mⱼ=mⱼ))
+zeeman_shift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real=1//2) = (μB/ħ) * gF(l, j, f, i, s) * B * m / 2π
+zeeman_shift(B::Real, structure::NamedTuple, i::Real, s::Real=1//2) = zeeman_shift(B, structure.l, structure.j, structure.f, structure.m, i, s)
+zeeman_shift(B::Real, I::Ion, sublevel::Union{Tuple{String,Real},String}) = zeeman_shift(B, sublevel_structure(I, sublevel), nuclearspin(I))  +  nonlinear_zeeman(I, sublevel)(B)
 
 Base.getindex(I::Ion, state::Union{Tuple{String,Real},String,Int}) = ionstate(I, state)
 
