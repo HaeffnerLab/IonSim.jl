@@ -26,6 +26,9 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                  ("D5/2", "P3/2") => PhysicalConstant(9.901e6, "s⁻¹"),
                                                 ),
 
+                        gfactors = Dict("S1/2" => 2.00225664,
+                                        "D5/2" => 1.2003340),
+
                         nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
                                                 ("D5/2", -5//2) => B->4.5e-4*B^2,
                                                )
@@ -107,56 +110,43 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 """
 mutable struct Ca40 <: Ion
     mass::Real
+    charge::Real
     nuclearspin::Rational
-    full_level_structure::OrderedDict{String,NamedTuple}
-    selected_sublevel_structure::OrderedDict{Tuple,NamedTuple}
+    sublevel_structure::OrderedDict{Tuple,NamedTuple}
     sublevel_aliases::Dict{String,Tuple}
     shape::Vector{Int}
-    full_transitions::Dict{Tuple,Real}
-    selected_transitions::Dict{Tuple,Real}
+    transitions::Dict{Tuple,Real}
     stark_shift::OrderedDict{Tuple,Real}
-    nonlinear_zeeman::Dict{Tuple,Function}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    function Ca40(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T = nothing; stark_shift=Dict())
+    species_properties::NamedTuple
+    function Ca40(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T=nothing; stark_shift=Dict())
         
         properties = properties_ca40
         
-        if selected_sublevels === nothing
-            if :default_sublevel_selection in keys(properties)
-                selected_sublevels = properties.default_sublevel_selection
-            else
-                @error "no level structure specified in constructor, and no default level structure specified for this ion species"
-            end
-        elseif selected_sublevels == "all"
-            selected_sublevels = [(sublevel, "all") for sublevel in keys(properties.full_level_structure)]
-        end
         m = properties.mass
+        q = properties.charge * e
         i = properties.nuclearspin
-        fls = properties.full_level_structure
-        ft = properties.full_transitions
-        sss, st = _structure(selected_sublevels, fls, ft)
-        shape = [length(sss)]
+        sls, t = _structure(selected_sublevels, properties)
+        shape = [length(sls)]
         ss_full = OrderedDict{Tuple,Real}()
-        nlz = OrderedDict{Tuple,Function}()
-        for sublevel in keys(sss)
-            haskey(stark_shift, sublevel) ? ss_full[sublevel] = stark_shift[sublevel] : ss_full[sublevel] = 0.
-            haskey(properties.nonlinear_zeeman, sublevel) ? nlz[sublevel] = properties.nonlinear_zeeman[sublevel] : nlz[sublevel] = B->0.
+        for sublevel in keys(sls)
+            ss_full[sublevel] = (haskey(stark_shift, sublevel) ? stark_shift[sublevel] : 0.)
         end
-        new(m, i, fls, sss, Dict(), shape, ft, st, ss_full, nlz, missing, missing)
+        new(m, i, q, sls, Dict(), shape, t, ss_full, missing, missing, properties)
     end
     # for copying
     function Ca40(  
-            mass, nuclearspin, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
-            full_transitions, selected_transitions, stark_shift, nonlinear_zeeman, number, position
+            mass, nuclearspin, charge, sublevel_structure, sublevel_aliases, shape,
+            transitions, stark_shift, number, position, species_properties
         )
-        selected_sublevel_structure = deepcopy(selected_sublevel_structure)
+        sublevel_structure = deepcopy(sublevel_structure)
         sublevel_aliases = deepcopy(sublevel_aliases)
         shape = copy(shape)
-        selected_transitions = deepcopy(selected_transitions)
+        transitions = deepcopy(transitions)
         stark_shift = deepcopy(stark_shift)
-        nonlinear_zeeman = deepcopy(nonlinear_zeeman)
-        new(mass, nuclearspin, full_level_structure, selected_sublevel_structure, sublevel_aliases, shape,
-        full_transitions, selected_transitions, stark_shift, nonlinear_zeeman, number, position)
+        species_properties = deepcopy(species_properties)
+        new(mass, nuclearspin, charge, sublevel_structure, sublevel_aliases, shape,
+        transitions, stark_shift, number, position, species_properties)
     end
 end

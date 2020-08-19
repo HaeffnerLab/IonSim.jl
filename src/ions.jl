@@ -19,31 +19,48 @@ abstract type Ion <: IonSimBasis end
 
 # required fields
 mass(I::Ion)::Real = I.mass
+charge(I::Ion)::Real = I.charge
 nuclearspin(I::Ion)::Rational = I.nuclearspin
-full_level_structure(I::Ion)::OrderedDict{String,NamedTuple} = I.full_level_structure
-selected_sublevel_structure(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.selected_sublevel_structure
+sublevel_structure(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.sublevel_structure
 sublevel_aliases(I::Ion)::Dict{String,Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
-full_transitions(I::Ion)::Dict{Tuple,Real} = I.full_transitions
-selected_transitions(I::Ion)::Dict{Tuple,Real} = I.selected_transitions
+transitions(I::Ion)::Dict{Tuple,Real} = I.transitions
 stark_shift(I::Ion)::OrderedDict{Tuple,Real} = I.stark_shift
-nonlinear_zeeman(I::Ion)::Dict{Tuple,Function} = I.nonlinear_zeeman
 ion_number(I::Ion)::Union{Int,Missing} = I.number
 ion_position(I::Ion)::Union{Real,Missing} = I.position
+species_properties(I::Ion)::NamedTuple = I.species_properties
 
-function _structure(selected_sublevels, full_level_structure, full_transitions)
-    # First, construct the dictionary for selected_sublevel_structure
-    selected_sublevel_structure = OrderedDict{Tuple{String,Rational},NamedTuple}()
+function _structure(selected_sublevels, properties)
+    full_level_structure = properties.full_level_structure
+
+    # If selected_sublevels is blank, use the default selection. If it is "all", use all sublevels.
+    if selected_sublevels === nothing
+        if :default_sublevel_selection in keys(properties)
+            selected_sublevels = properties.default_sublevel_selection
+        else
+            @error "no level structure specified in constructor, and no default level structure specified for this ion species"
+        end
+    elseif selected_sublevels == "all"
+        selected_sublevels = [(sublevel, "all") for sublevel in keys(full_level_structure)]
+    end
+
+    # Construct the dictionary for sublevel_structure
+    sublevel_structure = OrderedDict{Tuple{String,Rational},NamedTuple}()
     for manifold in selected_sublevels
         # Ensure that the string is a valid level
         level = manifold[1]
         @assert level in keys(full_level_structure) "invalid level $level"
-        @assert level ∉ [k[1] for k in keys(selected_sublevel_structure)] "multiple instances of level $level in ion constructor call"
+        @assert level ∉ [k[1] for k in keys(sublevel_structure)] "multiple instances of level $level in ion constructor call"
         level_structure = full_level_structure[level]
 
         # Add chosen sublevels
         sublevels = manifold[2]
         f = level_structure.f
+        if haskey(properties, :gfactors) && haskey(properties.gfactors, level)
+            gf = properties.gfactors[level]
+        else
+            gf = landegf(level_structure.l, level_structure.j, f, properties.nuclearspin)
+        end
         m_allowed = Array(-f:f)
         if sublevels == "all"
             sublevels = m_allowed
@@ -53,22 +70,28 @@ function _structure(selected_sublevels, full_level_structure, full_transitions)
         for m in sublevels
             m = Rational(m)
             @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $level with f = $f"
-            @assert (level, m) ∉ keys(selected_sublevel_structure) "repeated instance of sublevel $m in state $level"
-            selected_sublevel_structure[(level, m)] = (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E)
+            @assert (level, m) ∉ keys(sublevel_structure) "repeated instance of sublevel $m in state $level"
+            # Here we add the key :nonlinear_zeeman to the sublevel structure if and only if a nonlinear zeeman function has been specified for this sublevel in the species
+            if haskey(properties, :nonlinear_zeeman) && haskey(properties.nonlinear_zeeman, (level, m))
+                sublevel_structure[(level, m)] = (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E, gf=gf, nonlinear_zeeman=properties.nonlinear_zeeman[(level, m)])
+            else
+                sublevel_structure[(level, m)] = (l=level_structure.l, j=level_structure.j, f=f, m=m, E=level_structure.E, gf=gf)
+            end
         end
     end
 
-    # Then, construct the dictionary for selected_transitions
-    selected_transitions = Dict{Tuple{String,String},Real}()
+    # Then, construct the dictionary for transitions
+    transitions = Dict{Tuple{String,String},Real}()
     levels = [manifold[1] for manifold in selected_sublevels]
-    for (level_pair, value) in full_transitions
+    for (level_pair, value) in properties.full_transitions
         if level_pair[1] in levels && level_pair[2] in levels
-            selected_transitions[level_pair] = value
+            transitions[level_pair] = value
         end
     end
 
-    return selected_sublevel_structure, selected_transitions
+    return sublevel_structure, transitions
 end
+
 
 """
 This needs a docstring
@@ -115,12 +138,6 @@ stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 
 """
 This needs a docstring
-"""
-nonlinear_zeeman(I::Ion, sublevel::Tuple{String,Real}) = I.nonlinear_zeeman[sublevel]
-nonlinear_zeeman(I::Ion, alias::String) = nonlinear_zeeman(I, alias2sublevel(I, alias))
-
-"""
-This needs a docstring
 Main method is currently a placeholder
 """
 function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::Int, ΔE::Real, A12::Real, Efield::Function, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
@@ -162,11 +179,11 @@ Landé g-factor
 * `j`: total angular momentum quantum number
 * `s`: spin angular momentum quantum number (defaults to 1/2)
 """
-gJ(l::Real, j::Real, s::Real=1//2) = 3//2 + (s * (s + 1) - l * (l + 1)) / (2j * (j + 1))
+landegj(l::Real, j::Real, s::Real=1//2) = 3//2 + (s*(s+1) - l*(l+1)) / (2j*(j+1))
 """
 This needs a docstring
 """
-gF(l::Real, j::Real, f::Real, i::Real, s::Real=1//2) = gJ(l, j, s)/2 * (1 + ((j*(j+1) - i*(i+1)) / (f*(f+1))))
+landegf(l::Real, j::Real, f::Real, i::Real, s::Real=1//2) = landegj(l, j, s)/2 * (1 + ((j*(j+1) - i*(i+1)) / (f*(f+1))))
 
 
 """
@@ -179,9 +196,15 @@ NEEDS TO BE CHANGED
 * `j`: total angular momentum quantum number
 * `mⱼ`: projection of total angular momentum along quantization axis
 """
-zeeman_shift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real=1//2) = (μB/ħ) * gF(l, j, f, i, s) * B * m / 2π
-zeeman_shift(B::Real, structure::NamedTuple, i::Real, s::Real=1//2) = zeeman_shift(B, structure.l, structure.j, structure.f, structure.m, i, s)
-zeeman_shift(B::Real, I::Ion, sublevel::Union{Tuple{String,Real},String}) = zeeman_shift(B, sublevel_structure(I, sublevel), nuclearspin(I))  +  nonlinear_zeeman(I, sublevel)(B)
+zeeman_shift(B::Real, g::Real, m::Real) = (μB/ħ) * g * B * m / 2π
+zeeman_shift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real=1//2) = zeeman_shift(B, landegf(l, j, f, i, s), m)
+function zeeman_shift(B::Real, I::Ion, sublevel::Union{Tuple{String,Real},String})
+    structure = sublevel_structure(I, sublevel)
+    nonlinear = (haskey(structure, :nonlinear_zeeman) ? structure.nonlinear_zeeman(B) : 0.)
+    return zeeman_shift(B, structure.gf, structure.m) + nonlinear
+end
+
+
 
 Base.getindex(I::Ion, state::Union{Tuple{String,Real},String,Int}) = ionstate(I, state)
 
