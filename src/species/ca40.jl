@@ -6,16 +6,12 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
 
                          nuclearspin = 0,
 
-                         full_level_structure = OrderedDict("S1/2" => (l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
-                                                            "D3/2" => (l=2, j=3//2, f=3//2, E=PhysicalConstant(4.09335071228e14, "Hz")),
-                                                            "D5/2" => (l=2, j=5//2, f=5//2, E=PhysicalConstant(4.1115503183857306e14, "Hz")),
-                                                            "P1/2" => (l=1, j=1//2, f=1//2, E=PhysicalConstant(7.554e14, "Hz")),
-                                                            "P3/2" => (l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
+                         full_level_structure = OrderedDict("S1/2" => (n=4, l=0, j=1//2, f=1//2, E=PhysicalConstant(0, "Hz")),
+                                                            "D3/2" => (n=3, l=2, j=3//2, f=3//2, E=PhysicalConstant(4.09335071228e14, "Hz")),
+                                                            "D5/2" => (n=3, l=2, j=5//2, f=5//2, E=PhysicalConstant(4.1115503183857306e14, "Hz")),
+                                                            "P1/2" => (n=4, l=1, j=1//2, f=1//2, E=PhysicalConstant(7.554e14, "Hz")),
+                                                            "P3/2" => (n=4, l=1, j=3//2, f=3//2, E=PhysicalConstant(7.621e14, "Hz")),
                                                            ),
-
-                         default_sublevel_selection = [("S1/2", "all"),
-                                                       ("D5/2", "all"),
-                                                      ],
 
                          full_transitions = Dict(("S1/2", "D5/2") => PhysicalConstant(8.562e-1, "s⁻¹"),
                                                  ("S1/2", "P1/2") => PhysicalConstant(1.299e8, "s⁻¹"),
@@ -25,14 +21,19 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                  ("D3/2", "P3/2") => PhysicalConstant(1.110e6, "s⁻¹"),
                                                  ("D5/2", "P3/2") => PhysicalConstant(9.901e6, "s⁻¹"),
                                                 ),
+                        
+                         # Optional fields
+                         default_sublevel_selection = [("S1/2", "all"),
+                                                       ("D5/2", "all"),
+                                                      ],
 
-                        gfactors = Dict("S1/2" => 2.00225664,
-                                        "D5/2" => 1.2003340),
+                         gfactors = Dict("S1/2" => 2.00225664,
+                                         "D5/2" => 1.2003340),
 
-                        nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
-                                                ("D5/2", -5//2) => B->4.5e-4*B^2,
-                                               )
-                        )
+                         nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
+                                                 ("D5/2", -5//2) => B->4.5e-4*B^2,
+                                                )
+                         )
 
 
 
@@ -109,44 +110,30 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
     physical position in meters.
 """
 mutable struct Ca40 <: Ion
-    mass::Real
-    charge::Real
-    nuclearspin::Rational
-    sublevel_structure::OrderedDict{Tuple,NamedTuple}
+    species_properties::NamedTuple
+    sublevels::Vector{Tuple{String,Real}}
     sublevel_aliases::Dict{String,Tuple}
     shape::Vector{Int}
-    transitions::Dict{Tuple,Real}
     stark_shift::OrderedDict{Tuple,Real}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    species_properties::NamedTuple
-    function Ca40(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T=nothing; stark_shift=Dict())
+    function Ca40(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T=nothing; starkshift=Dict())
         
         properties = properties_ca40
         
-        m = properties.mass
-        q = properties.charge * e
-        i = properties.nuclearspin
-        sls, t = _structure(selected_sublevels, properties)
-        shape = [length(sls)]
-        ss_full = OrderedDict{Tuple,Real}()
-        for sublevel in keys(sls)
-            ss_full[sublevel] = (haskey(stark_shift, sublevel) ? stark_shift[sublevel] : 0.)
-        end
-        new(m, i, q, sls, Dict(), shape, t, ss_full, missing, missing, properties)
+        sublevels = _construct_sublevels(selected_sublevels, properties)
+        shape = [length(sublevels)]
+        starkshift_full = _construct_starkshift(starkshift, sublevels)
+        new(properties, sublevels, Dict(), shape, starkshift_full, missing, missing)
     end
     # for copying
     function Ca40(  
-            mass, nuclearspin, charge, sublevel_structure, sublevel_aliases, shape,
-            transitions, stark_shift, number, position, species_properties
+            species_properties, sublevels, sublevel_aliases, shape, stark_shift, number, position
         )
-        sublevel_structure = deepcopy(sublevel_structure)
+        sublevels = deepcopy(sublevels)
         sublevel_aliases = deepcopy(sublevel_aliases)
         shape = copy(shape)
-        transitions = deepcopy(transitions)
         stark_shift = deepcopy(stark_shift)
-        species_properties = deepcopy(species_properties)
-        new(mass, nuclearspin, charge, sublevel_structure, sublevel_aliases, shape,
-        transitions, stark_shift, number, position, species_properties)
+        new(species_properties, sublevels, sublevel_aliases, shape, stark_shift, number, position)
     end
 end

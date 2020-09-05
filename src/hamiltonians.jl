@@ -440,7 +440,7 @@ function _Δmatrix(T, timescale)
             L1 = sublevel_structure(ions[n], t[1])
             L2 = sublevel_structure(ions[n], t[2])
             ss = stark_shift(ions[n], t[1]) - stark_shift(ions[n], t[2])
-            ωa = (abs(L1.E  + zeeman_shift(Btot, ions[n], L1) - (L2.E + zeeman_shift(Btot, ions[n], L2)))
+            ωa = (abs(L1.E  + zeeman_shift(ions[n], L1, Btot) - (L2.E + zeeman_shift(ions[n], L2, Btot)))
                   + ss)
             push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - ωa))
         end
