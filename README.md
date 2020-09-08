@@ -17,9 +17,9 @@ The functional form of the Hamiltonian can then be used as input to any of the s
 [`QuantumOptics.timeevolution`](https://qojulia.org/documentation/timeevolution/timeevolution/). For more information see:
 
 + Main code: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/src](https://github.com/HaeffnerLab/IonSim.jl/tree/master/src)
-+ Documentation: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/doc](https://github.com/HaeffnerLab/IonSim.jl/tree/master/doc)
-+ Examples: [https://github.com/HaeffnerLab/IonSim.jl/tree/master/examples](https://github.com/HaeffnerLab/IonSim.jl/tree/master/examples)
-+ Benchmarks: 
++ Documentation: [https://docs.ionsim.org](https://docs.ionsim.org)
++ Examples: [https://examples.ionsim.org](https://examples.ionsim.org)
++ Benchmarks: [https://ionsim.org/benchmarks.html](https://ionsim.org/benchmarks.html)
  
 ## Installation
 
