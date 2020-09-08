@@ -10,7 +10,7 @@ export VibrationalMode
             axis::NamedTuple{(:x,:y,:z)}=ẑ
         )
 
-#### user-defined fields
+**user-defined fields**
 * `ν::Real`: frequency [Hz]
 * `mode_structure::Vector{Real}`: The normalized eigenvector describing the collective motion 
         of the ions belonging to this mode.
@@ -19,7 +19,7 @@ export VibrationalMode
 * `N::Int`: Highest level included in the Hilbert space.
 * `axis::NamedTuple{(:x,:y,:z)}`: The axis of symmetry for the vibration. This must lie along
         one of the basis vectors `x̂`, `ŷ` or `ẑ`.
-#### derived fields
+**derived fields**
 * `shape::Vector{Int}`: Indicates dimension of used Hilbert space (`=[N+1]`).
 * `_cnst_δν::Bool`: A Boolean flag signifying whether or not `δν` is a constant function.
 

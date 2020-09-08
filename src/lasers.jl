@@ -7,7 +7,7 @@ export Laser
     Laser(;E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, λ=729.147e-9, pointing::Array{Tuple{Int,Real}})
         
 The physical parameters defining laser light.
-### args
+**args**
 * `E::Union{Function,Real}`: magnitude of the E-field in V/m
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1

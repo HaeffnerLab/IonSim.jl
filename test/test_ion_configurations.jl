@@ -12,6 +12,7 @@ using Suppressor
             ions=[C, C, C, C], com_frequencies=(x=5, y=5, z=1), 
             vibrational_modes=(y=[1], z=[4])
         )
+    @test ions(lc) == lc.ions
     # test get_vibrational_modes, which should return an array of the selected
     # VibrationalModes in the linear chain
     vms = lc.vibrational_modes

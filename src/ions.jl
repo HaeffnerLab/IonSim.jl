@@ -35,7 +35,7 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 """
     Ca40(selected_level_structure::Vector{String}[, stark_shift])
 
-#### user-defined fields
+**user-defined fields**
 * `selected_level_structure`: 
     keys ⊂ `["S-1/2", "S+1/2", "D-5/2", "D-3/2", "D-1/2", "D+1/2", "D+3/2", "D+5/2"]`.
     Values are a `NamedTuple` with:
@@ -48,12 +48,12 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 * `stark_shift`: A dictionary with keys denoting the selected levels and values, a real 
     number for describing a shift of the level's energy. This is just a convenient way to add 
     Stark shifts to the simulation without additional resources.
-#### fixed fields
+**fixed fields**
 * `mass::Real`: The ion's mass in kg.
 * `level_structure`: A full description of the ion's electronic structure.
 * `matrix_elements::OrderedDict{Tuple,Function}`: Same as `selected_matrix_elements` but for
     all of the ion's allowed transitions.
-#### derived fields
+**derived fields**
 * `selected_matrix_elements`: Functions for the allowed transitions (contained in the 
     selected levels) that return the corresponding coupling strengths. These functions take 
     as arguments:
@@ -63,7 +63,7 @@ stark_shift(I::Ion)::OrderedDict{String,Real} = I.stark_shift
 * `shape::Vector{Int}`: Indicates the dimension of the used Hilbert space.
 * `number`: When the ion is added to an `IonConfiguration`, this value keeps track of its 
     order in the chain.
-* `position`: @hen the ion is added to an `IonConfiguration`, this value keeps track of its
+* `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its
     physical position in meters.
 """
 mutable struct Ca40 <: Ion
@@ -184,7 +184,7 @@ See e.g. page 30 of
 [Roos's thesis](https://quantumoptics.at/images/publications/dissertation/roos_diss.pdf).
 Only considers linearly polarized light fields.
 
-### args
+**args**
 * `C`: Ca40 ion
 * `transition`: i.e. ["S-1/2", "D-1/2"]
 * `Efield`: magnitude of the electric field at the position of the ion [V/m]
@@ -215,7 +215,7 @@ Base.show(io::IO, I::Ca40) = println(io, "⁴⁰Ca")  # suppress long output
     gJ(l::real, j::real; s::Real=1/2)
 Landé g-factor
 
-### args
+**args**
 * `l`: orbital angular momentum quantum number
 * `j`: total angular momentum quantum number
 * `s`: spin angular momentum quantum number (defaults to 1/2)
@@ -225,7 +225,7 @@ gJ(l::Real, j::Real; s::Real=1/2) = 3/2 + (s * (s + 1) - l * (l + 1)) / (2j * (j
 """
     zeeman_shift(B::Real, l::Real, j::Real, mⱼ::Real)
 ``ΔE = (μ_B/ħ) ⋅ g_J(l, j) ⋅ B ⋅ mⱼ / 2π``
-### args
+**args**
 * `B`: magnitude of B-field at ion
 * `l`: orbital angular momentum quantum number
 * `j`: total angular momentum quantum number

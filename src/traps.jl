@@ -18,7 +18,7 @@ export Trap, get_basis, Efield_from_pi_time, Efield_from_pi_time!,
 
 Information necessary to describe the Hamiltonian for a collection of ions in a linear chain
 interacting with laser light.
-#### user-defined fields
+**user-defined fields**
 * `configuration<:LinearChain`
 * `B`: A real value describing the mean magnitude of the B-field [Tesla].
 * `Bhat::NamedTuple{(:x,:y,:z)}`: Describes the direction of the B-field (defaults to ẑ).
@@ -30,7 +30,7 @@ interacting with laser light.
         in the `ions` field that the laser interacts with. The second element specifies a 
         scaling factor for the strength of that interaction (to be used, e.g., for 
         modeling cross-talk).
-#### derived fields:
+**derived fields**
 * `_cnst_δB::Bool`: A Boolean flag signifying whether or not `δB` is a constant function.
 * `basis<:CompositeBasis`: The basis for describing the combined system, ions + vibrational
         modes. If constructing the Hamiltonian explictly (with [`hamiltonian`](@ref)), then

@@ -37,7 +37,7 @@ chain = LinearChain(
     warn = "Some lasers point to the same thing. Making copies."
     @test_logs (:warn, warn) Trap(configuration=chain, lasers=[L1, L1, L1])
     # and test that, in this case, copies are made
-    T1 = Trap(configuration=chain, lasers=[L1, L1, L1, L1])
+    T1 = Trap(configuration=chain, lasers=[L1, L1, L1, L1], δB=t->t)
     for i in 1:4, j in i+1:4
         @test !(T1.lasers[i] ≡ T1.lasers[j])
     end
@@ -94,6 +94,8 @@ end
     # shouldn't be able to have a laser argument where laser.pointing = []
     L = Laser()
     @test_throws AssertionError Efield_from_pi_time(1e-6, Bhat, L, ion, transition)
+    L.pointing = [(1, 1.)]
+    @test isinf(Efield_from_pi_time(1e-6, x̂, L, ion, transition))
 
     
     # Efield_from_rabi_frequency
@@ -138,6 +140,7 @@ end
     cb = get_basis(T)
     @test cb == C ⊗ C ⊗ xmode ⊗ zmode
     @test cb != C ⊗ C ⊗ zmode ⊗ xmode
+    @test cb != C ⊗ C ⊗ C ⊗ xmode ⊗ zmode
 
     # test get_η
     f = ca40_qubit_transition_frequency

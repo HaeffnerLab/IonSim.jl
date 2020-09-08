@@ -13,6 +13,8 @@ using Suppressor
     vm.δν = sin
     @test vm.δν.(t) == sin.(t)
     @test !vm._cnst_δν
+    vm = VibrationalMode(1, [1, 1], δν=t->t)
+    @test !vm._cnst_δν
 
     # test ==
     vm1 = VibrationalMode(1, [1, 1], δν=1)
