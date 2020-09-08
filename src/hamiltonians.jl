@@ -14,7 +14,7 @@ export hamiltonian
 Constructs the Hamiltonian for `T` as a function of time. Return type is a function 
 `h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
 
-#### args
+**args**
 * `timescale`: e.g. a value of 1e-6 will take time to be in ``\\mu s``
 * `lamb_dicke_order`: Only consider terms that change the phonon number by up to this value.
     If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,
@@ -166,7 +166,7 @@ function _setup_base_hamiltonian(
     rwa_cutoff *= timescale
     modes = reverse(get_vibrational_modes(T.configuration))
     L = length(modes)
-    νlist = [mode.ν for mode in modes]
+    νlist = Tuple([mode.ν for mode in modes])
     mode_dims = [mode.N+1 for mode in modes]
     
     ions = reverse(T.configuration.ions)
@@ -259,9 +259,9 @@ function _setup_base_hamiltonian(
                 
                 # push information to top-level lists/ construct time-dep function
                 if displacement == "truncated" && !time_dependent_eta
-                    D = [D_arrays[i][idxs[1][i], idxs[2][i]] for i in 1:L]
+                    D = Tuple([D_arrays[i][idxs[1][i], idxs[2][i]] for i in 1:L])
                 elseif displacement == "analytic" && !time_dependent_eta
-                    D = [_Dnm_cnst_eta(ηlist(0)[i], idxs[1][i], idxs[2][i]) for i in 1:L]
+                    D = Tuple([_Dnm_cnst_eta(ηlist(0)[i], idxs[1][i], idxs[2][i]) for i in 1:L])
                 elseif displacement == "truncated"
                     pflist = [_pf(mode_dims[i], idxs[1][i], idxs[2][i]) for i in 1:L]
                 end
@@ -494,7 +494,7 @@ _transitions(ion) = collect(keys(ion.selected_matrix_elements))
 # [D(ξ(t))]_ij is calculated assuming an infinite dimensional Hilbert space for the HO.
 function _D(Ω, Δ, η, ν, timescale, n, t, L)
     d = complex(1, 0)
-    @simd for i in 1:L
+    for i in 1:L
         d *= _Dnm(1im * η[i] * exp(im * 2π * ν[i] * timescale * t), n[1][i], n[2][i])
     end
     g = Ω * exp(-1im * t * Δ)
@@ -507,7 +507,7 @@ end
 # This precomputation is performed externally to the function and fed in as the argument `D`.
 function _D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
     d = complex(1, 0)
-    @simd for i in 1:L
+    for i in 1:L
         d *= D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π/2))
     end
     g = Ω * exp(-1im * t * Δ)
@@ -557,7 +557,7 @@ function _inv_get_kron_indxs(indxs, dims)
             rowflag && colflag && break
         end
     end
-    ret_rows, ret_cols
+    Tuple(ret_rows), Tuple(ret_cols)
 end
 
 # similar to _Dnm, but meant to be used when η is assumed constant in ξ=iηe^(i2πνt)

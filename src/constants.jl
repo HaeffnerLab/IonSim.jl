@@ -14,23 +14,23 @@ struct PhysicalConstant <: Real
 end
 
 # some useful constants, everything in SI units
-""" ## `μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
+"""`μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
 const μB = PhysicalConstant(9.27400994e-24, "J⋅T⁻¹")
-""" ## `ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
+"""`ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
 const ħ = PhysicalConstant(1.0545718e-34, "m²kg/s")
-""" ## `m_ca40` = 6.635943757345042e-26 kg <br> (mass of 40Ca)"""
+"""`m_ca40` = 6.635943757345042e-26 kg <br> (mass of 40Ca)"""
 const m_ca40 = PhysicalConstant(6.635943757345042e-26, "kg")
-""" ## `c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
+"""`c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
 const c = PhysicalConstant(2.99792458e8, "m/s")
-""" ## `e` = 1.60217662e-19 C <br> (charge of electron)"""
+"""`e` = 1.60217662e-19 C <br> (charge of electron)"""
 const e = PhysicalConstant(1.60217662e-19, "C")
-""" ## `ϵ₀` = 8.85418782e-12 ``(s^4A^2) / (m^3 kg)``"""
+"""`ϵ₀` = 8.85418782e-12 ``(s^4A^2) / (m^3 kg)``"""
 const ϵ₀ = PhysicalConstant(8.85418782e-12, "(s^4A^2) / (m^3 kg)")
-""" ## `α` = e²/4πϵ₀ħc``"""
+"""`α` = e²/4πϵ₀ħc``"""
 const α = PhysicalConstant(0.007297352557920479, "")
-""" ## `kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
+"""`kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
 const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
-""" ## `ca40_qubit_transition_frequency` = c / 729.147e-9 ``Hz`` """
+"""`ca40_qubit_transition_frequency` = c / 729.147e-9 ``Hz`` """
 const ca40_qubit_transition_frequency = PhysicalConstant(2.99792458e8 / 729.147e-9, "Hz")
 
 Base.print(pc::PhysicalConstant) = print("$(pc.x) [$(pc.units)]")
