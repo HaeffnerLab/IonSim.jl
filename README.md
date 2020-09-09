@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/HaeffnerLab/IonSim.jl/blob/media/logo3_SM.png?raw=true", width="500px">
+  <img src="https://github.com/HaeffnerLab/IonSim.jl/blob/media/logo3_SM.svg?raw=true", width="450px">
 </p>
 
 [![Build Status][travis-badge]][travis-url]
