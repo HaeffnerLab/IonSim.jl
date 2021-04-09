@@ -3,7 +3,7 @@ using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μ
 
 
 export mass, nuclearspin, full_level_structure, selected_sublevel_structure, sublevel_aliases,
-       full_transitions, selected_transitions, get_basis, stark_shift, ion_number, ion_position,
+       full_transitions, selected_transitions, get_basis, stark_shift, ionnumber, ion_position,
        set_sublevel_alias!, gJ, zeeman_shift, matrix_elements, zero_stark_shift, Ion
 
 
@@ -31,8 +31,8 @@ ionsublevels(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.sublevels
 sublevel_aliases(I::Ion)::Dict{String,Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
 stark_shift(I::Ion)::OrderedDict{Tuple,Real} = I.stark_shift
-ion_number(I::Ion)::Union{Int,Missing} = I.number
-ion_position(I::Ion)::Union{Real,Missing} = I.position
+ionnumber(I::Ion)::Union{Int,Missing} = I.number
+ionposition(I::Ion)::Union{Real,Missing} = I.position
 
 
 
@@ -182,7 +182,7 @@ This needs a docstring
 """
 function energy(I::Ion, sublevel::Tuple{String,Real}; B=0, ignore_starkshift=false)
     validatesublevel(I, sublevel)
-    E0 = speciesproperties(I).full_level_structure[level].E
+    E0 = speciesproperties(I).full_level_structure[sublevel[0]].E
     zeeman = zeeman_shift(I, sublevel, B)
     stark = (ignore_starkshift ? 0.0 : stark_shift(I, sublevel))
     return E0 + zeeman + stark
@@ -191,8 +191,7 @@ function energy(I::Ion, level_or_alias::String; B=0, ignore_starkshift=false)
     # If the second argument is a String, it could be either a level name or the alias of a sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Return the bare energy of that level.
-        @assert level_or_alias in levels(I) "ion does not contain level $level"
-        return speciesproperties(I).full_level_structure[level].E
+        return speciesproperties(I).full_level_structure[level_or_alias].E
     else
         # Second argument is a sublevel alias.
         return energy(I, alias2sublevel(I, level_or_alias), B=B, ignore_starkshift=ignore_starkshift)
@@ -203,7 +202,15 @@ end
 """
 This needs a docstring
 """
-function iontransitions(I::Ion)
+function transitionfrequency(I::Ion, sublevel1::Tuple{String,Real}, sublevel2::Tuple{String,Real}, B::Real; ignore_starkshift=false)
+    return abs(energy(I, sublevel1, B=B, ignore_starkshift=ignore_starkshift) - energy(I, sublevel2, B=B, ignore_starkshift=ignore_starkshift))
+end
+
+
+"""
+This needs a docstring
+"""
+function ionleveltransitions(I::Ion)
     list = []
     levels = ionlevels(I)
     for levelpair in keys(speciesproperties(I).full_transitions)
@@ -218,8 +225,28 @@ end
 """
 This needs a docstring
 """
+function ionsubleveltransitions(I::Ion)
+    list = []
+    leveltransitions = ionleveltransitions(I)
+    for transition in leveltransitions
+        (L1, L2) = transition
+        sublevels1 = [sublevel for sublevel in ionsublevels(I) if sublevel[0]==L1]
+        sublevels2 = [sublevel for sublevel in ionsublevels(I) if sublevel[0]==L2]
+        for sl1 in sublevels1
+            for sl2 in sublevels2
+                push!(list, (sl1, sl2))
+            end
+        end
+    end
+    return list
+end
+
+
+"""
+This needs a docstring
+"""
 function einsteinA(I::Ion, L1::Tuple{String,Real}, L2::Tuple{String,Real})
-    @assert (L1, L2) in iontransitions(I) "invalid transition $L1 -> $L2"
+    @assert (L1, L2) in ionleveltransitions(I) "invalid transition $L1 -> $L2"
     return speciesproperties(I).full_transitions[(L1, L2)]
 end
 einsteinA(I::Ion, L1::Tuple{String,Real}, L2::String) = einsteinA(I, L1, alias2sublevel(I, L2))

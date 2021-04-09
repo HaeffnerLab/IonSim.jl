@@ -28,7 +28,8 @@ const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
                                                       ],
 
                          gfactors = Dict("S1/2" => 2.00225664,
-                                         "D5/2" => 1.2003340),
+                                         "D5/2" => 1.2003340
+                                        ),
 
                          nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
                                                  ("D5/2", -5//2) => B->4.5e-4*B^2,
@@ -124,12 +125,11 @@ mutable struct Ca40 <: Ion
         sublevels = _construct_sublevels(selected_sublevels, properties)
         shape = [length(sublevels)]
         starkshift_full = _construct_starkshift(starkshift, sublevels)
+
         new(properties, sublevels, Dict(), shape, starkshift_full, missing, missing)
     end
     # for copying
-    function Ca40(  
-            species_properties, sublevels, sublevel_aliases, shape, stark_shift, number, position
-        )
+    function Ca40(species_properties, sublevels, sublevel_aliases, shape, stark_shift, number, position)
         sublevels = deepcopy(sublevels)
         sublevel_aliases = deepcopy(sublevel_aliases)
         shape = copy(shape)
