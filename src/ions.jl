@@ -27,7 +27,7 @@ abstract type Ion <: IonSimBasis end
 #############################################################################################
 
 speciesproperties(I::Ion)::NamedTuple = I.species_properties
-ionsublevels(I::Ion)::OrderedDict{Tuple,NamedTuple} = I.sublevels
+sublevels(I::Ion)::Vector{Tuple{String,Real}} = I.sublevels
 sublevel_aliases(I::Ion)::Dict{String,Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
 stark_shift(I::Ion)::OrderedDict{Tuple,Real} = I.stark_shift
@@ -52,7 +52,11 @@ nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
 # Functions to modify ion properties
 #############################################################################################
 
-"""
+validatesublevel(I::Ion, sublevel::Tuple{String,Real}) = @assert sublevel in sublevels(I) "ion does not contain sublevel $sublevel"
+validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
+
+
+""" 
 This needs a docstring
 """
 function zero_stark_shift!(I::Ion)
@@ -62,8 +66,18 @@ function zero_stark_shift!(I::Ion)
 end
 
 
-validatesublevel(I::Ion, sublevel::Tuple{String,Real}) = @assert sublevel in sublevels(I) "ion does not contain sublevel $sublevel"
-validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
+"""
+This needs a docstring
+"""
+function set_stark_shift!(I::Ion, sublevel::Tuple{String,Real}, shift::Real)
+    validatesublevel(I, sublevel)
+    I.stark_shift[sublevel] = shift
+end
+function set_stark_shift!(I::Ion, stark_shift_dict::Dict)
+    for sublevel in keys(stark_shift_dict)
+        set_stark_shift!(I, sublevel, stark_shift_dict[sublevel])
+    end
+end
 
 
 """
@@ -79,6 +93,11 @@ function set_sublevel_alias!(I::Ion, pairs::Vector{Tuple{Tuple{String,Real},Stri
         set_sublevel_alias!(I, sublevel, alias)
     end
 end
+function set_sublevel_alias!(I::Ion, aliasdict::Dict{String,Tuple{String,Real}})
+    for (alias, sublevel) in aliasdict
+        set_sublevel_alias!(I, sublevel, alias)
+    end
+end
 
 
 function alias2sublevel(I::Ion, alias::String)
@@ -86,6 +105,7 @@ function alias2sublevel(I::Ion, alias::String)
     @assert alias in keys(all_aliases) "no sublevel with alias $alias"
     return all_aliases[alias]
 end
+
 
 
 
@@ -148,7 +168,10 @@ landegj(l::Real, j::Real, s::Real=1//2) = 3//2 + (s*(s+1) - l*(l+1)) / (2j*(j+1)
 This needs a docstring
 (Don't forget that there's a method above for just stark_shift(I::Ion))
 """
-stark_shift(I::Ion, sublevel::Tuple{String,Real}) = stark_shift(I)[sublevel]
+function stark_shift(I::Ion, sublevel::Tuple{String,Real})
+    validatesublevel(I, sublevel)
+    stark_shift(I)[sublevel]
+end
 stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 
 
@@ -210,7 +233,7 @@ end
 """
 This needs a docstring
 """
-function ionleveltransitions(I::Ion)
+function leveltransitions(I::Ion)
     list = []
     levels = ionlevels(I)
     for levelpair in keys(speciesproperties(I).full_transitions)
@@ -225,13 +248,13 @@ end
 """
 This needs a docstring
 """
-function ionsubleveltransitions(I::Ion)
+function subleveltransitions(I::Ion)
     list = []
-    leveltransitions = ionleveltransitions(I)
+    leveltransitions = leveltransitions(I)
     for transition in leveltransitions
         (L1, L2) = transition
-        sublevels1 = [sublevel for sublevel in ionsublevels(I) if sublevel[0]==L1]
-        sublevels2 = [sublevel for sublevel in ionsublevels(I) if sublevel[0]==L2]
+        sublevels1 = [sublevel for sublevel in sublevels(I) if sublevel[0]==L1]
+        sublevels2 = [sublevel for sublevel in sublevels(I) if sublevel[0]==L2]
         for sl1 in sublevels1
             for sl2 in sublevels2
                 push!(list, (sl1, sl2))
@@ -246,7 +269,7 @@ end
 This needs a docstring
 """
 function einsteinA(I::Ion, L1::Tuple{String,Real}, L2::Tuple{String,Real})
-    @assert (L1, L2) in ionleveltransitions(I) "invalid transition $L1 -> $L2"
+    @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
     return speciesproperties(I).full_transitions[(L1, L2)]
 end
 einsteinA(I::Ion, L1::Tuple{String,Real}, L2::String) = einsteinA(I, L1, alias2sublevel(I, L2))
@@ -281,7 +304,7 @@ matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_elemen
 # Functions for constructing ion objects
 #############################################################################################
 
-function _construct_sublevels(selected_sublevels, properties)
+function _construct_sublevels(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T=nothing, properties)
     full_level_structure = properties.full_level_structure
 
     # If selected_sublevels is blank, use the default selection. If it is "all", use all sublevels.
@@ -317,13 +340,14 @@ function _construct_sublevels(selected_sublevels, properties)
         for m in selectedms
             m = Rational(m)
             @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $level with f = $f"
-            @assert (level, m) ∉ keys(sublevel_structure) "repeated instance of sublevel $m in state $level"
+            @assert (level, m) ∉ sublevels "repeated instance of sublevel $m in state $level"
             push!(sublevels, (level, m))
         end
     end
 
     return sublevels
 end
+
 
 function _construct_starkshift(starkshift, sublevels)
     starkshift_full = OrderedDict{Tuple,Real}()
@@ -360,37 +384,44 @@ function Base.getproperty(I::Ion, s::Symbol)
     getfield(I, s)
 end
 
-# NEEDS TO BE CHANGED
 function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where{Tv}
-    if (s == :mass || 
-        s == :level_structure || 
+    if (s == :species_properties || 
         s == :shape || 
-        s == :matrix_elements ||
-        s == :selected_matrix_elements ||
-        s == :number ||
+        s == :number || 
         s == :position)
         return
-    elseif s == :selected_level_structure
-        @assert Tv == Vector{String} "type must be Vector{String}" 
-        _, sls_dict, _, me_dict = _structure(v)
-        Core.setproperty!(I, :selected_level_structure, sls_dict)
-        Core.setproperty!(I, :selected_matrix_elements, me_dict)
-        Core.setproperty!(I, :shape, [length(sls_dict)])
-        I.stark_shift = OrderedDict{String,Real}()
-        for key in v
-            I.stark_shift[key] = 0.0
+    elseif s == :sublevels
+        Core.setproperty!(I, :sublevels, _construct_sublevels(v, speciesproperties(I)))
+        # Also update the stark shift dict as necessary; keep old stark shift values and assign zero stark shift to new sublevels
+        starkshift_full_old = stark_shift(I)
+        starkshift_full_new = OrderedDict{Tuple,Real}()
+        for sublevel in sublevels(I)
+            starkshift_full_new[sublevel] = (haskey(starkshift_full_old, sublevel) ? starkshift_full_old[sublevel] : 0.)
         end
+        Core.setproperty!(I, :stark_shift, starkshift_full_new)
         return
+    elseif s == :sublevel_aliases
+        for (alias, sublevel) in v
+            validatesublevel(I, sublevel)
+        end
+        Core.setproperty!(I, :sublevel_aliases, v)
+    elseif s == :stark_shift
+        starkshift_full_new = stark_shift(I) # New stark shift dict is initially identical to the old one
+        for (sublevel, shift) in v
+            validatesublevel(I, sublevel)
+            starkshift_full_new[sublevel] = shift # Change the shifts as necessary
+        end
+        Core.setproperty!(I, :stark_shift, starkshift_full_new)
     end
-    Core.setproperty!(I, s, v)
 end
 
 function Base.:(==)(b1::T, b2::T) where {T<:Ion}
+    # Takes two ions to be equal if they are the same species, contain the same sublevels, and have the same stark shifts
+    # Does not care about sublevel aliases or the ordering of sublevels
     (
-        b1.mass == b2.mass &&
-        b1.selected_sublevel_structure == b2.selected_sublevel_structure &&
-        b1.shape == b2.shape &&
-        b1.stark_shift == b2.stark_shift
+        b1.species_properties == b2.species_properties &&
+        sort(b1.sublevels) == sort(b2.sublevels) &&
+        sort(b1.stark_shift) == sort(b2.stark_shift)
     )
 end
 

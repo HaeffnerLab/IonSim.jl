@@ -118,7 +118,7 @@ mutable struct Ca40 <: Ion
     stark_shift::OrderedDict{Tuple,Real}
     number::Union{Int,Missing}
     position::Union{Real,Missing}
-    function Ca40(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T=nothing; starkshift=Dict())
+    function Ca40(selected_sublevels; starkshift=Dict())
         
         properties = properties_ca40
         

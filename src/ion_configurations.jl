@@ -175,8 +175,8 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         l = linear_equilibrium_positions(length(ions))
         l0 = characteristic_length_scale(m_ca40, com_frequencies.z) 
         for (i, ion) in enumerate(ions)
-            Core.setproperty!(ion, :number, i)
-            Core.setproperty!(ion, :position, l[i] * l0)
+            Core.setproperty!(ion, :ionnumber, i)
+            Core.setproperty!(ion, :ionposition, l[i] * l0)
         end
         new(ions, com_frequencies, vm, A)
     end

@@ -141,13 +141,12 @@ Rather than `index<:String`, one may also specify `index<:Int`. If `object<:Ion`
 return the ket given by ``|index⟩ = (0 ... 1 ... 0)ᵀ`` where the nonzero element in the 
 column vector is located at `index`.
 """
-function ionstate(I::Ion, state::Tuple{String,Real})
-    s = keys(I.selected_sublevel_structure)
-    @assert state in s "index not in selected_level_structure: $s"
-    i = findall(s .≡ [state])[1]
+function ionstate(I::Ion, sublevel::Tuple{String,Real})
+    validatesublevel(sublevel)
+    i = findall(sublevels(I) .≡ [sublevel])[1]
     basisstate(I, i)
 end
-ionstate(I::Ion, state::String) = ionstate(I, alias2sublevel(I, state))
+ionstate(I::Ion, sublevelalias::String) = ionstate(I, alias2sublevel(I, sublevelalias))
 ionstate(I::Ion, level::Int) = basisstate(I, level)
 function ionstate(IC::IonConfiguration, states::Union{Tuple{String,Real},String,Int}...)
     ions = IC.ions

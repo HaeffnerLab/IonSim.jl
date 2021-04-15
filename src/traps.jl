@@ -186,7 +186,7 @@ function Efield_from_pi_time(
     transition::Tuple
 )   
     p = laser.pointing
-    s_indx = findall(x -> x[1] == ion.number, p)
+    s_indx = findall(x -> x[1] == ionnumber(ion), p)
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
     s = laser.pointing[s_indx[1]][2]
     Ω = s * matrix_element(ion, transition, x->1, laser.k, laser.ϵ, Bhat)
@@ -377,7 +377,7 @@ function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled=false)
         scaled ? ν = 1 : ν = V.ν
         x0 = √(ħ / (2 * I.mass * 2π * ν))
         cosθ = ndot(L.k, V.axis)
-        k * x0 * cosθ * V.mode_structure[I.number]
+        k * x0 * cosθ * V.mode_structure[ionnumber(I)]
     end
 end
 
