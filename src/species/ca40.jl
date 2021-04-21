@@ -1,3 +1,5 @@
+using .PhysicalConstants:PhysicalConstant
+
 export Ca40
 
 const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),

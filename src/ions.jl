@@ -1,10 +1,11 @@
 using WignerSymbols: wigner3j
-using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
+using .PhysicalConstants: e, ca40_qubit_transition_frequency, ħ, α, μB
 
 
-export mass, nuclearspin, full_level_structure, selected_sublevel_structure, sublevel_aliases,
-       full_transitions, selected_transitions, get_basis, stark_shift, ionnumber, ion_position,
-       set_sublevel_alias!, gJ, zeeman_shift, matrix_elements, zero_stark_shift, Ion
+export Ion, speciesproperties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber,
+       ionposition, mass, charge, nuclearspin, zero_stark_shift!, set_stark_shift!,
+       set_sublevel_alias!, ionlevels, quantumnumbers, landegf, zeeman_shift, energy,
+       transitionfrequency, leveltransitions, subleveltransitions, einsteinA, matrix_element
 
 
 
@@ -287,6 +288,8 @@ function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::I
     # Rotate unit vectors so that B is in z-direction?
     # Calculate matrix element
     # Return a function of time
+    f(t) = 2π * 200e3
+    return f
 end
 function matrix_element(I::Ion, transition::Tuple, Efield::Function, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
     qn1 = quantumnumbers(I, transition[1])
@@ -424,11 +427,3 @@ function Base.:(==)(b1::T, b2::T) where {T<:Ion}
         sort(b1.stark_shift) == sort(b2.stark_shift)
     )
 end
-
-
-
-#############################################################################################
-# Add code for individual ion species
-#############################################################################################
-
-include("species/include_species.jl")
