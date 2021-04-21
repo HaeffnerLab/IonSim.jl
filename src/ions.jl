@@ -1,5 +1,5 @@
 using WignerSymbols: wigner3j,wigner6j
-using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB
+using .PhysicalConstants: e, ca40_qubit_transition_frequency, m_ca40, ħ, α, μB, c
 
 
 export mass, level_structure, selected_level_structure, stark_shift,
@@ -117,7 +117,7 @@ function _structure(selected_level_structure)
     for i in eachindex(k), j in i+1:length(k)
         t1, t2 = fls[k[i]], fls[k[j]]
         if ! (typeof(_matrix_elements((t1, t2), 0, 0, 0)) <: Nothing)
-            f(, γ, ϕ) = _matrix_elements((t1, t2), , γ, ϕ)
+            f(, γ, ϕ) = _matrix_elements((t1, t2), 0, γ, ϕ)
             push!(me, (k[i], k[j]) => f)
         end
     end
@@ -160,102 +160,106 @@ _ca40_geo = [
             end
     ]
 
-    function coupling(
-        t1::NamedTuple{(:F, :mF, :j, :I), Tuple{Float64, Float64, Float64, Float64}},
-        t2::NamedTuple{(:F, :mF, :j, :I), Tuple{Float64, Float64, Float64, Float64}},
-        ::Float64, τ::Float64, k::Float64,
-        ϵ::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
-        n::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
-        transition::String="quadrupole"
-                        )
-        #struct polarization, quantum number stuff
-    """
-        Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
-        application to quantum computation. Appl. Phys. B 66, 181 (1998)."
+function coupling(
+    t1::NamedTuple{(:F, :mF, :j, :I, :l, :m), Tuple{Float64, Float64, Float64, Float64, Float64, Float64}},
+    t2::NamedTuple{(:F, :mF, :j, :I, :l, :m), Tuple{Float64, Float64, Float64, Float64, Float64, Float64}},
+    e_field::Float64, τ::Float64, k::Float64,
+    ϵ::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
+    n::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
+    transition::String = "quadrupole"
+                    )
+    #struct polarization, quantum number stuff
+"""
+    Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
+    application to quantum computation. Appl. Phys. B 66, 181 (1998)."
 
-        This is the modified reduced matrix element when the couple basis is
-        extended to include hyperfine structure coupling. The reduced matrix element
-        is the same as that in D.F.V. James, but j-> F and we multiply by
-        an additional factor sqrt((2  *  t1.F  +  1)(2  *  t2.F  +  1))  *  wigner6j
-        See "A.R. Edmunds. Angular Momentum in Quantum Mechanics" equation 7.1.7
-        for relations between reduced matrix elements in different bases
-    """
+    This is the modified reduced matrix element when the coupled basis is
+    extended to include hyperfine structure. The reduced matrix element
+    is the same as that in D.F.V. James, but j-> F and we multiply by
+    an additional factor sqrt((2  *  t1.F  +  1)(2  *  t2.F  +  1))  *  wigner6j
+    See "A.R. Edmunds. Angular Momentum in Quantum Mechanics" equation 7.1.7
+    for relations between reduced matrix elements in different bases
+"""
 
-        ϵ_arr = [ϵ.x, ϵ.y, ϵ.z]
-        n_arr = [n.x, n.y, n.z]
+    ϵ_arr = [ϵ.x, ϵ.y, ϵ.z]
+    n_arr = [n.x, n.y, n.z]
 
-        rme = sqrt((2  *  t1.F  +  1)  *  (2  *  t2.F   +   1)  *  (2  *  t2.j  +  1))    *
-                wigner6j(t2.j, t2.F, t1.I, t1.F, t1.j, 2)    *
-                sqrt(15  /  (τ  *  c  *  α  *  k  ^  5))
+    rme = sqrt((2  *  t1.F  +  1)  *  (2  *  t2.F   +   1)  *  (2  *  t2.j  +  1))    *
+            wigner6j(t2.j, t2.F, t1.I, t1.F, t1.j, 2)    *
+            sqrt(15  /  (τ  *  c  *  α  *  k  ^  5))
 
-        # cquad = cᵢⱼ in D.F.V. James written out in matrix form
+    # cquad = cᵢⱼ in D.F.V. James written out in matrix form
 
-        cquad = cat(1/sqrt(6)  *  [[1, im, 0] [im, -1, 0] [0, 0, 0]],
-                1/sqrt(6)  *  [[0, 0, 1] [0, 0, im] [1, im, 0]],
-                      1/3  *  [[-1, 0, 0] [0, -1, 0] [0, 0, 2]],
-                1/sqrt(6)  *  [[0, 0, -1] [0, 0, im] [-1, im, 0]],
-                1/sqrt(6)  *  [[1, -im, 0] [-im, -1, 0] [0, 0, 0]]; dims = 3)
+    c_quad = cat(1/sqrt(6)  *  [[1, im, 0] [im, -1, 0] [0, 0, 0]],
+            1/sqrt(6)  *  [[0, 0, 1] [0, 0, im] [1, im, 0]],
+                  1/3  *  [[-1, 0, 0] [0, -1, 0] [0, 0, 2]],
+            1/sqrt(6)  *  [[0, 0, -1] [0, 0, im] [-1, im, 0]],
+            1/sqrt(6)  *  [[1, -im, 0] [-im, -1, 0] [0, 0, 0]]; dims = 3)
 
-        # geo_factor is the spatial term that comes from the sum over q from -2 to 2
-        # in D.F.V. James. Here it is written as the matrix contraction
-        # n.cquad.ϵ where n and ϵ are the laser direction and polarization,  respectively
+    # geo_factor is the spatial term that comes from the sum over q from -2 to 2
+    # in D.F.V. James. Here it is written as the matrix contraction
+    # n.cquad.ϵ where n and ϵ are the laser direction and polarization,  respectively
 
-        geo_factor = sum([wigner3j(t2.F, 2, t1.F, -t2.mF, q, t1.mF)  *  (transpose(n_arr)  *  cquad[:, :, q  +  3]  *  ϵ_arr)
-                    for q = collect(-2:2)])
+    geo_factor = sum([wigner3j(t2.F, 2, t1.F, -t2.mF, q, t1.mF)  *  (transpose(n_arr)  *  c_quad[:, :, q  +  3]  *  ϵ_arr)
+                for q = collect(-2:2)])
 
-        #collecting terms- note the extra factor of k that differs from the dipole.
-        #This term is abosorbed into the square root in D.F.V. James, here it is
-        #separated because rme is written explicitly above
+    #collecting terms- note the extra factor of k that differs from the dipole.
+    #This term is absorbed into the square root in D.F.V. James, here it is
+    #separated because rme is written explicitly above
 
-        quadrupole = abs(e  *  /(2  *  ħ)  *  (k  *  rme)  *  geo_factor)
+    quadrupole = abs(e  *  e_field  /  (2  *  ħ)  *  (k  *  rme)  *  geo_factor)
 
-        return quadrupole
-    end
+    return quadrupole
+end
 
-    function coupling(
-        t1::NamedTuple{(:F, :mF, :j, :I), Tuple{Float64, Float64, Float64, Float64}},
-        t2::NamedTuple{(:F, :mF, :j, :I), Tuple{Float64, Float64, Float64, Float64}},
-        ::Float64, τ::Float64, k::Float64,
-        ϵ::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
-        transition::String = "dipole"
-                     )
-    """
-        Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
-        application to quantum computation. Appl. Phys. B 66, 181 (1998)."
+function coupling(
+    t1::NamedTuple{(:F, :mF, :j, :I, :l, :m), Tuple{Float64, Float64, Float64, Float64, Float64, Float64}},
+    t2::NamedTuple{(:F, :mF, :j, :I, :l, :m), Tuple{Float64, Float64, Float64, Float64, Float64, Float64}},
+    e_field::Float64, τ::Float64, k::Float64,
+    ϵ::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
+    n::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
+    transition::String = "dipole"
+                 )
+"""
+    Based on  "D.F.V. James. Quantum dynamics of cold trapped ions with
+    application to quantum computation. Appl. Phys. B 66, 181 (1998)."
 
-        The reduced matrix element is the same as for the quadrupole matrix
-        element, with a slight difference O(unity) in the last term.
-    """
-        ϵ_arr = [ϵ.x, ϵ.y, ϵ.z]
+    The reduced matrix element is the same as for the quadrupole matrix
+    element, with a slight difference O(1) in the last term.
+"""
+    ϵ_arr = [ϵ.x, ϵ.y, ϵ.z]
 
-        rme = sqrt(abs((2  *  t2.F  +  1)  *  (2  *  t1.F  +  1)  *  (2  *  t2.j  +  1)    *
-        wigner6j(t2.j,  t2.F, t1.I, t1.F, t1.j, 1)    *
-        sqrt(3  /  (4  *  τ  *  c  *  α  *  k^3))))
+    rme = sqrt(abs((2  *  t2.F  +  1)  *  (2  *  t1.F  +  1)  *  (2  *  t2.j  +  1)    *
+    wigner6j(t2.j,  t2.F, t1.I, t1.F, t1.j, 1)    *
+    sqrt(3  /  (4  *  τ  *  c  *  α  *  k  ^  3))))
 
-        #cᵢ in D.F.V. James
-        c_dip = [1  /  sqrt(2)  *  [1 im 0];
-                [0 0 1];
-                -1  /  sqrt(2)  *  [1 -im 0]]
+    #cᵢ in D.F.V. James
+    c_dip = [1  /  sqrt(2)  *  [1 im 0];
+            [0 0 1];
+            -1  /  sqrt(2)  *  [1 -im 0]]
 
-        #geo_factor is the spatial term that comes from the sum over q from -1 to 1
-        # in D.F.V. James. Here it is written as the matrix contraction
-        #cdip.ϵ where ϵ is the polarization
+    #geo_factor is the spatial term that comes from the sum over q from -1 to 1
+    # in D.F.V. James. Here it is written as the matrix contraction
+    #cdip.ϵ where ϵ is the polarization
 
-        geo_factor = sum([wigner3j(t2.F, 1, t1.F, -t2.mF, q, t1.mF)    *
-                    (transpose(cdip[q  +  2, :])  *  ϵ_arr)
-                    for q = collect(-1:1)])
+    geo_factor = sum([wigner3j(t2.F, 1, t1.F, -t2.mF, q, t1.mF)    *
+                (transpose(c_dip[q  +  2, :])  *  ϵ_arr)
+                for q = collect(-1:1)])
 
-        # combining terms- note the factor of 2 difference from the first term
-        # when compared to the quadrupole moment
+    # combining terms- note the factor of 2 difference from the first term
+    # when compared to the quadrupole moment
 
-        dipole = abs((e  *  e_field  /  ħ)  *  rme  *  geo_factor)
+    dipole = abs((e  *  e_field  /  ħ)  *  rme  *  geo_factor)
 
-        return dipole
-    end
+    return dipole
+end
 
 function _matrix_elements(
-        transition::Tuple{NamedTuple,NamedTuple}, ::Real, γ::Real, ϕ::Real
-    )
+        transition::Tuple{NamedTuple,NamedTuple},
+        e_field::Float64, τ::Float64, k::Float64,
+        ϵ::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
+        n::NamedTuple{(:x, :y, :z), Tuple{Float64, Float64, Float64}},
+        )
     t1 = transition[1]
     t2 = transition[2]
     Δl = t2.l - t1.l
@@ -273,7 +277,7 @@ function _matrix_elements(
     end
     if (Δl ≡ 0 || Δl ≡ 2 || Δl ≡ -2) && (abs(Δj) <= 2)
         #Ω_E2 = E2 matrix element
-        Ω_E2 = coupling(t1, t2, τ, k, ϵ, n, transition = "quadrupole")
+        Ω_E2 = coupling(t1, t2, e_field, τ, k, ϵ, n, transition = "quadrupole")
     end
     if (Δl ≡ 0) && (abs(Δj) <= 1)
         #Ω_M1 = M1 matrix element
@@ -299,7 +303,7 @@ Only considers linearly polarized light fields.
 function matrix_element(C::Ca40, transition::Vector{String}, ::Real, γ::Real, ϕ::Real)
     t1 = C.level_structure[transition[1]]
     t2 = C.level_structure[transition[2]]
-    _matrix_elements((t1, t2), , γ, ϕ)
+    _matrix_elements((t1, t2), 0, γ, ϕ)
 end
 
 function Base.print(I::Ca40)
