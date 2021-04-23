@@ -1,4 +1,4 @@
-using .PhysicalConstants: c, ca40_qubit_transition_frequency
+using .PhysicalConstants: c
 
 export Laser
 
@@ -30,7 +30,7 @@ mutable struct Laser
     λ::Real
     pointing::Vector
     function Laser(; 
-            E::TE=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ::Tϕ=0, λ=c/ca40_qubit_transition_frequency, 
+            E::TE=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ::Tϕ=0, λ=c/PhysicalConstant(4.1115503183857306e14, "Hz"), 
             pointing=Array{Tuple{Int,<:Real}}(undef, 0)
         ) where {TE, Tϕ}
         rtol = 1e-6

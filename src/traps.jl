@@ -331,6 +331,13 @@ function transition_frequency(
 end
 
 """
+This needs a docstring.
+"""
+matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_element(I, transition, laser.E, laser.k, laser.ϵ, T.Bhat)
+matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser) = matrix_element(T.configuration.ions[ion_index], transition, laser.E, laser.k, laser.ϵ, T.Bhat)
+
+
+"""
     set_gradient!(
             T::Trap, ion_indxs::Tuple{Int,Int}, transition::Tuple{String,String}, f::Real
         )

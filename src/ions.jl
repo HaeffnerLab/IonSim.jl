@@ -1,5 +1,5 @@
 using WignerSymbols: wigner3j
-using .PhysicalConstants: e, ca40_qubit_transition_frequency, ħ, α, μB
+using .PhysicalConstants: e, ħ, α, μB
 
 
 export Ion, speciesproperties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber,
@@ -196,6 +196,7 @@ function zeeman_shift(I::Ion, sublevel::Union{Tuple{String,Real},String}, B::Rea
         nonlinear = properties.nonlinear_zeeman[sublevel](B)
     else
         nonlinear = 0.0
+    end
     return zeeman_shift(B, landegf(I, sublevel[1]), sublevel[2]) + nonlinear
 end
 zeeman_shift(I::Ion, alias::String, B::Real) = zeeman_shift(I, alias2sublevel(I, alias), B)
@@ -298,8 +299,6 @@ function matrix_element(I::Ion, transition::Tuple, Efield::Function, khat::Named
     E2 = energy(I, transition[2], ignore_starkshift=true)
     matrix_element(qn2.l-qn1.l, qn1.j, qn2.j, qn1.f, qn2.f, qn2.m-qn1.m, abs(E2-E1), einsteinA(I, transition), Efield, khat, ϵhat, Bhat)
 end
-matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_element(I, transition, laser.E, laser.k, laser.ϵ, T.Bhat)
-
 
 
 
@@ -307,7 +306,7 @@ matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_elemen
 # Functions for constructing ion objects
 #############################################################################################
 
-function _construct_sublevels(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T=nothing, properties)
+function _construct_sublevels(selected_sublevels, properties)
     full_level_structure = properties.full_level_structure
 
     # If selected_sublevels is blank, use the default selection. If it is "all", use all sublevels.
@@ -366,14 +365,14 @@ end
 # Overrides of Base functions
 #############################################################################################
 
-function Base.print(I::Ca40)
-    println("⁴⁰Ca\n")
-    for (k, v) in I.selected_sublevel_structure
-        println(k, ": ", v)
-    end
-end
+# function Base.print(I::Ca40)
+#     println("⁴⁰Ca\n")
+#     for (k, v) in I.selected_sublevel_structure
+#         println(k, ": ", v)
+#     end
+# end
 
-Base.show(io::IO, I::Ca40) = println(io, "⁴⁰Ca")  # suppress long output
+# Base.show(io::IO, I::Ca40) = println(io, "⁴⁰Ca")  # suppress long output
 
 Base.getindex(I::Ion, state::Union{Tuple{String,Real},String,Int}) = ionstate(I, state)
 

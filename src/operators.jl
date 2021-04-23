@@ -191,7 +191,7 @@ function ionprojector(IC::IonConfiguration, states::Union{Tuple{String,Real},Str
     observable
 end
 
-function ionprojector(T::Trap, states::Union{Tuple{String,Real}.String,Int}...; only_ions=false)
+function ionprojector(T::Trap, states::Union{Tuple{String,Real},String,Int}...; only_ions=false)
     ionprojector(T.configuration, states..., only_ions=only_ions)
 end 
 
