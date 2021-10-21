@@ -22,7 +22,7 @@ The functional form of the Hamiltonian can then be used as input to any of the s
 + Examples: [https://examples.ionsim.org](https://examples.ionsim.org)
 + Benchmarks: (coming soon)
 
-If you have an idea for how to improve IonSim, need some help getting things working or have any other IonSim-related questions feel free to open up a discussion on our Gitter Channel: [![Gitter](https://badges.gitter.im/IonSim-jl/community.svg)](https://gitter.im/IonSim-jl/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+If you have an idea for how to improve IonSim, need some help getting things working or have any other IonSim-related questions feel free to open a GitHub issue.
 
 ## How to use
 
