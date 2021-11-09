@@ -143,7 +143,7 @@ column vector is located at `index`.
 """
 function ionstate(I::Ion, sublevel::Tuple{String,Real})
     validatesublevel(I, sublevel)
-    i = findall(sublevels(I) .≡ [sublevel])[1]
+    i = findall(sublevels(I) .== [sublevel])[1]
     basisstate(I, i)
 end
 ionstate(I::Ion, sublevelalias::String) = ionstate(I, alias2sublevel(I, sublevelalias))
@@ -163,7 +163,7 @@ returned by `ion[ψᵢ]`.
 
 If ψ2 is not given, then ``|ψ1\\rangle\\langle ψ1|`` is returned.
 """
-sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{Tuple{String,Real},String,Int}} = projector(ion[ψ1], dagger(ion[ψ2]))
+sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{Tuple{String,Real},String,Int}} = sparse(projector(ion[ψ1], dagger(ion[ψ2])))
 sigma(ion::Ion, ψ1::Union{Tuple{String,Real},String,Int}) = sigma(ion, ψ1, ψ1)
 
 """
