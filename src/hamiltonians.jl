@@ -184,7 +184,7 @@ function _setup_base_hamiltonian(
     work_eta = zeros(Float64, L)
 
     # iterate over ions, lasers and ion-laser transitions
-    for n in eachindex(ions), m in eachindex(T.lasers), (ti, tr) in enumerate(_transitions(ions[n]))
+    for n in eachindex(ions), m in eachindex(T.lasers), (ti, tr) in enumerate(subleveltransitions(ions[n]))
         ηnm = view(ηm, n, m, :)
         function ηlist(t)
             for i in 1:L
@@ -425,9 +425,9 @@ function _Δmatrix(T, timescale)
     ∇B = T.∇B
     Δnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
-        Btot = B + ∇B * ions[n].ionposition
+        Btot = B + ∇B * ionposition(ions[n])
         v = Vector{Float64}(undef, 0)
-        for transition in ionsubleveltransitions(ions[n])
+        for transition in subleveltransitions(ions[n])
             (sl1, sl2) = transition
             ωa = transitionfrequency(ions[n], sl1, sl2, Btot)
             push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - ωa))
@@ -448,8 +448,7 @@ function _Ωmatrix(T, timescale)
     for n in 1:N, m in 1:M
         E = lasers[m].E
         phase = lasers[m].ϕ
-        (γ, ϕ) = map(x -> rad2deg(acos(ndot(T.Bhat, x))), [lasers[m].ϵ, lasers[m].k])
-        transitions = ionsubleveltransitions(ions[n])
+        transitions = subleveltransitions(ions[n])
         s_indx = findall(x -> x[1] == n, lasers[m].pointing) 
         if length(s_indx) == 0
             Ωnmkj[n, m] = [0 for _ in 1:length(transitions)]
@@ -459,7 +458,7 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 = 2π * timescale * s * matrix_element(ions[n], t, T, lasers[m]) / 2.0
+            Ω0 = 2π * timescale * s * matrix_element(ions[n], t, 1.0, lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else
