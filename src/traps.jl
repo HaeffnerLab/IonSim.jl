@@ -189,7 +189,7 @@ function Efield_from_pi_time(
     s_indx = findall(x -> x[1] == ionnumber(ion), p)
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
     s = laser.pointing[s_indx[1]][2]
-    Ω = s * matrix_element(ion, transition, x->1, laser.k, laser.ϵ, Bhat)
+    Ω = s * matrix_element(ion, transition, 1, laser.k, laser.ϵ, Bhat)
     if Ω < 1e-15
         # even when coupling strength is zero, numerical error causes it to be finite
         # (on order 1e-16), this is a band-aid to prevent users from unknowingly setting 
@@ -312,7 +312,7 @@ which is the same as `transition_frequency(T.B, T.configuration.ions[ion_index],
 function transition_frequency(
         B::Real, ion::Ion, transition::Tuple
     )
-    diff([map(x -> zeeman_shift(B, sublevel_structure(ion, x)), transition)...])[1]
+    abs(zeeman_shift(ion, transition[2], B) - zeeman_shift(ion, transition[1], B))
 end
 
 function transition_frequency(
@@ -333,8 +333,8 @@ end
 """
 This needs a docstring.
 """
-matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser) = matrix_element(I, transition, laser.E, laser.k, laser.ϵ, T.Bhat)
-matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser) = matrix_element(T.configuration.ions[ion_index], transition, laser.E, laser.k, laser.ϵ, T.Bhat)
+matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) = matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
+matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::Real) = matrix_element(T.configuration.ions[ion_index], transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
 
 
 """
@@ -382,7 +382,7 @@ function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled=false)
     @fastmath begin
         k = 2π / L.λ
         scaled ? ν = 1 : ν = V.ν
-        x0 = √(ħ / (2 * I.mass * 2π * ν))
+        x0 = √(ħ / (2 * mass(I) * 2π * ν))
         cosθ = ndot(L.k, V.axis)
         k * x0 * cosθ * V.mode_structure[ionnumber(I)]
     end

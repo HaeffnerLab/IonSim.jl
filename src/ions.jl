@@ -32,7 +32,7 @@ sublevels(I::Ion)::Vector{Tuple{String,Real}} = I.sublevels
 sublevel_aliases(I::Ion)::Dict{String,Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
 stark_shift(I::Ion)::OrderedDict{Tuple,Real} = I.stark_shift
-ionnumber(I::Ion)::Union{Int,Missing} = I.number
+ionnumber(I::Ion)::Union{Int,Missing} = I.ionnumber
 ionposition(I::Ion)::Union{Real,Missing} = I.position
 
 
@@ -125,19 +125,19 @@ This needs a docstring
 """
 function quantumnumbers(I::Ion, sublevel::Tuple{String,Real})
     validatesublevel(I, sublevel)
-    levelstruct = speciesproperties(I).full_level_structure[level]
+    levelstruct = speciesproperties(I).full_level_structure[sublevel[1]]
     names = (:n, :i, :s, :l, :j, :f, :m)
-    values = [levelstruct.n, nuclearspin(I), 1//2, levelstruct.l, levelstruct.j, levelstruct.f, Rational(sublevel[2])]
-    return NamedTuple{names}[values]
+    values = (levelstruct.n, nuclearspin(I), 1//2, levelstruct.l, levelstruct.j, levelstruct.f, Rational(sublevel[2]))
+    return NamedTuple{names}(values)
 end
 function quantumnumbers(I::Ion, level_or_alias::String)
     # If the second argument is a String, it could be either a level name or the alias of a sublevel
-    if level_or_alias in levels(I)
+    if level_or_alias in ionlevels(I)
         # Second argument is a level name. Leave out the m quantum number
-        levelstruct = speciesproperties(I).full_level_structure[level]
+        levelstruct = speciesproperties(I).full_level_structure[level_or_alias]
         names = (:n, :i, :s, :l, :j, :f)
-        values = [levelstruct.n, nuclearspin(I), 1//2, levelstruct.l, levelstruct.j, levelstruct.f]
-        return NamedTuple{names}[values]
+        values = (levelstruct.n, nuclearspin(I), 1//2, levelstruct.l, levelstruct.j, levelstruct.f)
+        return NamedTuple{names}(values)
     else
         # Second argument is a sublevel alias.
         quantumnumbers(I, alias2sublevel(I, level_or_alias))
@@ -189,7 +189,7 @@ NEEDS TO BE CHANGED
 zeeman_shift(B::Real, g::Real, m::Real) = (μB/ħ) * g * B * m / 2π
 zeeman_shift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real=1//2) = zeeman_shift(B, landegf(l, j, f, i, s), m)
 zeeman_shift(B::Real, qnums::NamedTuple) = zeeman_shift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
-function zeeman_shift(I::Ion, sublevel::Union{Tuple{String,Real},String}, B::Real)
+function zeeman_shift(I::Ion, sublevel::Tuple{String,Real}, B::Real)
     validatesublevel(I, sublevel)
     properties = speciesproperties(I)
     if haskey(properties, :nonlinear_zeeman) && haskey(properties.nonlinear_zeeman, sublevel)
@@ -207,7 +207,7 @@ This needs a docstring
 """
 function energy(I::Ion, sublevel::Tuple{String,Real}; B=0, ignore_starkshift=false)
     validatesublevel(I, sublevel)
-    E0 = speciesproperties(I).full_level_structure[sublevel[0]].E
+    E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
     zeeman = zeeman_shift(I, sublevel, B)
     stark = (ignore_starkshift ? 0.0 : stark_shift(I, sublevel))
     return E0 + zeeman + stark
@@ -252,11 +252,10 @@ This needs a docstring
 """
 function subleveltransitions(I::Ion)
     list = []
-    leveltransitions = leveltransitions(I)
-    for transition in leveltransitions
+    for transition in leveltransitions(I)
         (L1, L2) = transition
-        sublevels1 = [sublevel for sublevel in sublevels(I) if sublevel[0]==L1]
-        sublevels2 = [sublevel for sublevel in sublevels(I) if sublevel[0]==L2]
+        sublevels1 = [sublevel for sublevel in sublevels(I) if sublevel[1]==L1]
+        sublevels2 = [sublevel for sublevel in sublevels(I) if sublevel[1]==L2]
         for sl1 in sublevels1
             for sl2 in sublevels2
                 push!(list, (sl1, sl2))
@@ -270,13 +269,10 @@ end
 """
 This needs a docstring
 """
-function einsteinA(I::Ion, L1::Tuple{String,Real}, L2::Tuple{String,Real})
+function einsteinA(I::Ion, L1::String, L2::String)
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
     return speciesproperties(I).full_transitions[(L1, L2)]
 end
-einsteinA(I::Ion, L1::Tuple{String,Real}, L2::String) = einsteinA(I, L1, alias2sublevel(I, L2))
-einsteinA(I::Ion, L1::String, L2::Tuple{String,Real}) = einsteinA(I, (alias2sublevel(I, L1), L2))
-einsteinA(I::Ion, L1::String, L2::String) = einsteinA(I, (alias2sublevel(I, L1), alias2sublevel(I, L2)))
 einsteinA(I::Ion, Lpair::Tuple) = einsteinA(I, Lpair[1], Lpair[2])
 
 
@@ -284,20 +280,19 @@ einsteinA(I::Ion, Lpair::Tuple) = einsteinA(I, Lpair[1], Lpair[2])
 This needs a docstring
 Main method is currently a placeholder
 """
-function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::Int, ΔE::Real, A12::Real, Efield::Function, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::Real, ΔE::Real, A12::Real, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
     # Decide type of transition
     # Rotate unit vectors so that B is in z-direction?
     # Calculate matrix element
     # Return a function of time
-    f(t) = 2π * 200e3
-    return f
+    return 2π * 200e3 #placeholder
 end
-function matrix_element(I::Ion, transition::Tuple, Efield::Function, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+function matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
     qn1 = quantumnumbers(I, transition[1])
     qn2 = quantumnumbers(I, transition[2])
     E1 = energy(I, transition[1], ignore_starkshift=true)
     E2 = energy(I, transition[2], ignore_starkshift=true)
-    matrix_element(qn2.l-qn1.l, qn1.j, qn2.j, qn1.f, qn2.f, qn2.m-qn1.m, abs(E2-E1), einsteinA(I, transition), Efield, khat, ϵhat, Bhat)
+    matrix_element(qn2.l-qn1.l, qn1.j, qn2.j, qn1.f, qn2.f, qn2.m-qn1.m, abs(E2-E1), einsteinA(I, transition[1][1], transition[2][1]), Efield, khat, ϵhat, Bhat)
 end
 
 
@@ -326,7 +321,7 @@ function _construct_sublevels(selected_sublevels, properties)
         # Ensure that the string is a valid level
         level = manifold[1]
         @assert level in keys(full_level_structure) "invalid level $level"
-        @assert level ∉ [k[1] for k in keys(sublevel_structure)] "multiple instances of level $level in ion constructor call"
+        @assert level ∉ [k[1] for k in keys(sublevels)] "multiple instances of level $level in ion constructor call"
         level_structure = full_level_structure[level]
 
         # Add chosen sublevels

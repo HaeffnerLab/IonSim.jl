@@ -142,7 +142,7 @@ return the ket given by ``|index⟩ = (0 ... 1 ... 0)ᵀ`` where the nonzero ele
 column vector is located at `index`.
 """
 function ionstate(I::Ion, sublevel::Tuple{String,Real})
-    validatesublevel(sublevel)
+    validatesublevel(I, sublevel)
     i = findall(sublevels(I) .≡ [sublevel])[1]
     basisstate(I, i)
 end

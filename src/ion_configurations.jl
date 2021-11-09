@@ -173,10 +173,10 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
             push!(vm[i], VibrationalMode(A[i][mode]..., axis=r[i]))
         end
         l = linear_equilibrium_positions(length(ions))
-        l0 = characteristic_length_scale(m_ca40, com_frequencies.z) 
+        l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z) # Needs to be changed when allowing for multi-species chains. Current workaround takes the mass of only the first ion to define the characteristic length scale.
         for (i, ion) in enumerate(ions)
             Core.setproperty!(ion, :ionnumber, i)
-            Core.setproperty!(ion, :ionposition, l[i] * l0)
+            Core.setproperty!(ion, :position, l[i] * l0)
         end
         new(ions, com_frequencies, vm, A)
     end

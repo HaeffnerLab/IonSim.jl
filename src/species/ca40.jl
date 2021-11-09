@@ -84,7 +84,7 @@ mutable struct Ca40 <: Ion
     sublevel_aliases::Dict{String,Tuple}
     shape::Vector{Int}
     stark_shift::OrderedDict{Tuple,Real}
-    number::Union{Int,Missing}
+    ionnumber::Union{Int,Missing}
     position::Union{Real,Missing}
     function Ca40(selected_sublevels::Union{Vector{Tuple{String,T}},String,Nothing} where T=nothing; starkshift=Dict())
         
@@ -97,11 +97,11 @@ mutable struct Ca40 <: Ion
         new(properties, sublevels, Dict(), shape, starkshift_full, missing, missing)
     end
     # for copying
-    function Ca40(species_properties, sublevels, sublevel_aliases, shape, stark_shift, number, position)
+    function Ca40(species_properties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber, position)
         sublevels = deepcopy(sublevels)
         sublevel_aliases = deepcopy(sublevel_aliases)
         shape = copy(shape)
         stark_shift = deepcopy(stark_shift)
-        new(species_properties, sublevels, sublevel_aliases, shape, stark_shift, number, position)
+        new(species_properties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber, position)
     end
 end
