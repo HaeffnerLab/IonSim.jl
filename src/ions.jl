@@ -5,7 +5,8 @@ using .PhysicalConstants: e, ħ, α, μB
 export Ion, speciesproperties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber,
        ionposition, mass, charge, nuclearspin, zero_stark_shift!, set_stark_shift!,
        set_sublevel_alias!, ionlevels, quantumnumbers, landegf, zeeman_shift, energy,
-       transitionfrequency, leveltransitions, subleveltransitions, einsteinA, matrix_element
+       transitionfrequency, leveltransitions, subleveltransitions, einsteinA, lifetime,
+       matrix_element
 
 
 
@@ -271,9 +272,29 @@ This needs a docstring
 """
 function einsteinA(I::Ion, L1::String, L2::String)
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
-    return speciesproperties(I).full_transitions[(L1, L2)]
+    return speciesproperties(I).full_transitions[(L1, L2)].rate
 end
 einsteinA(I::Ion, Lpair::Tuple) = einsteinA(I, Lpair[1], Lpair[2])
+
+
+"""
+This needs a docstring
+Computes lifetime based on species properties, *not* just the levels which are present in this ion
+"""
+function lifetime(I::Ion, level::String)
+    @assert level in keys(speciesproperties(I).full_level_structure) "Ion species $(typeof(I)) does not contain level $level"
+    totaltransitionrate = 0.0
+    for (transition, info) in speciesproperties(I).full_transitions
+        if transition[2] == level
+            totaltransitionrate += info.rate
+        end
+    end
+    if totaltransitionrate == 0.0
+        return Inf
+    else
+        return 1.0/totaltransitionrate
+    end
+end
 
 
 """
