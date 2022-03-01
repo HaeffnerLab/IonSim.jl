@@ -2,7 +2,7 @@ module PhysicalConstants
 
 import Base.sqrt
 
-export μB, ħ, c, e, ϵ₀, α, kB
+export μB, ħ, c, e, ϵ₀, α, kB, eye3, c_rank1, c_rank2
 
 """
     PhysicalConstant(x::Real)
@@ -13,25 +13,9 @@ struct PhysicalConstant <: Real
     units::String
 end
 
-# some useful constants, everything in SI units
-# """ ## `m_ca40` = 6.6359443331e-26 kg <br> (mass of 40Ca)"""
-# const m_ca40 = PhysicalConstant(6.6359443331e-26, "kg")
-# """ ## `m_ca43` = 7.133470993e-26 <br> (mass of 43Ca)"""
-# const m_ca43 = PhysicalConstant(7.133470993e-26, "kg")
-# """ ## `m_be9` = 1.496508205e-26 <br> (mass of 9Be)"""
-# const m_be9 = PhysicalConstant(1.496508205e-26, "kg")
-# """ ## `m_yb171` = 2.838464542e-25 <br> (mass of 171Yb)"""
-# const m_yb171 = PhysicalConstant(2.838464542e-25, "kg")
-# """ ## `m_ba138` = 2.2899705013e-25 <br> (mass of 138Ba)"""
-# const m_ba138 = PhysicalConstant(2.2899705013e-25, "kg")
-# """ ## `m_sr88` = 1.459707037e-25 <br> (mass of 88Sr)"""
-# const m_sr88 = PhysicalConstant(1.459707037e-25, "kg")
-# """ ## `m_mg25` = 4.1489958410e-26 <br> (mass of 25Mg)"""
-# const m_mg25 = PhysicalConstant(4.1489958410e-26, "kg")
-# """ ## `m_hg198` = 3.2873155315e-25 <br> (mass of 198Hg)"""
-# const m_hg198 = PhysicalConstant(3.2873155315e-25, "kg")
-# """ ## `m_hg199` = 3.3039460302e-25 <br> (mass of 199Hg)"""
-# const m_hg199 = PhysicalConstant(3.3039460302e-25, "kg")
+#############################################################################################
+# Physical constants
+#############################################################################################
 
 """ ## `μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
 const μB = PhysicalConstant(9.27400994e-24, "J⋅T⁻¹")
@@ -39,7 +23,7 @@ const μB = PhysicalConstant(9.27400994e-24, "J⋅T⁻¹")
 const ħ = PhysicalConstant(1.0545718e-34, "m²kg/s")
 """ ## `c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
 const c = PhysicalConstant(2.99792458e8, "m/s")
-""" ## `e` = 1.60217662e-19 C <br> (charge of electron)"""
+""" ## `e` = 1.60217662e-19 C <br> (absolute value of charge of electron)"""
 const e = PhysicalConstant(1.60217662e-19, "C")
 """ ## `ϵ₀` = 8.85418782e-12 ``(s^4A^2) / (m^3 kg)``"""
 const ϵ₀ = PhysicalConstant(8.85418782e-12, "(s^4A^2) / (m^3 kg)")
@@ -47,6 +31,24 @@ const ϵ₀ = PhysicalConstant(8.85418782e-12, "(s^4A^2) / (m^3 kg)")
 const α = PhysicalConstant(0.007297352557920479, "")
 """ ## `kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
 const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
+
+
+#############################################################################################
+# 3D real-space tensors
+#############################################################################################
+const eye3 = [1 0 0; 0 1 0; 0 0 1]
+
+const c_rank1 = [1  /  sqrt(2)  *  [1 im 0]; #q=-1
+                [0 0 1]; #q=0
+                -1  /  sqrt(2)  *  [1 -im 0]] #q=1
+
+const c_rank2 = cat(1/sqrt(6)  *  [[1, im, 0] [im, -1, 0] [0, 0, 0]], #q=-2
+                1/sqrt(6)  *  [[0, 0, 1] [0, 0, im] [1, im, 0]], #q=-1
+                    1/3  *  [[-1, 0, 0] [0, -1, 0] [0, 0, 2]], #q=0
+                1/sqrt(6)  *  [[0, 0, -1] [0, 0, im] [-1, im, 0]], #q=1
+                1/sqrt(6)  *  [[1, -im, 0] [-im, -1, 0] [0, 0, 0]]; dims = 3) #q=2
+
+
 
 Base.print(pc::PhysicalConstant) = print("$(pc.x) [$(pc.units)]")
 Base.show(io::IO, pc::PhysicalConstant) = print(io, "$(pc.x) [$(pc.units)]")

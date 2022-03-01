@@ -1,5 +1,6 @@
-using WignerSymbols: wigner3j
-using .PhysicalConstants: e, ħ, α, μB
+using WignerSymbols: wigner3j, wigner6j
+using LinearAlgebra: cross
+using .PhysicalConstants: e, ħ, α, μB, e, eye3, c_rank1, c_rank2
 
 
 export Ion, speciesproperties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber,
@@ -272,9 +273,19 @@ This needs a docstring
 """
 function einsteinA(I::Ion, L1::String, L2::String)
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
-    return speciesproperties(I).full_transitions[(L1, L2)].rate
+    return speciesproperties(I).full_transitions[(L1, L2)].einsteinA
 end
 einsteinA(I::Ion, Lpair::Tuple) = einsteinA(I, Lpair[1], Lpair[2])
+
+
+"""
+This needs a docstring
+"""
+function transitionmultipole(I::Ion, L1::String, L2::String)
+    @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
+    return speciesproperties(I).full_transitions[(L1, L2)].multipole
+end
+transitionmultipole(I::Ion, Lpair::Tuple) = transitionmultipole(I, Lpair[1], Lpair[2])
 
 
 """
@@ -286,7 +297,7 @@ function lifetime(I::Ion, level::String)
     totaltransitionrate = 0.0
     for (transition, info) in speciesproperties(I).full_transitions
         if transition[2] == level
-            totaltransitionrate += info.rate
+            totaltransitionrate += info.einsteinA
         end
     end
     if totaltransitionrate == 0.0
@@ -301,19 +312,58 @@ end
 This needs a docstring
 Main method is currently a placeholder
 """
-function matrix_element(Δl::Int, j1::Real, j2::Real, f1::Real, f2::Real, Δm::Real, ΔE::Real, A12::Real, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
-    # Decide type of transition
-    # Rotate unit vectors so that B is in z-direction?
-    # Calculate matrix element
-    # Return a function of time
-    return 2π * 200e3 #placeholder
+function matrix_element(j1::Real, j2::Real, f1::Real, f2::Real, m1::Real, m2::Real, I::Real, ΔE::Real, A12::Real, multipole::String, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    # Note that in this function, I is the nuclear spin, not an ion
+
+    k = abs(ΔE)/c
+    q = Int(m2-m1)
+    
+    Bhat_array = [Bhat.x, Bhat.y, Bhat.z]
+    ϵhat_array = [ϵhat.x, ϵhat.y, ϵhat.z]
+    khat_array = [khat.x, khat.y, khat.z]
+
+    # Rotate unit vectors so that Bhat = ̂z
+    if Bhat == ẑ
+        R = eye3
+    else
+        a = cross(Bhat_array, [0, 0, 1])/norm(cross(Bhat_array, [0, 0, 1]))
+        theta = acos(Bhat_array[2])
+        amatrix = [0 -a[3] a[2]; a[3] 0 -a[1]; -a[2] a[1] 0]
+        R = eye3 + sin(theta)*amatrix + (1-cos(theta))*amatrix^2    # Rotation matrix in axis-angle representation (axis=a, angle=theta)
+    end
+    ϵhat_rotated = R*ϵhat_array
+    khat_rotated = R*khat_array
+
+    if multipole=="E1"
+        if abs(q) > 1
+            return 0
+        else
+            hyperfine_factor = sqrt((2j1+1)*(2f1+1)*(2f2+1)) * wigner6j(j2, I, f2, f1, 1, f1)
+            geometric_factor = wigner3j(f2, 1, f1, -m2, q, m1) * (transpose(c_rank1[q+2,:]) * ϵhat_rotated)
+            units_factor = e*Efield/(2ħ) * sqrt(3*A12/(α*c*k^3))
+        end
+    elseif multipole=="E2"
+        if abs(q) > 2
+            return 0
+        else
+            hyperfine_factor = sqrt((2j1+1)*(2f1+1)*(2f2+1)) * wigner6j(j2, I, f2, f1, 2, f1)
+            geometric_factor = wigner3j(f2, 2, f1, -m2, q, m1) * (transpose(khat_rotated) * c_rank2[:,:,q+3] * ϵhat_rotated)
+            units_factor = e*Efield/(2ħ) * sqrt(15*A12/(α*c*k^3))
+        end
+    else
+        @error "calculation of atomic transition matrix element for transition type $type not currently supported"
+    end
+    return abs(units_factor * hyperfine_factor * geometric_factor)
+    # return 2π * 200e3 #placeholder
 end
 function matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
     qn1 = quantumnumbers(I, transition[1])
     qn2 = quantumnumbers(I, transition[2])
     E1 = energy(I, transition[1], ignore_starkshift=true)
     E2 = energy(I, transition[2], ignore_starkshift=true)
-    matrix_element(qn2.l-qn1.l, qn1.j, qn2.j, qn1.f, qn2.f, qn2.m-qn1.m, abs(E2-E1), einsteinA(I, transition[1][1], transition[2][1]), Efield, khat, ϵhat, Bhat)
+    A12 = einsteinA(I, transition[1][1], transition[2][1])
+    multipole = transitionmultipole(I, transition[1][1], transition[2][1])
+    matrix_element(qn1.j, qn2.j, qn1.f, qn2.f, qn1.m, qn2.m, nuclearspin(I), abs(E2-E1), A12, multipole, Efield, khat, ϵhat, Bhat)
 end
 
 
