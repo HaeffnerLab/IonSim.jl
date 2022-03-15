@@ -310,12 +310,12 @@ end
 
 """
 This needs a docstring
-Main method is currently a placeholder
 """
 function matrix_element(j1::Real, j2::Real, f1::Real, f2::Real, m1::Real, m2::Real, I::Real, ΔE::Real, A12::Real, multipole::String, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    # Level 1 *must* be the lower level and level 2 *must* be the upper level
     # Note that in this function, I is the nuclear spin, not an ion
 
-    k = abs(ΔE)/c
+    k = 2π*ΔE/c
     q = Int(m2-m1)
     
     Bhat_array = [Bhat.x, Bhat.y, Bhat.z]
@@ -338,32 +338,32 @@ function matrix_element(j1::Real, j2::Real, f1::Real, f2::Real, m1::Real, m2::Re
         if abs(q) > 1
             return 0
         else
-            hyperfine_factor = sqrt((2j1+1)*(2f1+1)*(2f2+1)) * wigner6j(j2, I, f2, f1, 1, f1)
-            geometric_factor = wigner3j(f2, 1, f1, -m2, q, m1) * (transpose(c_rank1[q+2,:]) * ϵhat_rotated)
-            units_factor = e*Efield/(2ħ) * sqrt(3*A12/(α*c*k^3))
+            hyperfine_factor = abs(sqrt((2*f1+1)*(2*f2+1)) * wigner6j(j2, I, f2, f1, 1, j1))
+            geometric_factor = abs(sqrt(2j2+1) * wigner3j(f2, 1, f1, -m2, q, m1) * (transpose(c_rank1[q+2,:]) * ϵhat_rotated))
+            units_factor = abs(e*Efield/(2ħ) * sqrt(3*A12/(α*c*k^3)))
         end
     elseif multipole=="E2"
         if abs(q) > 2
             return 0
         else
-            hyperfine_factor = sqrt((2j1+1)*(2f1+1)*(2f2+1)) * wigner6j(j2, I, f2, f1, 2, f1)
-            geometric_factor = wigner3j(f2, 2, f1, -m2, q, m1) * (transpose(khat_rotated) * c_rank2[:,:,q+3] * ϵhat_rotated)
-            units_factor = e*Efield/(2ħ) * sqrt(15*A12/(α*c*k^3))
+            hyperfine_factor = abs(sqrt((2*f1+1)*(2*f2+1)) * wigner6j(j2, I, f2, f1, 2, j1))
+            geometric_factor = abs(sqrt(2j2+1) * wigner3j(f2, 2, f1, -m2, q, m1) * (transpose(khat_rotated) * c_rank2[:,:,q+3] * ϵhat_rotated))
+            units_factor = abs(e*Efield/(2ħ) * sqrt(15*A12/(α*c*k^3)))
         end
     else
         @error "calculation of atomic transition matrix element for transition type $type not currently supported"
     end
-    return abs(units_factor * hyperfine_factor * geometric_factor)
-    # return 2π * 200e3 #placeholder
+    return units_factor * hyperfine_factor * geometric_factor / 2π
 end
 function matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
-    qn1 = quantumnumbers(I, transition[1])
-    qn2 = quantumnumbers(I, transition[2])
     E1 = energy(I, transition[1], ignore_starkshift=true)
     E2 = energy(I, transition[2], ignore_starkshift=true)
+    @assert E2 > E1 "transition must be formatted (lower level, upper level)"
+    qn1 = quantumnumbers(I, transition[1])
+    qn2 = quantumnumbers(I, transition[2])
     A12 = einsteinA(I, transition[1][1], transition[2][1])
     multipole = transitionmultipole(I, transition[1][1], transition[2][1])
-    matrix_element(qn1.j, qn2.j, qn1.f, qn2.f, qn1.m, qn2.m, nuclearspin(I), abs(E2-E1), A12, multipole, Efield, khat, ϵhat, Bhat)
+    matrix_element(qn1.j, qn2.j, qn1.f, qn2.f, qn1.m, qn2.m, nuclearspin(I), E2-E1, A12, multipole, Efield, khat, ϵhat, Bhat)
 end
 
 

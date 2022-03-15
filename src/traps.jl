@@ -188,7 +188,7 @@ function Efield_from_pi_time(
     p = laser.pointing
     s_indx = findall(x -> x[1] == ionnumber(ion), p)
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
-    s = laser.pointing[s_indx[1]][2]
+    s = p[s_indx[1]][2]
     Ω = s * matrix_element(ion, transition, 1, laser.k, laser.ϵ, Bhat)
     if Ω < 1e-15
         # even when coupling strength is zero, numerical error causes it to be finite
@@ -312,7 +312,7 @@ which is the same as `transition_frequency(T.B, T.configuration.ions[ion_index],
 function transition_frequency(
         B::Real, ion::Ion, transition::Tuple
     )
-    abs(zeeman_shift(ion, transition[2], B) - zeeman_shift(ion, transition[1], B))
+    zeeman_shift(ion, transition[2], B) - zeeman_shift(ion, transition[1], B)
 end
 
 function transition_frequency(
