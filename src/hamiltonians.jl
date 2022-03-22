@@ -434,8 +434,7 @@ function _Δmatrix(T, timescale)
         Btot = B + ∇B * ionposition(ions[n])
         v = Vector{Float64}(undef, 0)
         for transition in subleveltransitions(ions[n])
-            (sl1, sl2) = transition
-            ωa = transitionfrequency(ions[n], sl1, sl2, Btot)
+            ωa = transitionfrequency(ions[n], transition, B=Btot)
             push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - ωa))
         end
         Δnmkj[n, m] = v

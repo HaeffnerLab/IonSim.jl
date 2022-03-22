@@ -5,8 +5,8 @@ using .PhysicalConstants: e, ħ, α, μB, e, eye3, c_rank1, c_rank2
 
 export Ion, speciesproperties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber,
        ionposition, mass, charge, nuclearspin, zero_stark_shift!, set_stark_shift!,
-       set_sublevel_alias!, ionlevels, quantumnumbers, landegf, zeeman_shift, energy,
-       transitionfrequency, leveltransitions, subleveltransitions, einsteinA, lifetime,
+       set_sublevel_alias!, levels, quantumnumbers, landegf, zeeman_shift, energy,
+       transitionfrequency, transitionwavelength, leveltransitions, subleveltransitions, einsteinA, lifetime,
        matrix_element
 
 
@@ -91,12 +91,12 @@ function set_sublevel_alias!(I::Ion, sublevel::Tuple{String,Real}, alias::String
     @assert alias ∉ levels(I) "cannot make alias name identical to level name ($alias)"
     I.sublevel_aliases[alias] = sublevel
 end
-function set_sublevel_alias!(I::Ion, pairs::Vector{Tuple{Tuple{String,Real},String}})
+function set_sublevel_alias!(I::Ion, pairs::Vector{Tuple{Tuple{String,R},String}} where R<:Real)
     for (sublevel, alias) in pairs
         set_sublevel_alias!(I, sublevel, alias)
     end
 end
-function set_sublevel_alias!(I::Ion, aliasdict::Dict{String,Tuple{String,Real}})
+function set_sublevel_alias!(I::Ion, aliasdict::Dict{String,Tuple{String,R}} where R<:Real)
     for (alias, sublevel) in aliasdict
         set_sublevel_alias!(I, sublevel, alias)
     end
@@ -119,7 +119,7 @@ end
 """
 This needs a docstring
 """
-ionlevels(I::Ion) = unique([sublevel[1] for sublevel in sublevels(I)])
+levels(I::Ion) = unique([sublevel[1] for sublevel in sublevels(I)])
 
 
 """
@@ -134,7 +134,7 @@ function quantumnumbers(I::Ion, sublevel::Tuple{String,Real})
 end
 function quantumnumbers(I::Ion, level_or_alias::String)
     # If the second argument is a String, it could be either a level name or the alias of a sublevel
-    if level_or_alias in ionlevels(I)
+    if level_or_alias in levels(I)
         # Second argument is a level name. Leave out the m quantum number
         levelstruct = speciesproperties(I).full_level_structure[level_or_alias]
         names = (:n, :i, :s, :l, :j, :f)
@@ -229,19 +229,26 @@ end
 """
 This needs a docstring
 """
-function transitionfrequency(I::Ion, sublevel1::Tuple{String,Real}, sublevel2::Tuple{String,Real}, B::Real; ignore_starkshift=false)
-    return abs(energy(I, sublevel1, B=B, ignore_starkshift=ignore_starkshift) - energy(I, sublevel2, B=B, ignore_starkshift=ignore_starkshift))
+function transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
+    # Multidispatch of the function energy should make this work regardless of whether the transition is between levels or sublevels, and regardless of whether or not aliases are used
+    return abs(energy(I, transition[1], B=B, ignore_starkshift=ignore_starkshift) - energy(I, transition[2], B=B, ignore_starkshift=ignore_starkshift))
 end
 
+"""
+This needs a docstring
+"""
+function transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
+    return c/transitionfrequency(I, transition, B=B, ignore_starkshift=ignore_starkshift)
+end
 
 """
 This needs a docstring
 """
 function leveltransitions(I::Ion)
     list = []
-    levels = ionlevels(I)
+    lvls = levels(I)
     for levelpair in keys(speciesproperties(I).full_transitions)
-        if levelpair[1] in levels && levelpair[2] in levels
+        if levelpair[1] in lvls && levelpair[2] in lvls
             push!(list, levelpair)
         end
     end

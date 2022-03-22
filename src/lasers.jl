@@ -22,15 +22,15 @@ The physical parameters defining laser light.
     factor for the laser's Efield which must be between 0 and 1).
 """
 mutable struct Laser
+    λ::Real
     E::Function
     Δ::Real
     ϵ::NamedTuple{(:x,:y,:z)}
     k::NamedTuple{(:x,:y,:z)}
     ϕ::Function 
-    λ::Real
     pointing::Vector
-    function Laser(; 
-            E::TE=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ::Tϕ=0, λ=c/PhysicalConstant(4.1115503183857306e14, "Hz"), 
+    function Laser(λ;
+            E::TE=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ::Tϕ=0, 
             pointing=Array{Tuple{Int,<:Real}}(undef, 0)
         ) where {TE, Tϕ}
         rtol = 1e-6
@@ -47,10 +47,10 @@ mutable struct Laser
         end
         TE <: Number ?  Et(t) = E : Et = E
         Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
-        new(Et, Δ, ϵ, k, ϕt, λ, pointing)
+        new(λ, Et, Δ, ϵ, k, ϕt, pointing)
     end
     # for copying
-    Laser(E, Δ, ϵ, k, ϕ, λ, pointing) = new(E, Δ, ϵ, k, ϕ, λ, pointing)
+    Laser(λ, E, Δ, ϵ, k, ϕ, pointing) = new(λ, E, Δ, ϵ, k, ϕ, pointing)
 end 
 
 function Base.:(==)(L1::Laser, L2::Laser)

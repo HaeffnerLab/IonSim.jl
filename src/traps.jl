@@ -140,6 +140,15 @@ Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
 #############################################################################################
 
 """
+This needs a docstring
+Returns a boolean that indicates whether the given ion is actually in the given trap
+Useful for checking if an error needs to be thrown
+"""
+function ionintrap(trap::Trap, ion::Ion)
+    return ion in ions(trap.configuration)
+end
+
+"""
     get_basis(T::Trap)
 Returns the composite basis describing the Hilbert space for `T`.
 """
@@ -291,44 +300,24 @@ function Efield_from_rabi_frequency!(
 end
 
 """
-    transition_frequency(
-        B::Real, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
-    )
-Compute the transition frequency of the `ion`'s selected transition under Bfield `B`.
-Alternatively, one may use:
-```
-transition_frequency(
-        T::Trap, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
-    )
-```
-which is the same as `transition_frequency(T.B, ion, transition)` or
-```
-transition_frequency(
-        T::Trap, ion_index::Int, transition::Union{Tuple{String,String},Vector{<:String}}
-    )
-```
-which is the same as `transition_frequency(T.B, T.configuration.ions[ion_index], transition)`.
+This needs a docstring.
 """
-function transition_frequency(
-        B::Real, ion::Ion, transition::Tuple
-    )
-    zeeman_shift(ion, transition[2], B) - zeeman_shift(ion, transition[1], B)
+function Bfield(T::Trap, ion::Ion)
+    @assert ionintrap(T, ion) "trap does not contain ion"
+    return T.B + T.∇B*ionposition(ion)
 end
 
-function transition_frequency(
-        T::Trap, ion::Ion, transition::Tuple
-    )
-    B = T.B + T.∇B * ion.position
-    transition_frequency(B, ion, transition)
-end
+"""
+This needs a docstring.
+"""
+transitionfrequency(T::Trap, ion::Ion, transition::Tuple) = transitionfrequency(ion, transition, Bfield(T, ion))
+transitionfrequency(T::Trap, ion_index::Int, transition::Tuple) = transitionfrequency(T, T.configuration.ions[ion_index], transition)
 
-function transition_frequency(
-        T::Trap, ion_index::Int, transition::Tuple
-    )
-    ion = T.configuration.ions[ion_index]
-    B = T.B + T.∇B * ion.position
-    transition_frequency(B, ion, transition)
-end
+"""
+This needs a docstring.
+"""
+transitionwavelength(T::Trap, ion::Ion, transition::Tuple) = transitionwavelength(ion, transition, Bfield(T, ion))
+transitionwavelength(T::Trap, ion_index::Int, transition::Tuple) = transitionwavelength(T, T.configuration.ions[ion_index], transition)
 
 """
 This needs a docstring.
