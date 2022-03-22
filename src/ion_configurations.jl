@@ -153,6 +153,8 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         vibrational_modes = _construct_vibrational_modes(vibrational_modes)
         warn = nothing
         for i in 1:length(ions), j in i+1:length(ions)
+            # Ensure all ions are of same species
+            @assert typeof(ions[i])==typeof(ions[j]) "multispecies chains not yet supported; all ions in chain must be of same species"
             if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
                 if isnothing(warn)
