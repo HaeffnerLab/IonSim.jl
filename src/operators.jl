@@ -147,7 +147,7 @@ function ionstate(I::Ion, sublevel::Tuple{String,Real})
     basisstate(I, i)
 end
 ionstate(I::Ion, sublevelalias::String) = ionstate(I, alias2sublevel(I, sublevelalias))
-ionstate(I::Ion, level::Int) = basisstate(I, level)
+ionstate(I::Ion, sublevel::Int) = basisstate(I, sublevel)
 function ionstate(IC::IonConfiguration, states::Union{Tuple{String,Real},String,Int}...)
     ions = IC.ions
     L = length(ions)

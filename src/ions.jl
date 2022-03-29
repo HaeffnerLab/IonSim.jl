@@ -81,6 +81,7 @@ function set_stark_shift!(I::Ion, stark_shift_dict::Dict)
         set_stark_shift!(I, sublevel, stark_shift_dict[sublevel])
     end
 end
+set_stark_shift!(I::Ion, alias::String, shift::Real) = set_stark_shift!(I, alias2sublevel(I, alias), shift)
 
 
 """
@@ -103,14 +104,6 @@ function set_sublevel_alias!(I::Ion, aliasdict::Dict{String,Tuple{String,R}} whe
 end
 
 
-function alias2sublevel(I::Ion, alias::String)
-    all_aliases = I.sublevel_aliases
-    @assert alias in keys(all_aliases) "no sublevel with alias $alias"
-    return all_aliases[alias]
-end
-
-
-
 
 #############################################################################################
 # Properties of ion electronic levels and sublevels
@@ -125,6 +118,34 @@ levels(I::Ion) = unique([sublevel[1] for sublevel in sublevels(I)])
 """
 This needs a docstring
 """
+function alias2sublevel(I::Ion, alias::String)
+    all_aliases = I.sublevel_aliases
+    @assert alias in keys(all_aliases) "no sublevel with alias $alias"
+    return all_aliases[alias]
+end
+
+
+"""
+This needs a docstring
+Accepts a sublevel of an ion and returns the corresponding level
+This function is able to do this whether the input sublevel is a full sublevel name or an alias
+"""
+function sublevel2level(I::Ion, sublevel::Tuple{String,Real})
+    validatesublevel(I, sublevel)
+    return sublevel[1]
+end
+function sublevel2level(I::Ion, alias::String)
+    validatesublevel(I, alias)
+    sublevel = alias2sublevel(I, alias)
+    return sublevel[1]
+end
+
+
+"""
+This needs a docstring
+"""
+# This function is written to be able to accept either a level or sublevel in the second argument
+# Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
 function quantumnumbers(I::Ion, sublevel::Tuple{String,Real})
     validatesublevel(I, sublevel)
     levelstruct = speciesproperties(I).full_level_structure[sublevel[1]]
@@ -207,6 +228,8 @@ zeeman_shift(I::Ion, alias::String, B::Real) = zeeman_shift(I, alias2sublevel(I,
 """
 This needs a docstring
 """
+# This function is written to be able to accept either a level or sublevel in the second argument
+# Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
 function energy(I::Ion, sublevel::Tuple{String,Real}; B=0, ignore_starkshift=false)
     validatesublevel(I, sublevel)
     E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
@@ -363,13 +386,19 @@ function matrix_element(j1::Real, j2::Real, f1::Real, f2::Real, m1::Real, m2::Re
     return units_factor * hyperfine_factor * geometric_factor / 2π
 end
 function matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
-    E1 = energy(I, transition[1], ignore_starkshift=true)
-    E2 = energy(I, transition[2], ignore_starkshift=true)
+    SL1 = transition[1]
+    SL2 = transition[2]
+    L1 = sublevel2level(I, SL1)
+    L2 = sublevel2level(I, SL2)
+
+    E1 = energy(I, L1)
+    E2 = energy(I, L2)
     @assert E2 > E1 "transition must be formatted (lower level, upper level)"
-    qn1 = quantumnumbers(I, transition[1])
-    qn2 = quantumnumbers(I, transition[2])
-    A12 = einsteinA(I, transition[1][1], transition[2][1])
-    multipole = transitionmultipole(I, transition[1][1], transition[2][1])
+    qn1 = quantumnumbers(I, SL1)
+    qn2 = quantumnumbers(I, SL2)
+    A12 = einsteinA(I, L1, L2)
+    multipole = transitionmultipole(I, L1, L2)
+    
     matrix_element(qn1.j, qn2.j, qn1.f, qn2.f, qn1.m, qn2.m, nuclearspin(I), E2-E1, A12, multipole, Efield, khat, ϵhat, Bhat)
 end
 
