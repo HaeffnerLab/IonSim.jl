@@ -310,14 +310,14 @@ end
 """
 This needs a docstring.
 """
-transitionfrequency(T::Trap, ion::Ion, transition::Tuple) = transitionfrequency(ion, transition, Bfield(T, ion))
-transitionfrequency(T::Trap, ion_index::Int, transition::Tuple) = transitionfrequency(T, T.configuration.ions[ion_index], transition)
+transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(ion, transition; B=Bfield(T, ion); ignore_starkshift=ignore_starkshift)
+transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
 
 """
 This needs a docstring.
 """
-transitionwavelength(T::Trap, ion::Ion, transition::Tuple) = transitionwavelength(ion, transition, Bfield(T, ion))
-transitionwavelength(T::Trap, ion_index::Int, transition::Tuple) = transitionwavelength(T, T.configuration.ions[ion_index], transition)
+transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionwavelength(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
+transitionwavelength(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionwavelength(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
 
 """
 This needs a docstring.

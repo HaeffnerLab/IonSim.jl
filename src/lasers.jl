@@ -22,21 +22,22 @@ The physical parameters defining laser light.
     factor for the laser's Efield which must be between 0 and 1).
 """
 mutable struct Laser
-    λ::Real
+    λ::Union{Real,Nothing}
     E::Function
     Δ::Real
     ϵ::NamedTuple{(:x,:y,:z)}
     k::NamedTuple{(:x,:y,:z)}
     ϕ::Function 
     pointing::Vector
-    function Laser(λ;
-            E::TE=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ::Tϕ=0, 
+    function Laser(;
+            λ = nothing, E::TE=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ::Tϕ=0, 
             pointing=Array{Tuple{Int,<:Real}}(undef, 0)
         ) where {TE, Tϕ}
         rtol = 1e-6
         @assert isapprox(norm(ϵ), 1, rtol=rtol) "!(|ϵ| = 1)"
         @assert isapprox(norm(k), 1, rtol=rtol) "!(|k| = 1)"
-        @assert isapprox(ndot(ϵ, k), 0, rtol=rtol) "!(ϵ ⟂ k)"
+        # @assert isapprox(ndot(ϵ, k), 0, rtol=rtol) "!(ϵ ⟂ k)"
+        # Above commented out until we figure out a better place to put this warning
         a = pointing
         (ion_num, scaling) = map(x->getfield.(a, x), fieldnames(eltype(a)))
         @assert length(ion_num) == length(unique(ion_num)) (
