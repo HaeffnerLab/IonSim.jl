@@ -88,7 +88,7 @@ end
 
 @testset "operators -- internal functions" begin
     # test _pf(s, n, m)
-    s = rand(1:20)
+    s = rand(1:12)
     n = rand(1:s)
     m = rand(1:s)
     v1 = IonSim._pf(s, n, m)

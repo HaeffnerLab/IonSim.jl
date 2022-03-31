@@ -14,34 +14,38 @@ struct PhysicalConstant <: Real
 end
 
 #############################################################################################
-# Physical constants
+# Physical constants (everything in SI units)
 #############################################################################################
 
-""" ## `μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
+"""`μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
 const μB = PhysicalConstant(9.27400994e-24, "J⋅T⁻¹")
-""" ## `ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
+"""`ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
 const ħ = PhysicalConstant(1.0545718e-34, "m²kg/s")
-""" ## `c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
+"""`c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
 const c = PhysicalConstant(2.99792458e8, "m/s")
-""" ## `e` = 1.60217662e-19 C <br> (absolute value of charge of electron)"""
+"""`e` = 1.60217662e-19 C <br> (charge of electron)"""
 const e = PhysicalConstant(1.60217662e-19, "C")
-""" ## `ϵ₀` = 8.85418782e-12 ``(s^4A^2) / (m^3 kg)``"""
+"""`ϵ₀` = 8.85418782e-12 ``(s^4A^2) / (m^3 kg)``"""
 const ϵ₀ = PhysicalConstant(8.85418782e-12, "(s^4A^2) / (m^3 kg)")
-""" ## `α` = e²/4πϵ₀ħc``"""
+"""`α` = e²/4πϵ₀ħc``"""
 const α = PhysicalConstant(0.007297352557920479, "")
-""" ## `kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
+"""`kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
 const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
 
 
 #############################################################################################
 # 3D real-space tensors
 #############################################################################################
+
+# Identity matrix
 const eye3 = [1 0 0; 0 1 0; 0 0 1]
 
+# For converting from rank-1 spherical tensors to Cartesiasn
 const c_rank1 = [1  /  sqrt(2)  *  [1 im 0]; #q=-1
                 [0 0 1]; #q=0
                 -1  /  sqrt(2)  *  [1 -im 0]] #q=1
 
+# For converting from rank-2 spherical tensors to Cartesiasn
 const c_rank2 = cat(1/sqrt(6)  *  [[1, im, 0] [im, -1, 0] [0, 0, 0]], #q=-2
                 1/sqrt(6)  *  [[0, 0, 1] [0, 0, im] [1, im, 0]], #q=-1
                     1/3  *  [[-1, 0, 0] [0, -1, 0] [0, 0, 2]], #q=0

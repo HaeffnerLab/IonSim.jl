@@ -172,8 +172,12 @@ end
     landegf(I::Ion, level::String)
 Landé g-factor
 
-### args
-###############################FILL THIS IN######################
+**args**
+* `l`: orbital angular momentum quantum number
+* `j`: electron total angular momentum quantum number
+* `f`: total angular momentum quantum number
+* `i`: nuclear spin angular momentum quantum number
+* `s`: electronic spin angular momentum quantum number (defaults to 1/2)
 """
 landegf(l::Real, j::Real, f::Real, i::Real, s::Real=1//2) = landegj(l, j, s)/2 * (1 + ((j*(j+1) - i*(i+1)) / (f*(f+1))))
 landegf(qnums::NamedTuple) = landegf(qnums.l, qnums.j, qnums.f, qnums.i, qnums.s)
@@ -203,7 +207,7 @@ stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 NEEDS TO BE CHANGED
     zeeman_shift(B::Real, l::Real, j::Real, mⱼ::Real)
 ``ΔE = (μ_B/ħ) ⋅ g_J(l, j) ⋅ B ⋅ mⱼ / 2π``
-### args
+**args**
 * `B`: magnitude of B-field at ion
 * `l`: orbital angular momentum quantum number
 * `j`: total angular momentum quantum number

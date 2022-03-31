@@ -126,7 +126,7 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 Contains all of the information necessary to describe a collection of ions trapped in a 3D
 harmonic potential and forming a linear coulomb crystal.
 
-#### user-defined fields
+**user-defined fields**
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
         Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
@@ -137,7 +137,7 @@ harmonic potential and forming a linear coulomb crystal.
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
     Note: `vibrational_modes=(x=[],y=[],z=[1])`, `vibrational_modes=(y=[],z=[1])`
     and `vibrational_modes=(;z=[1])` are all acceptable and equivalent.
-#### derived fields
+**derived fields**
 * `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an 
     array of tuples where the first element is a vibrational frequency [Hz] and the second
     element is a vector describing the corresponding normalized normal mode structure.

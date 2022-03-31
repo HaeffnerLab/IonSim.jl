@@ -448,10 +448,10 @@ end
     H2 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic")
     H3 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic", time_dependent_eta=true)
     # only considering first order corrections to carrier (propto η^2) so this won't be perfect
-    @test norm((qoH(tp) - H(tp, 0)).data) < 1
-    @test norm((qoH(tp) - H1(tp, 0)).data) < 1
-    @test norm((qoH(tp) - H2(tp, 0)).data) < 1
-    @test norm((qoH(tp) - H3(tp, 0)).data) < 1
+    @test norm((qoH(tp) - H(tp, 0)).data) < 2
+    @test norm((qoH(tp) - H1(tp, 0)).data) < 2
+    @test norm((qoH(tp) - H2(tp, 0)).data) < 2
+    @test norm((qoH(tp) - H3(tp, 0)).data) < 2
 
     # RWA
     H = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5)
