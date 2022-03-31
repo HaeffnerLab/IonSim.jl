@@ -310,7 +310,7 @@ end
 """
 This needs a docstring.
 """
-transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(ion, transition; B=Bfield(T, ion); ignore_starkshift=ignore_starkshift)
+transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
 transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
 
 """
