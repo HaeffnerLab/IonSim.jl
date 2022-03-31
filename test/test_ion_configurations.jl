@@ -51,7 +51,7 @@ end
     @test any(isapprox.(linear_equilibrium_positions(10), pos, rtol=1e-4))
 
     # and test calculation of characterstic length scale for linear chain, equal mass
-    @test characteristic_length_scale(m_ca40, 1e6) ≈ 4.449042804354e-6
+    @test characteristic_length_scale(m_ca40, 1e6) ≈ 4.449042675683e-6
 
     # and do the same for Anm, which computes the normal modes
     @test_throws AssertionError Anm(2, (x=0.5, y=0.5, z=1), (x=1, y=0, z=0))
