@@ -103,3 +103,4 @@ If you have any questions, please make a GitHub issue.
 [twitter-badge]: https://img.shields.io/twitter/follow/Berkeley_ions.svg?style=social&label=@Berkeley_ions
 
 [logo-url]: https://github.com/HaeffnerLab/IonSim.jl/blob/media/smallest_logo.png?raw=true
+
