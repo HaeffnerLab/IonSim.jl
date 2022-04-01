@@ -33,5 +33,7 @@ jobs:
           arch: ${{ matrix.julia-arch }}
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-#       - name: codecov
-#         run: julia -e 'using Pkg; cd(Pkg.dir("IonSim")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'      
+      - uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
