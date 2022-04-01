@@ -96,8 +96,8 @@ If you have any questions, please make a GitHub issue.
 [codecov-url]: https://codecov.io/gh/HaeffnerLab/IonSim.jl
 [codecov-badge]: https://codecov.io/gh/HaeffnerLab/IonSim.jl/branch/master/graph/badge.svg
 
-[travis-url]: https://travis-ci.org/HaeffnerLab/IonSim.jl
-[travis-badge]: https://travis-ci.org/HaeffnerLab/IonSim.jl.svg?branch=master
+[travis-url]: https://travis-ci.com/HaeffnerLab/IonSim.jl
+[travis-badge]: https://travis-ci.com/HaeffnerLab/IonSim.jl.svg?branch=master
 
 [twitter-url]: https://twitter.com/Berkeley_ions
 [twitter-badge]: https://img.shields.io/twitter/follow/Berkeley_ions.svg?style=social&label=@Berkeley_ions
