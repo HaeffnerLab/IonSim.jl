@@ -2,7 +2,7 @@
   <img src="https://github.com/HaeffnerLab/IonSim.jl/blob/media/logo3_SM.svg?raw=true", width="450px">
 </p>
 
-![test status](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml/badge.svg?branch=marwahaha-patch-6)
+![test status](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml/badge.svg)
 [![codecov][codecov-badge]][codecov-url]
 [![License: MIT][license-badge]][license-url]
 [![Twitter][twitter-badge]][twitter-url]
