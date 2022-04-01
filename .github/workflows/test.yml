@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         julia-version: ['1', 'nightly']
-        julia-arch: [x64, x86]
+        julia-arch: [x64]
         os: [ubuntu-latest, windows-latest, macOS-latest]
         exclude:
           - os: macOS-latest
@@ -33,6 +33,5 @@ jobs:
           arch: ${{ matrix.julia-arch }}
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-#       - name: codecov
-#         run: julia --color=yes -e 'import Pkg; import IonSim; cd(joinpath(dirname(pathof(IonSim)), "..")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
-      
+      - name: codecov
+        run: julia -e 'using Pkg; cd(Pkg.dir("IonSim")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'      
