@@ -140,15 +140,6 @@ Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
 #############################################################################################
 
 """
-This needs a docstring
-Returns a boolean that indicates whether the given ion is actually in the given trap
-Useful for checking if an error needs to be thrown
-"""
-function ionintrap(trap::Trap, ion::Ion)
-    return ion in ions(trap.configuration)
-end
-
-"""
     get_basis(T::Trap)
 Returns the composite basis describing the Hilbert space for `T`.
 """
@@ -192,13 +183,14 @@ transition)`
 """
 function Efield_from_pi_time(
     pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-    transition::Tuple
+    transition::Union{Tuple{String,String},Vector{<:String}}
 )   
     p = laser.pointing
-    s_indx = findall(x -> x[1] == ionnumber(ion), p)
+    (γ, ϕ) = map(x -> rad2deg(acos(ndot(Bhat, x))), [laser.ϵ, laser.k])
+    s_indx = findall(x -> x[1] == ion.number, p)
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
-    s = p[s_indx[1]][2]
-    Ω = s * matrix_element(ion, transition, 1, laser.k, laser.ϵ, Bhat)
+    s = laser.pointing[s_indx[1]][2]
+    Ω = s * ion.selected_matrix_elements[tuple(transition...)](1, γ, ϕ)
     if Ω < 1e-15
         # even when coupling strength is zero, numerical error causes it to be finite
         # (on order 1e-16), this is a band-aid to prevent users from unknowingly setting 
@@ -210,7 +202,7 @@ end
 
 function Efield_from_pi_time(
         pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
-        transition::Tuple
+        transition::Union{Tuple{String,String},Vector{<:String}}
     )
     Efield_from_pi_time(
             pi_time, T.Bhat, T.lasers[laser_index], T.configuration.ions[ion_index],
@@ -227,7 +219,7 @@ Same as [`Efield_from_pi_time`](@ref), but updates `laser[:E]` in-place.
 """
 function Efield_from_pi_time!(
         pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-        transition::Tuple
+        transition::Union{Tuple{String,String},Vector{<:String}}
     )
     Efield::Float64 = Efield_from_pi_time(pi_time, Bhat, laser, ion, transition)    
     laser.E = t -> Efield
@@ -235,7 +227,7 @@ end
 
 function Efield_from_pi_time!(
         pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
-        transition::Tuple
+        transition::Union{Tuple{String,String},Vector{<:String}}
     )
     Efield::Float64 = Efield_from_pi_time(pi_time, T, laser_index, ion_index, transition)    
     T.lasers[laser_index].E = t -> Efield
@@ -262,13 +254,13 @@ T.configuration.ions[ion_index], transition)`
 """
 function Efield_from_rabi_frequency(
     Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-    transition::Tuple)
+    transition::Union{Tuple{String,String},Vector{<:String}})
     Efield_from_pi_time(1 / 2Ω, Bhat, laser, ion, transition)
 end
 
 function Efield_from_rabi_frequency(
         Ω::Real, T::Trap, laser_index::Int, ion_index::Int, 
-        transition::Tuple
+        transition::Union{Tuple{String,String},Vector{<:String}}
     )
     Efield_from_rabi_frequency(
             Ω, T.Bhat, T.lasers[laser_index], T.configuration.ions[ion_index],
@@ -285,7 +277,7 @@ Same as [`Efield_from_rabi_frequency`](@ref), but updates `laser[:E]` in-place.
 """
 function Efield_from_rabi_frequency!(
         Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
-        transition::Tuple
+        transition::Union{Tuple{String,String},Vector{<:String}}
     )
     Efield::Float64 = Efield_from_rabi_frequency(Ω, Bhat, laser, ion, transition)    
     laser.E = t -> Efield
@@ -293,38 +285,51 @@ end
 
 function Efield_from_rabi_frequency!(
         Ω::Real, T::Trap, laser_index::Int, ion_index::Int, 
-        transition::Tuple
+        transition::Union{Tuple{String,String},Vector{<:String}}
     )
     Efield::Float64 = Efield_from_rabi_frequency(Ω, T, laser_index, ion_index, transition)    
     T.lasers[laser_index].E = t -> Efield
 end
 
 """
-This needs a docstring.
+    transition_frequency(
+        B::Real, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+Compute the transition frequency of the `ion`'s selected transition under Bfield `B`.
+Alternatively, one may use:
+```
+transition_frequency(
+        T::Trap, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+```
+which is the same as `transition_frequency(T.B, ion, transition)` or
+```
+transition_frequency(
+        T::Trap, ion_index::Int, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+```
+which is the same as `transition_frequency(T.B, T.configuration.ions[ion_index], transition)`.
 """
-function Bfield(T::Trap, ion::Ion)
-    @assert ionintrap(T, ion) "trap does not contain ion"
-    return T.B + T.∇B*ionposition(ion)
+function transition_frequency(
+        B::Real, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+    diff([map(x -> zeeman_shift(B, ion.selected_level_structure[x]), transition)...])[1]
 end
 
-"""
-This needs a docstring.
-"""
-transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
-transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
+function transition_frequency(
+        T::Trap, ion::Ion, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+    B = T.B + T.∇B * ion.position
+    transition_frequency(B, ion, transition)
+end
 
-"""
-This needs a docstring.
-"""
-transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionwavelength(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
-transitionwavelength(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionwavelength(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
-
-"""
-This needs a docstring.
-"""
-matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) = matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
-matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::Real) = matrix_element(T.configuration.ions[ion_index], transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
-
+function transition_frequency(
+        T::Trap, ion_index::Int, transition::Union{Tuple{String,String},Vector{<:String}}
+    )
+    ion = T.configuration.ions[ion_index]
+    B = T.B + T.∇B * ion.position
+    transition_frequency(B, ion, transition)
+end
 
 """
     set_gradient!(
@@ -340,7 +345,7 @@ function set_gradient!(
     ion1 = T.configuration.ions[ion_indxs[1]]
     ion2 = T.configuration.ions[ion_indxs[2]]
     separation = abs(ion1.position - ion2.position)
-    E1, E2 = map(x -> zeeman_shift(1, sublevel_structure(ion1, x)), transition)
+    E1, E2 = map(x -> zeeman_shift(1, ion1.selected_level_structure[x]), transition)
     T.∇B = f / (abs(E2 - E1) * separation)
 end
 
@@ -371,9 +376,9 @@ function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled=false)
     @fastmath begin
         k = 2π / L.λ
         scaled ? ν = 1 : ν = V.ν
-        x0 = √(ħ / (2 * mass(I) * 2π * ν))
+        x0 = √(ħ / (2 * I.mass * 2π * ν))
         cosθ = ndot(L.k, V.axis)
-        k * x0 * cosθ * V.mode_structure[ionnumber(I)]
+        k * x0 * cosθ * V.mode_structure[I.number]
     end
 end
 

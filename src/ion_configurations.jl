@@ -153,7 +153,6 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         vibrational_modes = _construct_vibrational_modes(vibrational_modes)
         warn = nothing
         for i in 1:length(ions), j in i+1:length(ions)
-            @assert typeof(ions[i])==typeof(ions[j]) "multispecies chains not yet supported; all ions in chain must be of same species"
             if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
                 if isnothing(warn)
@@ -174,9 +173,9 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
             push!(vm[i], VibrationalMode(A[i][mode]..., axis=r[i]))
         end
         l = linear_equilibrium_positions(length(ions))
-        l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z) # Needs to be changed when allowing for multi-species chains. Current workaround takes the mass of only the first ion to define the characteristic length scale.
+        l0 = characteristic_length_scale(m_ca40, com_frequencies.z) 
         for (i, ion) in enumerate(ions)
-            Core.setproperty!(ion, :ionnumber, i)
+            Core.setproperty!(ion, :number, i)
             Core.setproperty!(ion, :position, l[i] * l0)
         end
         new(ions, com_frequencies, vm, A)

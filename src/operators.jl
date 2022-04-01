@@ -141,20 +141,22 @@ Rather than `index<:String`, one may also specify `index<:Int`. If `object<:Ion`
 return the ket given by ``|index⟩ = (0 ... 1 ... 0)ᵀ`` where the nonzero element in the 
 column vector is located at `index`.
 """
-function ionstate(I::Ion, sublevel::Tuple{String,Real})
-    validatesublevel(I, sublevel)
-    i = findall(sublevels(I) .== [sublevel])[1]
+function ionstate(I::Ion, state::String)
+    s = I.selected_level_structure.keys
+    @assert state in s "index not in selected_level_structure: $s"
+    i = findall(s .≡ state)[1]
     basisstate(I, i)
 end
-ionstate(I::Ion, sublevelalias::String) = ionstate(I, alias2sublevel(I, sublevelalias))
-ionstate(I::Ion, sublevel::Int) = basisstate(I, sublevel)
-function ionstate(IC::IonConfiguration, states::Union{Tuple{String,Real},String,Int}...)
+
+function ionstate(IC::IonConfiguration, states::Union{String,Int}...)
     ions = IC.ions
     L = length(ions)
     @assert L ≡ length(states) "wrong number of states"
     tensor([ionstate(ions[i], states[i]) for i in 1:L]...)
 end
-ionstate(T::Trap, states::Union{Tuple{String,Real},String,Int}...) = ionstate(T.configuration, states...)
+
+ionstate(T::Trap, states::Union{String,Int}...) = ionstate(T.configuration, states...)
+ionstate(I::Ion, level::Int) = basisstate(I, level)
 
 """
     sigma(ion::Ion, ψ1::Union{String,Int}[, ψ2::Union{String,Int}])
@@ -163,8 +165,8 @@ returned by `ion[ψᵢ]`.
 
 If ψ2 is not given, then ``|ψ1\\rangle\\langle ψ1|`` is returned.
 """
-sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{Tuple{String,Real},String,Int}} = sparse(projector(ion[ψ1], dagger(ion[ψ2])))
-sigma(ion::Ion, ψ1::Union{Tuple{String,Real},String,Int}) = sigma(ion, ψ1, ψ1)
+sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}} = sparse(projector(ion[ψ1], dagger(ion[ψ2])))
+sigma(ion::Ion, ψ1::Union{String,Int}) = sigma(ion, ψ1, ψ1)
 
 """
     ionprojector(obj, states::Union{String,Int}...; only_ions=false)
@@ -177,7 +179,7 @@ If `only_ions=true`, then the projector is defined only over the ion subspace.
 
 If instead `obj<:Trap`, then this is the same as `obj = Trap.configuration`.
 """
-function ionprojector(IC::IonConfiguration, states::Union{Tuple{String,Real},String,Int}...; only_ions=false)
+function ionprojector(IC::IonConfiguration, states::Union{String,Int}...; only_ions=false)
     ions = IC.ions
     L = length(ions)
     @assert L ≡ length(states) "wrong number of states"
@@ -191,7 +193,7 @@ function ionprojector(IC::IonConfiguration, states::Union{Tuple{String,Real},Str
     observable
 end
 
-function ionprojector(T::Trap, states::Union{Tuple{String,Real},String,Int}...; only_ions=false)
+function ionprojector(T::Trap, states::Union{String,Int}...; only_ions=false)
     ionprojector(T.configuration, states..., only_ions=only_ions)
 end 
 
