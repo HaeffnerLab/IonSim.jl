@@ -2,7 +2,7 @@ module PhysicalConstants
 
 import Base.sqrt
 
-export μB, ħ, c, e, ϵ₀, α, kB, eye3, c_rank1, c_rank2
+export μB, ħ, m_ca40, c, e, α, ϵ₀, kB, ca40_qubit_transition_frequency
 
 """
     PhysicalConstant(x::Real)
@@ -13,14 +13,13 @@ struct PhysicalConstant <: Real
     units::String
 end
 
-#############################################################################################
-# Physical constants (everything in SI units)
-#############################################################################################
-
+# some useful constants, everything in SI units
 """`μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
 const μB = PhysicalConstant(9.27400994e-24, "J⋅T⁻¹")
 """`ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
 const ħ = PhysicalConstant(1.0545718e-34, "m²kg/s")
+"""`m_ca40` = 6.635943757345042e-26 kg <br> (mass of 40Ca)"""
+const m_ca40 = PhysicalConstant(6.635943757345042e-26, "kg")
 """`c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
 const c = PhysicalConstant(2.99792458e8, "m/s")
 """`e` = 1.60217662e-19 C <br> (charge of electron)"""
@@ -31,28 +30,8 @@ const ϵ₀ = PhysicalConstant(8.85418782e-12, "(s^4A^2) / (m^3 kg)")
 const α = PhysicalConstant(0.007297352557920479, "")
 """`kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
 const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
-
-
-#############################################################################################
-# 3D real-space tensors
-#############################################################################################
-
-# Identity matrix
-const eye3 = [1 0 0; 0 1 0; 0 0 1]
-
-# For converting from rank-1 spherical tensors to Cartesiasn
-const c_rank1 = [1  /  sqrt(2)  *  [1 im 0]; #q=-1
-                [0 0 1]; #q=0
-                -1  /  sqrt(2)  *  [1 -im 0]] #q=1
-
-# For converting from rank-2 spherical tensors to Cartesiasn
-const c_rank2 = cat(1/sqrt(6)  *  [[1, im, 0] [im, -1, 0] [0, 0, 0]], #q=-2
-                1/sqrt(6)  *  [[0, 0, 1] [0, 0, im] [1, im, 0]], #q=-1
-                    1/3  *  [[-1, 0, 0] [0, -1, 0] [0, 0, 2]], #q=0
-                1/sqrt(6)  *  [[0, 0, -1] [0, 0, im] [-1, im, 0]], #q=1
-                1/sqrt(6)  *  [[1, -im, 0] [-im, -1, 0] [0, 0, 0]]; dims = 3) #q=2
-
-
+"""`ca40_qubit_transition_frequency` = c / 729.147e-9 ``Hz`` """
+const ca40_qubit_transition_frequency = PhysicalConstant(2.99792458e8 / 729.147e-9, "Hz")
 
 Base.print(pc::PhysicalConstant) = print("$(pc.x) [$(pc.units)]")
 Base.show(io::IO, pc::PhysicalConstant) = print(io, "$(pc.x) [$(pc.units)]")
