@@ -13,7 +13,7 @@ chain = LinearChain(
     ions=[C, C], com_frequencies=(x=2,y=2,z=1), vibrational_modes=(x=[1], y=[], z=[1])
 )
 T = Trap(configuration=chain)
-modes = get_vibrational_modes(chain) 
+modes = get_vibrational_modes(chain)
 
 
 @testset "operators -- VibrationalMode operators" begin
@@ -24,14 +24,14 @@ modes = get_vibrational_modes(chain)
     @test number(modes[1]).data == qo.number(fb).data
     n = rand(0:10)
     @test fockstate(modes[1], n).data == qo.fockstate(fb, n).data
-    
+
     # displacement operator
     α = rand(0:1e-3:7) + im*rand(0:1e-3:7)
     @test displace(modes[1], α).data ≈ qo.displace(fb, α).data
     fb2 = qo.FockBasis(200)
     modes[1].N = 200
     i = rand(1:5); j = rand(1:5)
-    @test displace(modes[1], α, method="analytic").data[i,j] ≈ qo.displace(fb2, α).data[i,j] rtol=1e-3
+    @test displace(modes[1], α, method="analytic").data[i,j] ≈ qo.displace(fb2, α).data[i,j] rtol=1e-2
 
     # test that mean excitation of thermalstate is as expected
     modes[1].N = 500
@@ -40,7 +40,7 @@ modes = get_vibrational_modes(chain)
     @test expect(number(modes[1]), thermalstate(modes[1], n̄, method="analytic")) ≈ n̄
 
     # test coherentstate matches QO results
-    α = 10*(randn() + im*randn()) 
+    α = 10*(randn() + im*randn())
     coherentstate(modes[1], α).data == qo.coherentstate(fb, α).data
 
     # test coherenthermalstate
@@ -69,7 +69,7 @@ end
     # test ionstate for an IonConfiguration input
     @test ionstate(chain, "S-1/2", "D-1/2").data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
     @test ionstate(chain, 1, 2).data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
-    
+
     # test ionstate for an Trap input
     @test ionstate(T, "S-1/2", "D-1/2").data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
 
