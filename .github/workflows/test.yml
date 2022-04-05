@@ -26,14 +26,6 @@ jobs:
             julia-arch: x86
 
     steps:
-      - name:  Install
-        run:   |
-               if [ "$RUNNER_OS" == "Linux" ]; then
-                    echo "Linux"
-               elif [ "$RUNNER_OS" == "Windows" ]; then
-                    echo "Windows"
-               fi
-        shell: bash
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
@@ -41,5 +33,9 @@ jobs:
           arch: ${{ matrix.julia-arch }}
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-      - name: Submit to codecov
-        run: julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+      - name:  Submit to codecov
+        run:   |
+               if [ "$RUNNER_OS" == "Linux" ]; then
+                   julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+               fi
+        shell: bash
