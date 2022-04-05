@@ -11,27 +11,27 @@ export hamiltonian
             T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
             rwa_cutoff::Real=Inf, displacement="truncated", time_dependent_eta=false
         )      
-Constructs the Hamiltonian for `T` as a function of time. Return type is a function 
-`h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
+Constructs the Hamiltonian for the trap `T` as a function of time. Return type is a function 
+`h: (t::Real, ψ) -> QuantumOptics.SparseOperator`.
 
 **args**
-* `timescale`: e.g. a value of 1e-6 will take time to be in ``\\mu s``
+* `timescale`: The appropriate units; e.g. a value of 1e-6 will set the units to ``\\mu s``
 * `lamb_dicke_order`: Only consider terms that change the phonon number by up to this value.
-    If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,
-    then `lamb_dicke_order[i]` is applied to the iᵗʰ mode, according to the order in 
-    `T.basis`.
-    Note: this isn't quite the same thing as the Lamb-Dicke approximation since setting
-    `lamb_dicke_order=1` will retain, for example, terms proportional to ``a^\\dagger a ``.
-* `rwa_cutoff`: drop terms in the Hamiltonian that oscillate faster than this cutoff.
+   If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,
+   then `lamb_dicke_order[i]` is applied to the iᵗʰ mode, according to the order in 
+   `T.basis`.
+   
+   Note: this isn't quite the same thing as the Lamb-Dicke approximation since setting
+   `lamb_dicke_order=1` will retain, for example, terms proportional to ``a^\\dagger a ``.
+* `rwa_cutoff`: Ignore terms in the Hamiltonian that oscillate faster than this cutoff.
 * `displacement`: This can be either `"truncated"`(default) or `"analytic"`. 
 
    When an atom is irradiated, both the atom's energy and its momentum will generally be 
    affected. For an atom in a harmonic potential, the exchange of momentum can be modeled as 
    a displacement operation ``D(α=iηe^{-iνt}) = exp[αa^† - α^*a]``, where ``η`` is the 
-   Lamb-Dicke parameter, which can be described equivalently as either being proportional to 
-   the square root of the ratio of the recoil frequency with the ground state energy of the 
-   atom's motion or as the ratio of the spread of the ground state wavefunction to the 
-   wavelength of the laser.
+   Lamb-Dicke parameter. This can be equivalently described as 
+     (1) the square root of recoil frequency divided by ground state energy of the atom's motion, or
+     (2) the spread of the ground state wavefunction divided by the wavelength of the laser.
 
    When `"truncated"` is selected, the matrix elements of ``D(α)`` are computed by 
    constructing ``α^* a, αa^†`` in a truncated basis (according to the dimension specified in 
@@ -51,11 +51,20 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
 
 """
 function hamiltonian(
-        T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
-        rwa_cutoff::Real=Inf, displacement::String="truncated", time_dependent_eta::Bool=false
+        T::Trap; 
+        timescale::Real=1e-6, 
+        lamb_dicke_order::Union{Vector{Int},Int}=1, 
+        rwa_cutoff::Real=Inf, 
+        displacement::String="truncated", 
+        time_dependent_eta::Bool=false
     ) 
     hamiltonian(
-            T, T.configuration, timescale, lamb_dicke_order, rwa_cutoff, displacement,
+            T, 
+            T.configuration, 
+            timescale, 
+            lamb_dicke_order, 
+            rwa_cutoff, 
+            displacement,
             time_dependent_eta
         ) 
 end
@@ -65,11 +74,15 @@ end
 # Hamiltonian for a linear configuration of ions
 #############################################################################################
 
-# At each time step, this function updates in-place the 2D array describing the full system
+# At each time step, this function updates the 2D array (in-place) describing the full system
 # Hamiltonian. 
 function hamiltonian(
-        T::Trap, configuration::LinearChain, timescale::Real, 
-        lamb_dicke_order::Union{Vector{Int},Int}, rwa_cutoff::Real, displacement::String,
+        T::Trap, 
+        configuration::LinearChain, 
+        timescale::Real, 
+        lamb_dicke_order::Union{Vector{Int},Int}, 
+        rwa_cutoff::Real, 
+        displacement::String,
         time_dependent_eta::Bool
     )
     b, indxs, cindxs = _setup_base_hamiltonian(
@@ -77,8 +90,10 @@ function hamiltonian(
         )
     aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(T, timescale)
     S = SparseOperator(get_basis(T))
-    function f(t, ψ)  # a two argument function is required in the QuantumOptics solvers
+    # we return the function f (2 arguments required for QuantumOptics solvers)
+    function f(t, ψ)
         @inbounds begin
+            #? Is indxs a rectangle? We could precompute length(indxs) and length(indxs[i])
             @simd for i in 1:length(indxs)
                 bt_i, conj_bt_i = b[i](t)::Tuple{ComplexF64,ComplexF64}
                 @simd for j in 1:length(indxs[i])
@@ -87,10 +102,12 @@ function hamiltonian(
                     if i1 != i2
                         S.data[i2, i1] = conj(bt_i)
                         if length(cindxs[i]) != 0
+                            #? what is this flag? what does it do?
                             flag = cindxs[i][1][1]
                             i3, i4 = cindxs[i][j+1]
                             if flag == -1
                                 S.data[i3, i4] = -conj_bt_i
+                                #? is this value not simply bt_i?
                                 S.data[i4, i3] = -conj(conj_bt_i)
                             else
                                 S.data[i3, i4] = conj_bt_i
@@ -129,7 +146,7 @@ function hamiltonian(
 end
 
 #=
-The purpose of the hamiltonian function is to evaluate a vector of time-dependent functions
+The purpose of this function is to evaluate a vector of time-dependent functions
 and use the returned values to update, in-place, a pre-allocated array.
 
 The pre-allocated array holds the full Hamiltonian -- a tensor product defined over all of 
@@ -159,6 +176,7 @@ additional vector of vectors of indices.
 
 Finally, since we require the Hamiltonian to be Hermitian, h[i, j] = conj(h[j, i]), this 
 function does not keeps track of only one of these pairs.
+#? Does it keep track of both or one?
 =#
 function _setup_base_hamiltonian(
         T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dependent_eta
@@ -175,7 +193,9 @@ function _setup_base_hamiltonian(
     
     ηm, Δm, Ωm = _ηmatrix(T), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
     lamb_dicke_order = _check_lamb_dicke_order(lamb_dicke_order, L)
+    #? what is a ld_array?
     ld_array, rows, vals = _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
+    #? what does the below code do?
     if displacement == "truncated" && time_dependent_eta
         rootlist = map(x->real.(roots(_He(x))), mode_dims)
     end
@@ -192,6 +212,7 @@ function _setup_base_hamiltonian(
         if m ≡ 1
             rn = length(ions) - n + 1
             ts = _transitions(ions[n])
+            #? what is C here?
             C = sum([i*real.(sigma(ions[n], reverse(ts[i])...).data) for i in 1:length(ts)])
             if length(ions) == 1
                 K = C
@@ -203,6 +224,7 @@ function _setup_base_hamiltonian(
             ion_reps = Int(Q / size(C, 1))
         end
         ηnm = view(ηm, rn, m, :) 
+        #? what is this for? to decide whether it's a vector or single number?
         function ηlist(t)  
             for i in 1:L
                 η = ηnm[i]
@@ -221,12 +243,14 @@ function _setup_base_hamiltonian(
         for (ti, tr) in enumerate(ts)
             Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]
             Δ_2π = Δ/2π
+            #? I haven't seen this syntax, what does it do?
             typeof(Ω) <: Number && continue  # e.g. the laser doesn't shine on this ion
             locs = view(ion_idxs, (ti - 1) * ion_reps + 1 : ti * ion_reps)
             for j in 1:prod(mode_dims); for i in nzrange(ld_array, j)
                 ri = rows[i]
                 ri<j && continue
                 cf = vals[i]
+                # I think the below rwa could be rewritten, pflag and nflag seem like weird variable names.
                 pflag = abs(Δ_2π + cf) > rwa_cutoff
                 nflag = abs(Δ_2π - cf) > rwa_cutoff
                 (pflag && nflag) && continue
@@ -257,6 +281,7 @@ function _setup_base_hamiltonian(
                     pushfirst!(s_cri, (-1 * isodd(parity), 0))
                 end
                 
+                #? I would use layered if statements, if (time dependent eta), if (truncated) do ___ else do ____ , else ___
                 # push information to top-level lists/ construct time-dep function
                 if displacement == "truncated" && !time_dependent_eta
                     D = Tuple([D_arrays[i][idxs[1][i], idxs[2][i]] for i in 1:L])
@@ -268,6 +293,7 @@ function _setup_base_hamiltonian(
                 row, col = s_ri[1]
                 if haskey(indxs_dict, s_ri[1]) 
                     # this will happen when multiple lasers address the same transition
+                    #? why would this happen? could this be defined outside of this method?
                     functions[indxs_dict[row, col]] = 
                         let 
                             a = functions[indxs_dict[row, col]]
@@ -383,6 +409,7 @@ end
 # _setup_δν_hamiltonian for use in the hamiltonian function. The one additional task 
 # performed is the creation of an array of indices (all_unique_indices), which keeps track
 # of all the diagonal indices affected by δν and/or δB, which is useful in hamiltonian().
+#? we should label each one of these, and explain what they are for (gbi, gbs, etc have names slightly too short for me)
 function _setup_fluctuation_hamiltonian(T, timescale)
     gbi, gbs, bfunc = _setup_global_B_hamiltonian(T, timescale)
     δνi, δνfuncs = _setup_δν_hamiltonian(T, timescale)
@@ -396,6 +423,7 @@ end
 #############################################################################################
 
 # https://gist.github.com/ivirshup/e9148f01663278ca4972d8a2d9715f72
+#? what does this do?
 function _flattenall(a::AbstractArray)
     while any(x -> typeof(x)<:AbstractArray, a)
         a = collect(Iterators.flatten(a))
@@ -490,7 +518,7 @@ end
 
 _transitions(ion) = collect(keys(ion.selected_matrix_elements))
 
-# Returns a tuple correpsonding to: [σ₊(t)]_ij ⋅ [D(ξ(t))]_ij, [σ₊(t)]_ji ⋅ [D(ξ(t))]_ji.
+# Returns a tuple corresponding to: [σ₊(t)]_ij ⋅ [D(ξ(t))]_ij, [σ₊(t)]_ji ⋅ [D(ξ(t))]_ji.
 # [D(ξ(t))]_ij is calculated assuming an infinite dimensional Hilbert space for the HO.
 function _D(Ω, Δ, η, ν, timescale, n, t, L)
     d = complex(1, 0)
@@ -531,7 +559,7 @@ function _get_kron_indxs(indxs::Vector{Tuple{Int64,Int64}}, dims::Vector{Int64})
 end
 
 # The inverse of _get_kron_indxs. If T = X₁ ⊗ X₂ ⊗ X₃ and X₁, X₂, X₃ are M×M, N×N and L×L
-# dimension matrices, then we should input dims=(M, N, L). 
+# dimension matrices, then we should input dims=(M, N, L).         
 function _inv_get_kron_indxs(indxs, dims)
     row, col = indxs
     N = length(dims)
@@ -540,6 +568,7 @@ function _inv_get_kron_indxs(indxs, dims)
     for i in 1:N
         tensor_N = prod(dims[i:N])
         M = tensor_N ÷ dims[i]
+        #? what is a rowflag?
         rowflag = false
         colflag = false
         for j in 1:dims[i]
@@ -561,6 +590,7 @@ function _inv_get_kron_indxs(indxs, dims)
 end
 
 # similar to _Dnm, but meant to be used when η is assumed constant in ξ=iηe^(i2πνt)
+#? can we place this function near _Dnm?
 function _Dnm_cnst_eta(ξ::Number, n::Int, m::Int)
     n < m && return _Dnm_cnst_eta(ξ, m, n) * (-1)^isodd(abs(n-m))
     n -= 1; m -= 1
@@ -576,6 +606,7 @@ end
 # If lamb_dicke_order is <: Int, this constructs a constant vector with this value of length
 # L (i.e. same lamb_dicke_order for all modes). Otherwise lamb_dicke_order is reversed and 
 # returned.
+#? why do we reverse the lamb dicke order? That seems really confusing.
 function _check_lamb_dicke_order(lamb_dicke_order, L)
     if typeof(lamb_dicke_order) <: Int
         return [lamb_dicke_order for _ in 1:L]
