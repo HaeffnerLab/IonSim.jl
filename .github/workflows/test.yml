@@ -35,7 +35,5 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
       - name: Print dir
         run: ls -alht
-      - uses: codecov/codecov-action@v2
-        with:
-          fail_ci_if_error: true 
-          verbose: true 
+      - name: Submit to codecov
+        run: julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
