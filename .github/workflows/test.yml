@@ -26,6 +26,14 @@ jobs:
             julia-arch: x86
 
     steps:
+      - name:  Install
+        run:   |
+               if [ "$RUNNER_OS" == "Linux" ]; then
+                    echo "Linux"
+               elif [ "$RUNNER_OS" == "Windows" ]; then
+                    echo "Windows"
+               fi
+        shell: bash
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
