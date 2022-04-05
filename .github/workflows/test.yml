@@ -33,5 +33,9 @@ jobs:
           arch: ${{ matrix.julia-arch }}
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-      - name: Submit to codecov
-        run: julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+      - name:  Submit to codecov
+        run:   |
+               if [ "$RUNNER_OS" == "Linux" ]; then
+                   julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+               fi
+        shell: bash
