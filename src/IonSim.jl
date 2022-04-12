@@ -26,6 +26,7 @@ include("traps.jl")
 include("operators.jl")                           
 include("hamiltonians.jl")
 include("time_evolution.jl")
+include("species/include_species.jl")
 
 module analytical
     include("analytic_functions.jl")

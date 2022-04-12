@@ -1,15 +1,16 @@
 using QuantumOptics: NLevelBasis, CompositeBasis, FockBasis
 using Test, IonSim
-using IonSim.PhysicalConstants: ħ, ca40_qubit_transition_frequency, c, m_ca40
+using IonSim.PhysicalConstants: ħ, c
 using Suppressor
 
 
 @suppress_err begin
 
 
-# setup system
+# set up system
 C = Ca40()
-L1 = Laser(); L2 = Laser()
+λ = transitionwavelength(C, ("S1/2", "D5/2"))
+L1 = Laser(λ=λ); L2 = Laser(λ=λ)
 chain = LinearChain(
             ions=[C, C], com_frequencies=(x=3e6,y=3e6,z=1e6), vibrational_modes=(;z=[1])
         )
@@ -72,7 +73,7 @@ end
     @test T.basis == get_basis(T)
 
     # global_beam!
-    L = Laser()
+    L = Laser(λ=λ)
     global_beam!(T, L)
     @test L.pointing == [(1, 1.0), (2, 1.0)]
     
@@ -80,11 +81,11 @@ end
     ion_index = 1
     laser_index = 1
     ion = T.configuration.ions[ion_index]
-    transition = ("S-1/2", "D-1/2")
+    transition = (("S1/2",-1/2), ("D5/2",-1/2))
     # compare to specific pre-computed value for both methods
     E1 = Efield_from_pi_time(1e-6, Bhat, L1, ion, transition)
     E2 = Efield_from_pi_time(1e-6, T, laser_index, ion_index, transition)
-    @test E1 ≈ 153739.56 rtol=1e-2
+    @test E1 ≈ 118245.11 rtol=1e-2
     @test E1 == E2
     # confirm in-place versions work
     Efield_from_pi_time!(1e-6, Bhat, L1, ion, transition)
@@ -92,7 +93,7 @@ end
     Efield_from_pi_time!(1e-6, T, laser_index, ion_index, transition)
     @test L1.E(0) == E1
     # shouldn't be able to have a laser argument where laser.pointing = []
-    L = Laser()
+    L = Laser(λ=λ)
     @test_throws AssertionError Efield_from_pi_time(1e-6, Bhat, L, ion, transition)
     L.pointing = [(1, 1.)]
     @test isinf(Efield_from_pi_time(1e-6, x̂, L, ion, transition))
@@ -102,11 +103,11 @@ end
     ion_index = 1
     laser_index = 1
     ion = T.configuration.ions[ion_index]
-    transition = ("S-1/2", "D-1/2")
+    transition = (("S1/2",-1/2), ("D5/2",-1/2))
     # compare to specific pre-computed value for both methods
     E1 = Efield_from_rabi_frequency(5e5, Bhat, L1, ion, transition)
     E2 = Efield_from_rabi_frequency(5e5, T, laser_index, ion_index, transition)
-    @test E1 ≈ 153739.56 rtol=1e-2
+    @test E1 ≈ 118245.11 rtol=1e-2
     @test E1 == E2
     # confirm in-place versions work
     Efield_from_rabi_frequency!(5e5, Bhat, L1, ion, transition)
@@ -114,20 +115,20 @@ end
     Efield_from_rabi_frequency!(5e5, T, laser_index, ion_index, transition)
     @test L1.E(0) == E1
     # shouldn't be able to have a laser argument where laser.pointing = []
-    L = Laser()
+    L = Laser(λ=λ)
     @test_throws AssertionError Efield_from_rabi_frequency(5e5, Bhat, L, ion, transition)
 
-    # transition_frequency (test against pre-computed values)
+    # transitionfrequency (test against pre-computed values)
     T.B = 4e-4
-    f = transition_frequency(T, C, transition)
-    @test f ≈ 2.2393e6 rtol=1e-4
-    @test transition_frequency(T.B, C, transition) == f
-    @test transition_frequency(T, 1, transition) == f
+    f = transitionfrequency(C, transition, T)
+    @test f ≈ 4.111550340833542e14
+    @test transitionfrequency(C, transition, B=T.B) == f
+    @test transitionfrequency(1, transition, T) == f
 
     # set_gradient
     set_gradient!(T, (1, 2), transition, 1e6)
-    f1 = transition_frequency(T, T.configuration.ions[1], transition)
-    f2 = transition_frequency(T, T.configuration.ions[2], transition)
+    f1 = transitionfrequency(T.configuration.ions[1], transition, T)
+    f2 = transitionfrequency(T.configuration.ions[2], transition, T)
     @test abs(f1 - f2) ≈ 1e6
 
     # test :(==)
@@ -143,10 +144,8 @@ end
     @test cb != C ⊗ C ⊗ C ⊗ xmode ⊗ zmode
 
     # test get_η
-    f = ca40_qubit_transition_frequency
-    λ = c/f
     # η = |k|cos(θ) * √(ħ / (2M ⋅ N ⋅ 2πν)); cos(θ) ≡ k̂ ⋅ mode_axis; N ≡ number of ions
-    η(ν) = (2π/λ) * sqrt(ħ / (2 * m_ca40 * 2 * 2π * ν))
+    η(ν) = (2π/λ) * sqrt(ħ / (2 * mass(C) * 2 * 2π * ν))
     @test abs(get_η(zmode, L, C)) ≈ η(zmode.ν)
     L.k = (x̂ + ẑ) / √2
     @test abs(get_η(xmode, L, C)) ≈ η(xmode.ν) / √2

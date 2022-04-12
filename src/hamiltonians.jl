@@ -191,7 +191,7 @@ function _setup_base_hamiltonian(
     for n in eachindex(ions), m in eachindex(T.lasers)
         if m ≡ 1
             rn = length(ions) - n + 1
-            ts = _transitions(ions[n])
+            ts = subleveltransitions(ions[n])
             C = sum([i*real.(sigma(ions[n], reverse(ts[i])...).data) for i in 1:length(ts)])
             if length(ions) == 1
                 K = C
@@ -361,19 +361,14 @@ function _setup_global_B_hamiltonian(T, timescale)
         return global_B_indices, global_B_scales, bfunc
     end
     for n in eachindex(ions)
-        transitions_list = [] 
-        for (ti, tr) in enumerate(_transitions(ions[n]))
-            for level in tr
-                (level in transitions_list) && continue
-                push!(transitions_list, level)
-                ion_op = sigma(ions[n], level)
-                A = embed(get_basis(T), [n], [ion_op]).data
-                indices = [x[1] for x in getfield.(findall(x->x.==complex(1, 0), A), :I)]
-                push!(global_B_indices, indices)
-                # zeeman_shift(1, ions[n].level_structure[level]) is the Zeeman shift of
-                # ions[n].level_structure[level] in units of δB.
-                push!(global_B_scales, τ * zeeman_shift(1, ions[n].level_structure[level]))
-            end
+        for sublevel in sublevels(ions[n])
+            ion_op = sigma(ions[n], sublevel)
+            A = embed(get_basis(T), [n], [ion_op]).data
+            indices = [x[1] for x in getfield.(findall(x->x.==complex(1, 0), A), :I)]
+            push!(global_B_indices, indices)
+            # zeeman_shift(ions[n], sublevel, 1]) is the Zeeman shift of
+            # sublevel in units of δB.
+            push!(global_B_scales, τ * zeeman_shift(ions[n], sublevel, 1))
         end
     end
     global_B_indices, global_B_scales, bfunc
@@ -436,15 +431,10 @@ function _Δmatrix(T, timescale)
     ∇B = T.∇B
     Δnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
-        transitions = _transitions(ions[n])
-        Btot = B + ∇B * ions[n].position
+        Btot = B + ∇B * ionposition(ions[n])
         v = Vector{Float64}(undef, 0)
-        for t in transitions
-            L1 = ions[n].selected_level_structure[t[1]]
-            L2 = ions[n].selected_level_structure[t[2]]
-            stark_shift = ions[n].stark_shift[t[1]] - ions[n].stark_shift[t[2]]
-            ωa = (abs(L1.E  + zeeman_shift(Btot, L1) - (L2.E + zeeman_shift(Btot, L2)))
-                  + stark_shift)
+        for transition in subleveltransitions(ions[n])
+            ωa = transitionfrequency(ions[n], transition, B=Btot)
             push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - ωa))
         end
         Δnmkj[n, m] = v
@@ -463,8 +453,7 @@ function _Ωmatrix(T, timescale)
     for n in 1:N, m in 1:M
         E = lasers[m].E
         phase = lasers[m].ϕ
-        (γ, ϕ) = map(x -> rad2deg(acos(ndot(T.Bhat, x))), [lasers[m].ϵ, lasers[m].k])
-        transitions = _transitions(ions[n])
+        transitions = subleveltransitions(ions[n])
         s_indx = findall(x -> x[1] == n, lasers[m].pointing) 
         if length(s_indx) == 0
             Ωnmkj[n, m] = [0 for _ in 1:length(transitions)]
@@ -474,7 +463,7 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 = 2π * timescale * s * ions[n].selected_matrix_elements[t](1.0, γ, ϕ) / 2.0
+            Ω0 = 2π * timescale * s * matrix_element(ions[n], t, 1.0, lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else
@@ -487,8 +476,6 @@ function _Ωmatrix(T, timescale)
     end
     Ωnmkj
 end
-
-_transitions(ion) = collect(keys(ion.selected_matrix_elements))
 
 # Returns a tuple correpsonding to: [σ₊(t)]_ij ⋅ [D(ξ(t))]_ij, [σ₊(t)]_ji ⋅ [D(ξ(t))]_ji.
 # [D(ξ(t))]_ij is calculated assuming an infinite dimensional Hilbert space for the HO.
