@@ -4,8 +4,9 @@ using Test, IonSim
     # should not be able to set unnormalized k-vectors or polarizations
     @test_throws AssertionError Laser(ϵ=(x=2, y=0, z=0))
     @test_throws AssertionError Laser(k=(x=2, y=0, z=0))
+    # The below test is commented out because we have temporarily removed the non-orthogonal warning for convenience (see lasers.jl)
     # should not be able to initialize with non-orthogonal ϵ̂, k̂
-    @test_throws AssertionError Laser(ϵ=(x=1, y=0, z=0), k=(x=1, y=0, z=0))
+    # @test_throws AssertionError Laser(ϵ=(x=1, y=0, z=0), k=(x=1, y=0, z=0))
     # pointing cannot be overspecified 
     @test_throws AssertionError Laser(pointing=[(1, 0.5), (1, 0.5)])
     # pointing magnitude must be within [0,1]

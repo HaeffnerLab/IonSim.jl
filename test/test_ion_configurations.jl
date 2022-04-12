@@ -1,5 +1,5 @@
 using Test, IonSim
-using IonSim.PhysicalConstants: m_ca40
+# using IonSim.PhysicalConstants
 using Suppressor
 
 
@@ -19,14 +19,14 @@ using Suppressor
     @test get_vibrational_modes(lc) == [vms.x..., vms.y..., vms.z...]
 
     # make sure ion numbers are updated
-    @test [I.number for I in lc.ions] == [1, 2, 3, 4]
+    @test [ionnumber(I) for I in lc.ions] == [1, 2, 3, 4]
 
     # cmode -> pre-evaluated equilibrium positions for four ion chain
     cmode = [-0.06392393573, -0.0202155287427, 0.0202155287427, 0.0639239357]
-    if lc.ions[1].position > 0
+    if ionposition(lc.ions[1]) > 0
         cmode .*= -1
     end
-    @test [I.position for I in lc.ions] ≈ cmode rtol=1e-6
+    @test [ionposition(I) for I in lc.ions] ≈ cmode rtol=1e-6
     
     # should get warning if same ion is input multiple times to ion kwarg
     warning = "Some ions point to the same thing. Making copies."
@@ -51,7 +51,8 @@ end
     @test any(isapprox.(linear_equilibrium_positions(10), pos, rtol=1e-4))
 
     # and test calculation of characterstic length scale for linear chain, equal mass
-    @test characteristic_length_scale(m_ca40, 1e6) ≈ 4.449042675683e-6
+    C = Ca40()
+    @test characteristic_length_scale(mass(C), 1e6) ≈ 4.449042804354206e-6
 
     # and do the same for Anm, which computes the normal modes
     @test_throws AssertionError Anm(2, (x=0.5, y=0.5, z=1), (x=1, y=0, z=0))

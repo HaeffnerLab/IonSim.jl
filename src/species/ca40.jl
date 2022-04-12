@@ -2,7 +2,7 @@ using .PhysicalConstants:PhysicalConstant
 
 export Ca40
 
-const properties_ca40 = (mass = PhysicalConstant(6.635943757345042e-26, "kg"),
+const properties_ca40 = (mass = 6.635943757345042e-26,
 
                          charge = 1,
 

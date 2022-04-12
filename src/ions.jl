@@ -1,13 +1,14 @@
 using WignerSymbols: wigner3j, wigner6j
 using LinearAlgebra: cross
-using .PhysicalConstants: e, ħ, α, μB, e, eye3, c_rank1, c_rank2
+#using .PhysicalConstants: e, ħ, α, μB, e, eye3, c_rank1, c_rank2
+using IonSim.PhysicalConstants
 
 
-export Ion, speciesproperties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber,
-       ionposition, mass, charge, nuclearspin, zero_stark_shift!, set_stark_shift!,
-       set_sublevel_alias!, levels, quantumnumbers, landegf, zeeman_shift, energy,
-       transitionfrequency, transitionwavelength, leveltransitions, subleveltransitions, einsteinA, lifetime,
-       matrix_element
+export Ion, speciesproperties, sublevels, sublevel_aliases, sublevelalias, shape, stark_shift, ionnumber,
+       ionposition, mass, charge, nuclearspin, zero_stark_shift!, set_stark_shift!, alias2sublevel, sublevel2level,
+       set_sublevel_alias!, clear_sublevel_alias!, clear_all_sublevel_aliases!, levels, quantumnumbers, landegf,
+       zeeman_shift, energy, transitionfrequency, transitionwavelength, leveltransitions, subleveltransitions,
+       einsteinA, lifetime, matrix_element
 
 
 
@@ -58,39 +59,14 @@ nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
 validatesublevel(I::Ion, sublevel::Tuple{String,Real}) = @assert sublevel in sublevels(I) "ion does not contain sublevel $sublevel"
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
 
-
-""" 
-This needs a docstring
-"""
-function zero_stark_shift!(I::Ion)
-    for sublevel in keys(stark_shift(I))
-        I.stark_shift[sublevel] = 0.0
-    end
-end
-
-
-"""
-This needs a docstring
-"""
-function set_stark_shift!(I::Ion, sublevel::Tuple{String,Real}, shift::Real)
-    validatesublevel(I, sublevel)
-    I.stark_shift[sublevel] = shift
-end
-function set_stark_shift!(I::Ion, stark_shift_dict::Dict)
-    for sublevel in keys(stark_shift_dict)
-        set_stark_shift!(I, sublevel, stark_shift_dict[sublevel])
-    end
-end
-set_stark_shift!(I::Ion, alias::String, shift::Real) = set_stark_shift!(I, alias2sublevel(I, alias), shift)
-
-
 """
 This needs a docstring
 """
 function set_sublevel_alias!(I::Ion, sublevel::Tuple{String,Real}, alias::String)
     validatesublevel(I, sublevel)
     @assert alias ∉ levels(I) "cannot make alias name identical to level name ($alias)"
-    I.sublevel_aliases[alias] = sublevel
+    sublevel_rational = (sublevel[1], Rational(sublevel[2]))   # Force m to be Rational
+    I.sublevel_aliases[alias] = sublevel_rational
 end
 function set_sublevel_alias!(I::Ion, pairs::Vector{Tuple{Tuple{String,R},String}} where R<:Real)
     for (sublevel, alias) in pairs
@@ -104,6 +80,53 @@ function set_sublevel_alias!(I::Ion, aliasdict::Dict{String,Tuple{String,R}} whe
 end
 
 
+"""
+This needs a docstring
+"""
+function clear_sublevel_alias!(I::Ion, sublevel::Tuple{String,Real})
+    alias = sublevelalias(I, sublevel)
+    delete!(I.sublevel_aliases, alias)
+end
+function clear_sublevel_alias!(I::Ion, alias::String)
+    delete!(I.sublevel_aliases, alias)
+end
+function clear_sublevel_alias!(I::Ion, v::Vector)
+    map(x -> clear_sublevel_alias!(I, x), v)
+end
+
+
+"""
+This needs a docstring
+"""
+function clear_all_sublevel_aliases!(I::Ion)
+    empty!(I.sublevel_aliases)
+end
+
+
+"""
+This needs a docstring
+"""
+function set_stark_shift!(I::Ion, sublevel::Tuple{String,Real}, shift::Real)
+    validatesublevel(I, sublevel)
+    I.stark_shift[(sublevel[1], Rational(sublevel[2]))] = shift
+end
+set_stark_shift!(I::Ion, alias::String, shift::Real) = set_stark_shift!(I, alias2sublevel(I, alias), shift)
+function set_stark_shift!(I::Ion, stark_shift_dict::Dict)
+    for sublevel in keys(stark_shift_dict)
+        set_stark_shift!(I, sublevel, stark_shift_dict[sublevel])
+    end
+end
+
+
+""" 
+This needs a docstring
+"""
+function zero_stark_shift!(I::Ion)
+    for sublevel in keys(stark_shift(I))
+        I.stark_shift[sublevel] = 0.0
+    end
+end
+
 
 #############################################################################################
 # Properties of ion electronic levels and sublevels
@@ -113,6 +136,23 @@ end
 This needs a docstring
 """
 levels(I::Ion) = unique([sublevel[1] for sublevel in sublevels(I)])
+
+
+"""
+This needs a docstring
+"""
+function sublevelalias(I::Ion, sublevel::Tuple{String,Real})
+    validatesublevel(I, sublevel)
+    alias_dict = sublevel_aliases(I)
+    aliases = [k for (k, v) in alias_dict if v==sublevel]
+    if length(aliases) == 0
+        return nothing
+    elseif length(aliases) == 1
+        return aliases[1]
+    else
+        @warn "multiple aliases point to the same level $sublevel"
+    end
+end
 
 
 """
@@ -290,11 +330,17 @@ function subleveltransitions(I::Ion)
     list = []
     for transition in leveltransitions(I)
         (L1, L2) = transition
+        multipole = transitionmultipole(I, L1, L2)
         sublevels1 = [sublevel for sublevel in sublevels(I) if sublevel[1]==L1]
         sublevels2 = [sublevel for sublevel in sublevels(I) if sublevel[1]==L2]
         for sl1 in sublevels1
             for sl2 in sublevels2
-                push!(list, (sl1, sl2))
+                m1 = sl1[2]
+                m2 = sl2[2]
+                if abs(m2-m1) <= parse(Int, multipole[2])
+                    # Only add to list of sublevel transitions if Δm is not larger than the transition multipole allows (1 for E1, 2 for E2, etc)
+                    push!(list, (sl1, sl2))
+                end
             end
         end
     end
@@ -483,7 +529,7 @@ end
 Base.getindex(I::Ion, state::Union{Tuple{String,Real},String,Int}) = ionstate(I, state)
 
 function Base.getproperty(I::Ion, s::Symbol)
-    if s == :number || s == :position
+    if s == :ionnumber || s == :position
         if typeof(getfield(I, s)) <: Missing
             @warn "ion has not been added to a configuration"
         return missing

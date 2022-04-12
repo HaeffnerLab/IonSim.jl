@@ -8,7 +8,7 @@ using Suppressor
 
 
 # setup system
-C = Ca40(["S-1/2", "D-1/2"])
+C = Ca40([("S1/2", -1//2), ("D5/2", -1//2)])
 chain = LinearChain(
     ions=[C, C], com_frequencies=(x=2,y=2,z=1), vibrational_modes=(x=[1], y=[], z=[1])
 )
@@ -63,26 +63,26 @@ end
 
 @testset "operators -- Ion operators" begin
     # test that ionstate constructs the appropriate state for a single ion
-    @test ionstate(C, "S-1/2").data == ionstate(C, 1).data == ComplexF64[1; 0]
-    @test ionstate(C, "D-1/2").data == ionstate(C, 2).data == ComplexF64[0; 1]
+    @test ionstate(C, ("S1/2", -1//2)).data == ionstate(C, 1).data == ComplexF64[1; 0]
+    @test ionstate(C, ("D5/2", -1//2)).data == ionstate(C, 2).data == ComplexF64[0; 1]
 
     # test ionstate for an IonConfiguration input
-    @test ionstate(chain, "S-1/2", "D-1/2").data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
+    @test ionstate(chain, ("S1/2", -1//2), ("D5/2", -1//2)).data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
     @test ionstate(chain, 1, 2).data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
     
     # test ionstate for an Trap input
-    @test ionstate(T, "S-1/2", "D-1/2").data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
+    @test ionstate(T, ("S1/2", -1//2), ("D5/2", -1//2)).data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
 
     # test sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}}
-    @test sigma(C, "S-1/2", "D-1/2").data == sigma(C, 1, 2).data == ComplexF64[0 1; 0 0]
+    @test sigma(C, ("S1/2", -1//2), ("D5/2", -1//2)).data == sigma(C, 1, 2).data == ComplexF64[0 1; 0 0]
     # test sigma(ion::Ion, ψ1::T<:Union{String,Int})
-    @test sigma(C, "S-1/2").data == sigma(C, 1).data == ComplexF64[1 0; 0 0]
+    @test sigma(C, ("S1/2", -1//2)).data == sigma(C, 1).data == ComplexF64[1 0; 0 0]
 
     # test ionprojector for IonConfiguration input
-    ψ = ionprojector(chain, "S-1/2", "D-1/2", only_ions=true)
+    ψ = ionprojector(chain, ("S1/2", -1//2), ("D5/2", -1//2), only_ions=true)
     @test  ψ.data == kron(ComplexF64[0; 1] * ComplexF64[0; 1]', ComplexF64[1; 0] * ComplexF64[1; 0]')
-    @test ionprojector(chain, "S-1/2", "D-1/2") == ψ ⊗ one(modes[1]) ⊗ one(modes[2])
-    @test ψ == ionprojector(T, "S-1/2", "D-1/2", only_ions=true)
+    @test ionprojector(chain, ("S1/2", -1//2), ("D5/2", -1//2)) == ψ ⊗ one(modes[1]) ⊗ one(modes[2])
+    @test ψ == ionprojector(T, ("S1/2", -1//2), ("D5/2", -1//2), only_ions=true)
 end
 
 

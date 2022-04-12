@@ -1,81 +1,123 @@
 using QuantumOptics: NLevelBasis, nlevelstate
 using Test, IonSim
-const pc = IonSim.PhysicalConstants
+using IonSim.PhysicalConstants
 using Suppressor
 
 
 @suppress_err begin
 
-
-@testset "ions -- Ca40" begin
+@testset "ions -- general" begin
     C = Ca40()
     # test for required fields
-    @test mass(C) == pc.m_ca40
-    @test typeof(level_structure(C)) == OrderedDict{String,NamedTuple}
-    @test selected_level_structure(C) == level_structure(C)
-    @test typeof(matrix_elements(C)) == OrderedDict{Tuple,Function}
-    @test selected_matrix_elements(C) == matrix_elements(C)
-    @test ismissing(ion_number(C))
-    @test ismissing(ion_position(C))
-    @test typeof(stark_shift(C)) == OrderedDict{String,Real}
+    @test typeof(speciesproperties(C)) <: NamedTuple
+    @test typeof(sublevels(C)) == Vector{Tuple{String, Real}}
+    @test typeof(sublevel_aliases(C)) == Dict{String, Tuple}
+    @test isempty(sublevel_aliases(C))
+    @test typeof(shape(C)) == Vector{Int64}
+    @test typeof(stark_shift(C)) == OrderedDict{Tuple, Real}
+    @test typeof(ionnumber(C)) == Missing
+    @test typeof(ionposition(C)) == Missing
 
     # test ==
     C1 = Ca40()
     @test C1 == C
-
-    # test inner constructors for Ca40
-    C1 = Ca40(["S-1/2", "D-1/2"])
-    @test collect(keys(C1.selected_level_structure)) == ["S-1/2", "D-1/2"]
-    C1copy = copy(C1)
-    @test selected_level_structure(C1copy) == selected_level_structure(C1)
-
-    # make sure print/show don't throw any errors
-    @suppress print(C); show(C)
-
-    # test matrix_element
-    E = 100randn(); γ = 100randn(); ϕ = 100randn()
-    @test matrix_element(C, ["S-1/2", "D-1/2"], E, γ, ϕ) == C.matrix_elements[("S-1/2", "D-1/2")](E, γ, ϕ)
-
-    # Test matrix_element function for a specific collecion of parameters that have been
-    # pre-evaluated independently. Hopefully this will fail if the function is constructed
-    # improperly
-    @test C.selected_matrix_elements[("S-1/2", "D-1/2")](1, 0, 45) ≈ 4.2248 rtol=1e-4
-    @test sum(C.selected_matrix_elements[("S-1/2", "D-1/2")].(0, 90, 0:0.1:90)) == 0 
     
-    # Test zero_stark_shift
-    C.stark_shift["S-1/2"] = 10
-    zero_stark_shift(C)
-    @test sum(values(C.stark_shift)) == 0
+    # test aliases
+    set_sublevel_alias!(C, ("S1/2", -1/2), "S")
+    @test sublevel_aliases(C) == Dict("S" => ("S1/2", -1/2))
+    clear_sublevel_alias!(C, ("S1/2", -1/2))
 
-    # make sure improper indexing of Ca40 yields an AssertionError
+    set_sublevel_alias!(C, [(("S1/2", -1/2), "S")
+                            (("D5/2", -1/2), "D")])
+    @test sublevel_aliases(C) == Dict("S" => ("S1/2", -1/2),
+                                      "D" => ("D5/2", -1/2))
+    clear_sublevel_alias!(C, ["S", "D"])
+
+    set_sublevel_alias!(C, Dict("0" => ("S1/2", 1/2),
+                                "1" => ("D5/2", 5/2)))
+    @test sublevel_aliases(C) == Dict("0" => ("S1/2", 1/2),
+                                      "1" => ("D5/2", 5/2))
+    clear_all_sublevel_aliases!(C)
+
+    # set some aliases for convenience
+    set_sublevel_alias!(C, ("S1/2", -1/2), "S")
+    set_sublevel_alias!(C, ("D5/2", -5/2), "D")
+
+    #test stark shift
+    set_stark_shift!(C, "S", 10.0)
+    @test stark_shift(C, "S") == 10.0
+    zero_stark_shift!(C)
+    @test stark_shift(C, "S") == 0.0
+
+    # test levels and sublevels
+    @test levels(C) == ["S1/2", "D5/2"]
+    @test sublevelalias(C, ("S1/2", -1/2)) == "S"
+    @test sublevelalias(C, ("D5/2", -1/2)) == nothing
+    @test alias2sublevel(C, "S") == ("S1/2", -1/2)
+    @test sublevel2level(C, "S") == "S1/2"
+    @test sublevel2level(C, ("D5/2", -3/2)) == "D5/2"
+
+    # test level and sublevel properties
+    @test quantumnumbers(C, "D").m == -5//2
+    @test quantumnumbers(C, ("D5/2", 1/2)).m == 1//2
+
+    @test energy(C, "S1/2") == energy(C, "S")
+    @test energy(C, "S1/2") != energy(C, "S", B=1e-4)
+    @test transitionwavelength(C, ("S", "D")) ≈ 7.29147e-7
+end
+
+@testset "ions -- Ca40" begin
+    C = Ca40()
+
+    # set some aliases for convenience
+    set_sublevel_alias!(C, ("S1/2", -1/2), "S")
+    set_sublevel_alias!(C, ("D5/2", -5/2), "D")
+    
+    # test for general species properties
+    @test mass(C) ≈ 6.635943757345042e-26
+    @test charge(C) ≈ e
+    @test nuclearspin(C) == 0
+
+    @test landegf(quantumnumbers(C, "D")) == 6//5
+    @test landegf(C, "D") == 6//5
+
+    # test zeeman shift using quantum numbers of the S and D states
+    @test zeeman_shift(1e-4, quantumnumbers(C, "S")) ≈ -1.3996244961550953e6
+    @test zeeman_shift(1e-4, quantumnumbers(C, "D")) ≈ -4.198873488465285e6
+
+    # test zeeman shift using the ion itself as an input, which will use the custom-defined g-factors
+    # for the S1/2 and D5/2 states and thus give slightly different results
+    @test zeeman_shift(C, "S", 1e-4) ≈ -1.4012037204665968e6
+    @test zeeman_shift(C, "D", 1e-4) ≈ -4.200042174919575e6
+
+    @test leveltransitions(C) == [("S1/2", "D5/2")]
+    @test length(subleveltransitions(C)) == 10
+
+    @test lifetime(C, "D5/2") ≈ 1.16795141322121
+
+    @test matrix_element(C, ("S", "D"), 1e5, x̂, ŷ, ẑ) ≈ 472761.18184781645
+
+    # # make sure improper indexing of Ca40 yields an AssertionError
     @test_throws AssertionError C[""]
 
-    # test indexing
-    @test C1["S-1/2"].data == ComplexF64[1; 0]
-    @test C1["D-1/2"].data == ComplexF64[0; 1]
+    # # test indexing
+    C1 = Ca40([("S1/2", -1/2), ("D5/2", -5/2)])
+    set_sublevel_alias!(C1, ("S1/2", -1/2), "S")
+    set_sublevel_alias!(C1, ("D5/2", -5/2), "D")
+    @test C1[("S1/2", -1/2)].data == ComplexF64[1; 0]
+    @test C1[("D5/2", -5/2)].data == ComplexF64[0; 1]
+    @test C1["S"].data == ComplexF64[1; 0]
+    @test C1["D"].data == ComplexF64[0; 1]
 
-    # test set properties
-    @test_throws AssertionError C.selected_level_structure = []
-    C.mass = 0  # shouldn't be allowed
-    @test C.mass == pc.m_ca40
-    C.selected_level_structure = ["S-1/2", "D-1/2"]
-    @test C.selected_level_structure == C1.selected_level_structure
+    # # test set properties
+    # @test_throws AssertionError C.selected_level_structure = []
 
-    # test get properties
+    # # test get properties
     warning = "ion has not been added to a configuration"
-    @test_logs (:warn, warning) C.number
+    @test_logs (:warn, warning) C.ionnumber
     @test_logs (:warn, warning) C.position
 end
 
-@testset "ions -- general" begin
 
-    # test specific case for Lande g-factor
-    @test gJ(2, 5/2) == 6/5
 
-    # test specific pre-evaluated case for zeeman_shift
-    val = 4.198873488465285e6
-    @test zeeman_shift(1e-4, 2, 5/2, 5/2) ≈ val
-    @test zeeman_shift(1e-4, (2, 5/2, 5/2)) ≈ val
-    @test zeeman_shift(B=1e-4, l=2, j=5/2, mⱼ=5/2) ≈ val 
-end
 end  # end suppress

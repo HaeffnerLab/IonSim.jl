@@ -361,7 +361,7 @@ function _setup_global_B_hamiltonian(T, timescale)
         return global_B_indices, global_B_scales, bfunc
     end
     for n in eachindex(ions)
-        for sublevel in ionsublevels(ions[n])
+        for sublevel in sublevels(ions[n])
             ion_op = sigma(ions[n], sublevel)
             A = embed(get_basis(T), [n], [ion_op]).data
             indices = [x[1] for x in getfield.(findall(x->x.==complex(1, 0), A), :I)]
