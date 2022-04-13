@@ -28,6 +28,17 @@ include("hamiltonians.jl")
 include("time_evolution.jl")
 include("species/include_species.jl")
 
+module GaussianNoiseProcess
+
+include("noise/ARMA_Structure.jl")
+include("noise/ARMA_NoiseProcess.jl")
+include("noise/CARMA_NoiseProcess.jl")
+include("noise/ARMA_StepInterface.jl")
+export ARMA, ARMAProcess, CARMAProcess
+export calculate_step!, accept_step!, calculate_noise!
+
+end
+
 module analytical
     include("analytic_functions.jl")
 end
