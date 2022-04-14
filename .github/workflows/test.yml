@@ -27,7 +27,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: |
+      - name: Prepare python
+        run: |
+          PYTHON=$(which python || which python3)
           python -m pip install numpy
           python -m pip install scipy
       - uses: julia-actions/setup-julia@v1
