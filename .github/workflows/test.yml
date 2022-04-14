@@ -29,8 +29,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Prepare python
         run: |
-          python -m pip install numpy
-          python -m pip install scipy
+          python3 -m pip install numpy
+          python3 -m pip install scipy
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
