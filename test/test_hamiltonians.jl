@@ -166,9 +166,9 @@ end
     @test Δ[1, 1][1] ≈ 2π && Δ[1, 2][1] ≈ 2π && Δ[2, 1][1] ≈ 0 && Δ[2, 2][1] ≈ 0
 
     # lastly let's test when resonant
+    zero_stark_shift!(C)
     T.B = 1e-4
     L1.λ = transitionwavelength(C, (("S1/2", -1/2), ("D5/2", -1/2)), T)
-    zero_stark_shift!(C)
     Δ = IonSim._Δmatrix(T, 1)
     @test Δ[1, 1][1] ≈ 0
 
