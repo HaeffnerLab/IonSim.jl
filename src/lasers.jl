@@ -4,10 +4,11 @@ export Laser
 
 
 """
-    Laser(;E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, λ=729.147e-9, pointing::Array{Tuple{Int,Real}})
+    Laser(;λ=nothing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
         
 The physical parameters defining laser light.
 **args**
+* `λ::Union{Real,Nothing}`: the wavelength of the laser in meters
 * `E::Union{Function,Real}`: magnitude of the E-field in V/m
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
@@ -16,7 +17,6 @@ The physical parameters defining laser light.
     time-dependent detuning. Units are in radians. Note: if this is set to a function of time,
     then when constructing a Hamiltonian with the `hamiltonian` function, the units of time
     will be as specified by the `timescale` keyword argument.
-* `λ::Real`: the wavelength of the laser in meters
 * `pointing`: an array of `Tuple{Int,Real}` for describing ion-laser pointing configuration.
     (first element of the tuple is the index for an ion and the second element is the scaling
     factor for the laser's Efield which must be between 0 and 1).

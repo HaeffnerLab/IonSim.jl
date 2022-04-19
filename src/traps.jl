@@ -140,9 +140,8 @@ Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
 #############################################################################################
 
 """
-This needs a docstring
-Returns a boolean that indicates whether the given ion is actually in the given trap
-Useful for checking if an error needs to be thrown
+    ionintrap(trap::Trap, ion::Ion)
+Returns a boolean that indicates whether `ion` is actually in `trap`. Useful for checking if an error needs to be thrown.
 """
 function ionintrap(trap::Trap, ion::Ion)
     return ion in ions(trap.configuration)
@@ -299,35 +298,53 @@ function Efield_from_rabi_frequency!(
     T.lasers[laser_index].E = t -> Efield
 end
 
+
 """
-This needs a docstring.
+    Bfield(T::Trap, ion::Ion)
+Retuns the value of the magnetic field in `T` at the location of `ion`, including both the trap's overall B-field and its B-field gradient.
 """
 function Bfield(T::Trap, ion::Ion)
     @assert ionintrap(T, ion) "trap does not contain ion"
     return T.B + T.∇B*ionposition(ion)
 end
 
-"""
-This needs a docstring.
-"""
-transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
-transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionfrequency(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
 
 """
-This needs a docstring.
+    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
+
+One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionwavelength(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
-transitionwavelength(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=true) = transitionwavelength(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
+transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false) = transitionfrequency(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
+transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=false) = transitionfrequency(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
+
 
 """
-This needs a docstring.
+    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
+
+One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
+"""
+transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false) = transitionwavelength(ion, transition; B=Bfield(T, ion), ignore_starkshift=ignore_starkshift)
+transitionwavelength(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift=false) = transitionwavelength(T.configuration.ions[ion_index], transition, T; ignore_starkshift=ignore_starkshift)
+
+
+"""
+    matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real)
+Calls `matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))`
+with `Efield`, `khat`, and `ϵhat` evaluated for `laser` at time `time`, and `Bhat` evaluated for `T`.
+
+One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
 matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) = matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
 matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::Real) = matrix_element(T.configuration.ions[ion_index], transition, T, laser, time)
 
 
 """
-This needs a docstring
+    zeeman_shift(I::Ion, sublevel, T::Trap)
+Calls `zeeman_shift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` in `T`.
+
+One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
 zeeman_shift(I::Ion, sublevel::Union{Tuple{String,Real},String}, T::Trap) = zeeman_shift(I, sublevel, Bfield(T, I))
 zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String,Real},String}, T::Trap) = zeeman_shift(T.configuration.ions[ion_index], sublevel, T)
@@ -336,7 +353,7 @@ zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String,Real},String}, T::Trap
 
 """
     set_gradient!(
-            T::Trap, ion_indxs::Tuple{Int,Int}, transition::Tuple{String,String}, f::Real
+            T::Trap, ion_indxs::Tuple{Int,Int}, transition::Tuple, f::Real
         )
 Sets the Bfield gradient in place to achieve a detuning `f` between the `transition` of two
 ions, which are assumed to be of the same species. `ion_indxs` refer to the 

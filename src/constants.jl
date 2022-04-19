@@ -37,16 +37,20 @@ const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
 # 3D real-space tensors
 #############################################################################################
 
-# Identity matrix
+"""`eye3`: Three-dimensional identity matrix"""
 const eye3 = [1 0 0; 0 1 0; 0 0 1]
 
-# For converting from rank-1 spherical tensors to Cartesiasn
+"""`c_rank1`: Matrix of spherical basis vectors (defined in e.g. Quantum dynamics of cold trapped ions with application to quantum computation, Appl. Phys. B 66, 181-190 (1998).
+
+Useful for converting between coordinates of rank-1 spherical tensors and Cartesian coordinates"""
 const c_rank1 = [1  /  sqrt(2)  *  [1 im 0]; #q=-1
                 [0 0 1]; #q=0
                 -1  /  sqrt(2)  *  [1 -im 0]] #q=1
 
-# For converting from rank-2 spherical tensors to Cartesiasn
-const c_rank2 = cat(1/sqrt(6)  *  [[1, im, 0] [im, -1, 0] [0, 0, 0]], #q=-2
+"""`c_rank2`: Matrix of spherical basis rank-2 tensors (defined in e.g. Quantum dynamics of cold trapped ions with application to quantum computation, Appl. Phys. B 66, 181-190 (1998).
+
+Useful for converting between coordinates of rank-2 spherical tensors and Cartesian coordinates"""
+                const c_rank2 = cat(1/sqrt(6)  *  [[1, im, 0] [im, -1, 0] [0, 0, 0]], #q=-2
                 1/sqrt(6)  *  [[0, 0, 1] [0, 0, im] [1, im, 0]], #q=-1
                     1/3  *  [[-1, 0, 0] [0, -1, 0] [0, 0, 2]], #q=0
                 1/sqrt(6)  *  [[0, 0, -1] [0, 0, im] [-1, im, 0]], #q=1
