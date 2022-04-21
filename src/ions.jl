@@ -472,7 +472,7 @@ function matrix_element(j1::Real, j2::Real, f1::Real, f2::Real, m1::Real, m2::Re
         R = eye3
     else
         a = cross(Bhat_array, [0, 0, 1])/norm(cross(Bhat_array, [0, 0, 1]))
-        theta = acos(Bhat_array[2])
+        theta = acos(Bhat_array[3])
         amatrix = [0 -a[3] a[2]; a[3] 0 -a[1]; -a[2] a[1] 0]
         R = eye3 + sin(theta)*amatrix + (1-cos(theta))*amatrix^2    # Rotation matrix in axis-angle representation (axis=a, angle=theta)
     end
