@@ -31,7 +31,7 @@ modes = get_vibrational_modes(chain)
     fb2 = qo.FockBasis(200)
     modes[1].N = 200
     i = rand(1:5); j = rand(1:5)
-    @test displace(modes[1], α, method="analytic").data[i,j] ≈ qo.displace(fb2, α).data[i,j] rtol=1e-3
+    @test displace(modes[1], α, method="analytic").data[i,j] ≈ qo.displace(fb2, α).data[i,j] atol=1e-6
 
     # test that mean excitation of thermalstate is as expected
     modes[1].N = 500
