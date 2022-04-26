@@ -1,6 +1,6 @@
 using .PhysicalConstants:PhysicalConstant
 
-export Ca40, properties_ca40
+export Ca40
 
 """
     const properties_ca40
@@ -114,3 +114,14 @@ mutable struct Ca40 <: Ion
         new(species_properties, sublevels, sublevel_aliases, shape, stark_shift, ionnumber, position)
     end
 end
+
+
+
+function Base.print(I::Ca40)
+    println("⁴⁰Ca\n")
+    for (k, v) in I.selected_sublevel_structure
+        println(k, ": ", v)
+    end
+end
+
+Base.show(io::IO, I::Ca40) = println(io, "⁴⁰Ca")  # suppress long output

@@ -76,14 +76,14 @@ function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where{Tv}
     rtol = 1e-6
     if s == :ϵ
         @assert isapprox(norm(v), 1, rtol=rtol) "!(|ϵ| = 1)"
-        if ! isapprox(ndot(L.k, v), 0, rtol=rtol)
-            @warn "!(ϵ ⟂ k)"
-        end 
+        # if ! isapprox(ndot(L.k, v), 0, rtol=rtol)
+        #     @warn "!(ϵ ⟂ k)"
+        # end 
     elseif s == :k
         @assert isapprox(norm(v), 1, rtol=rtol) "!(|k| = 1)"
-        if ! isapprox(ndot(v, L.ϵ), 0, rtol=rtol)
-            @warn "!(ϵ ⟂ k)"
-        end 
+        # if ! isapprox(ndot(v, L.ϵ), 0, rtol=rtol)
+        #     @warn "!(ϵ ⟂ k)"
+        # end 
     elseif s == :pointing
         b = Tv <: Vector{Tuple{Int64,Float64}} || Tv <: Vector{Tuple{Int64,Int64}}
         @assert b  "type != Vector{Tuple{Int,Real}}"

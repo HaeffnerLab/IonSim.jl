@@ -582,15 +582,6 @@ end
 # Overrides of Base functions
 #############################################################################################
 
-# function Base.print(I::Ca40)
-#     println("⁴⁰Ca\n")
-#     for (k, v) in I.selected_sublevel_structure
-#         println(k, ": ", v)
-#     end
-# end
-
-# Base.show(io::IO, I::Ca40) = println(io, "⁴⁰Ca")  # suppress long output
-
 Base.getindex(I::Ion, state::Union{Tuple{String,Real},String,Int}) = ionstate(I, state)
 
 function Base.getproperty(I::Ion, s::Symbol)
