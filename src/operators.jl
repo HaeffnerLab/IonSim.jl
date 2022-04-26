@@ -2,10 +2,17 @@ using QuantumOptics: projector, tensor, SparseOperator, DenseOperator, basisstat
 using LinearAlgebra: diagm
 import QuantumOptics: displace, thermalstate, coherentthermalstate, fockstate
 
-
-export create, destroy, number, displace, coherentstate, coherentthermalstate, fockstate,
-       thermalstate, sigma, ionprojector, ionstate
-
+export create,
+    destroy,
+    number,
+    displace,
+    coherentstate,
+    coherentthermalstate,
+    fockstate,
+    thermalstate,
+    sigma,
+    ionprojector,
+    ionstate
 
 #############################################################################################
 # VibrationalMode operators
@@ -15,7 +22,7 @@ export create, destroy, number, displace, coherentstate, coherentthermalstate, f
     create(v::VibrationalMode)
 returns the creation operator for `v` such that: `create(v) * v[i] = √(i+1) * v[i+1]`.
 """
-create(v::VibrationalMode) = SparseOperator(v, diagm(-1 => sqrt.(1:v.N)))
+create(v::VibrationalMode) = SparseOperator(v, diagm(-1 => sqrt.(1:(v.N))))
 
 """
     destroy(v::VibrationalMode)
@@ -27,7 +34,7 @@ destroy(v::VibrationalMode) = create(v)'
     number(v::VibrationalMode)
 Returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`.
 """
-number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:v.N))
+number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:(v.N)))
 
 """
     displace(v::VibrationalMode, α::Number; method="truncated")
@@ -39,16 +46,16 @@ dimension `v.N+1`.
 Otherwise if `method="analytic"`, the matrix elements are computed assuming an
 infinite-dimension Hilbert space. In general, this option will not return a unitary operator.
 """
-function displace(v::VibrationalMode, α::Number; method="truncated")
+function displace(v::VibrationalMode, α::Number; method = "truncated")
     @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
-    D = zeros(ComplexF64, v.N+1, v.N+1)
+    D = zeros(ComplexF64, v.N + 1, v.N + 1)
     if α == 0
         return one(v)
     elseif method ≡ "analytic"
-        @inbounds begin 
-            @simd for n in 1:v.N+1 
-                @simd for m in 1:v.N+1
+        @inbounds begin
+            @simd for n in 1:(v.N + 1)
+                @simd for m in 1:(v.N + 1)
                     D[n, m] = _Dnm(α, n, m)
                 end
             end
@@ -70,16 +77,16 @@ the thermal density matrix is generated according to the formula:
 assuming an infinite-dimensional Hilbert space, is used:
 ``[ρ_{th}]_{ij} = δ_{ij} \\frac{nⁱ}{(n+1)^{i+1}}.``
 """
-function thermalstate(v::VibrationalMode, n̄::Real; method="truncated")
+function thermalstate(v::VibrationalMode, n̄::Real; method = "truncated")
     @assert v.N ≥ n̄ "`n̄` must be less than `v.N`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if n̄ == 0
         return v[0] ⊗ v[0]'
     elseif method ≡ "truncated"
-        d = [(n̄ / (n̄+1))^i for i in 0:v.N]
+        d = [(n̄ / (n̄ + 1))^i for i in 0:(v.N)]
         return DenseOperator(v, diagm(0 => d) ./ sum(d))
     elseif method ≡ "analytic"
-        return DenseOperator(v, diagm(0 => [(n̄ / (n̄+1))^i / (n̄+1) for i in 0:v.N]))
+        return DenseOperator(v, diagm(0 => [(n̄ / (n̄ + 1))^i / (n̄ + 1) for i in 0:(v.N)]))
     end
 end
 
@@ -91,12 +98,12 @@ function coherentstate(v::VibrationalMode, α::Number)
     # this implementation is the same as in QuantumOptics.jl, but there the function is 
     # restricted to v::FockBasis, so we must reimplement here
     @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
-    k = zeros(ComplexF64, v.N+1)
+    k = zeros(ComplexF64, v.N + 1)
     k[1] = exp(-abs2(α) / 2)
-    @inbounds for n=1:v.N
-        k[n+1] = k[n] * α / √n
+    @inbounds for n in 1:(v.N)
+        k[n + 1] = k[n] * α / √n
     end
-    Ket(v, k)
+    return Ket(v, k)
 end
 
 """
@@ -108,15 +115,15 @@ complex amplitude of the displacement.
 `method` can be either `"truncated"` or `"analytic"` and this argument determines how the 
 displacement operator is computed (see: [`displace`](@ref)) .
 """
-function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method="truncated")
+function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method = "truncated")
     @assert (v.N ≥ n̄ && v.N ≥ abs(α)) "`n̄`, `α` must be less than `v.N`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if method ≡ "truncated"
         d = displace(v, α)
     elseif method ≡ "analytic"
-        d = displace(v, α, method="analytic")
+        d = displace(v, α, method = "analytic")
     end
-    d * thermalstate(v, n̄) * d'
+    return d * thermalstate(v, n̄) * d'
 end
 
 """
@@ -142,20 +149,21 @@ One may also specify `sublevel<:Int`. If `object<:Ion`, this will return the ket
 ``|index⟩ = (0 ... 1 ... 0)ᵀ`` where the nonzero element in the  column vector is located at
 `index`.
 """
-function ionstate(I::Ion, sublevel::Tuple{String,Real})
+function ionstate(I::Ion, sublevel::Tuple{String, Real})
     validatesublevel(I, sublevel)
     i = findall(sublevels(I) .== [sublevel])[1]
-    basisstate(I, i)
+    return basisstate(I, i)
 end
 ionstate(I::Ion, sublevelalias::String) = ionstate(I, alias2sublevel(I, sublevelalias))
 ionstate(I::Ion, sublevel::Int) = basisstate(I, sublevel)
-function ionstate(IC::IonConfiguration, states::Union{Tuple{String,Real},String,Int}...)
+function ionstate(IC::IonConfiguration, states::Union{Tuple{String, Real}, String, Int}...)
     ions = IC.ions
     L = length(ions)
     @assert L ≡ length(states) "wrong number of states"
-    tensor([ionstate(ions[i], states[i]) for i in 1:L]...)
+    return tensor([ionstate(ions[i], states[i]) for i in 1:L]...)
 end
-ionstate(T::Trap, states::Union{Tuple{String,Real},String,Int}...) = ionstate(T.configuration, states...)
+ionstate(T::Trap, states::Union{Tuple{String, Real}, String, Int}...) =
+    ionstate(T.configuration, states...)
 
 """
     sigma(ion::Ion, ψ1::sublevel[, ψ2::sublevel])
@@ -164,8 +172,9 @@ returned by `ion[ψᵢ]`.
 
 If ψ2 is not given, then ``|ψ1\\rangle\\langle ψ1|`` is returned.
 """
-sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{Tuple{String,Real},String,Int}} = sparse(projector(ion[ψ1], dagger(ion[ψ2])))
-sigma(ion::Ion, ψ1::Union{Tuple{String,Real},String,Int}) = sigma(ion, ψ1, ψ1)
+sigma(ion::Ion, ψ1::T, ψ2::T) where {T <: Union{Tuple{String, Real}, String, Int}} =
+    sparse(projector(ion[ψ1], dagger(ion[ψ2])))
+sigma(ion::Ion, ψ1::Union{Tuple{String, Real}, String, Int}) = sigma(ion, ψ1, ψ1)
 
 """
     ionprojector(obj, sublevels...; only_ions=false)
@@ -178,7 +187,11 @@ If `only_ions=true`, then the projector is defined only over the ion subspace.
 
 If instead `obj<:Trap`, then this is the same as `obj = Trap.configuration`.
 """
-function ionprojector(IC::IonConfiguration, sublevels::Union{Tuple{String,Real},String,Int}...; only_ions=false)
+function ionprojector(
+    IC::IonConfiguration,
+    sublevels::Union{Tuple{String, Real}, String, Int}...;
+    only_ions = false
+)
     ions = IC.ions
     L = length(ions)
     @assert L ≡ length(sublevels) "wrong number of sublevels"
@@ -189,12 +202,15 @@ function ionprojector(IC::IonConfiguration, sublevels::Union{Tuple{String,Real},
             observable = observable ⊗ one(mode)
         end
     end
-    observable
+    return observable
 end
-function ionprojector(T::Trap, sublevels::Union{Tuple{String,Real},String,Int}...; only_ions=false)
-    ionprojector(T.configuration, sublevels..., only_ions=only_ions)
-end 
-
+function ionprojector(
+    T::Trap,
+    sublevels::Union{Tuple{String, Real}, String, Int}...;
+    only_ions = false
+)
+    return ionprojector(T.configuration, sublevels..., only_ions = only_ions)
+end
 
 #############################################################################################
 # internal functions
@@ -202,35 +218,39 @@ end
 
 # computes iⁿ(-i)ᵐ * (s! / ((s+1) * √(m!n!)))
 function _pf(s::Int, n::Int, m::Int)
-    n -= 1; m -= 1; s -= 1;
-    @assert n<=s && m<=s
-    val = 1. / (s+1)
-    for i in 0:s-2
-        if (m-i > 0) && (n-i > 0)
-            val *= (s-i) / (√((m-i) * (n-i)))
-        elseif m-i > 0
-            val *= (s-i) / (√(m-i))
-        elseif n-i > 0
-            val *= (s-i) / (√(n-i))
+    n -= 1
+    m -= 1
+    s -= 1
+    @assert n <= s && m <= s
+    val = 1.0 / (s + 1)
+    for i in 0:(s - 2)
+        if (m - i > 0) && (n - i > 0)
+            val *= (s - i) / (√((m - i) * (n - i)))
+        elseif m - i > 0
+            val *= (s - i) / (√(m - i))
+        elseif n - i > 0
+            val *= (s - i) / (√(n - i))
         else
-            val *= (s-i)
+            val *= (s - i)
         end
     end
-    (-1im)^n * 1im^m * val 
+    return (-1im)^n * 1im^m * val
 end
 
 # computes the coefficients for the 'probabilist's' Hermite polynomial of order n
 function _He(n::Int)
-    a = zeros(Float64, n+2, n+2)
-    a[1, 1] = 1; a[2, 1] = 0; a[2, 2] = 1
-    for i in 2:n+1, j in 1:n+1
+    a = zeros(Float64, n + 2, n + 2)
+    a[1, 1] = 1
+    a[2, 1] = 0
+    a[2, 2] = 1
+    for i in 2:(n + 1), j in 1:(n + 1)
         if j ≡ 1
-            a[i+1, j] = -(i-1) * a[i-1, j]
+            a[i + 1, j] = -(i - 1) * a[i - 1, j]
         else
-            a[i+1, j] = a[i, j-1] - (i-1) * a[i - 1, j]
+            a[i + 1, j] = a[i, j - 1] - (i - 1) * a[i - 1, j]
         end
     end
-    [a[n+1, k+1] for k in 0:n]
+    return [a[n + 1, k + 1] for k in 0:n]
 end
 
 # computes He_n(x) (nth order Hermite polynomial)
@@ -238,12 +258,12 @@ function _fHe(x::Real, n::Int)
     n -= 1
     He = 1.0, x
     if n < 2
-        return He[n+1]
+        return He[n + 1]
     end
     for i in 2:n
-        He = He[2], x * He[2] - (i-1) * He[1] 
+        He = He[2], x * He[2] - (i - 1) * He[1]
     end
-    He[2]
+    return He[2]
 end
 
 # computes the matrix elements ⟨m|Dˢ(α)|n⟩ for the truncated displacement operator Dˢ(α)
@@ -251,44 +271,50 @@ end
 function _Dtrunc(Ω, Δ, η, ν, rs, s, n, prefactor, timescale, L, t)
     d = complex(1, 0)
     for i in 1:L
-        val = 0.
+        val = 0.0
         Δn = n[1][i] - n[2][i]
         for r in rs[i]
-            val += exp(im * r * abs(η[i])) * _fHe(r, n[2][i]) * _fHe(r, n[1][i]) / _fHe(r, s[i])^2
+            val +=
+                exp(im * r * abs(η[i])) * _fHe(r, n[2][i]) * _fHe(r, n[1][i]) /
+                _fHe(r, s[i])^2
         end
-        d *= (exp(im * Δn * (2π * ν[i] * timescale * t + π/2 + π * (sign(η[i] < 0))))
-              * val * prefactor[i])
+        d *= (
+            exp(im * Δn * (2π * ν[i] * timescale * t + π / 2 + π * (sign(η[i] < 0)))) *
+            val *
+            prefactor[i]
+        )
     end
     g = Ω * exp(-1im * t * Δ)
-    g * d, g * conj(d)
+    return g * d, g * conj(d)
 end
 
 # associated Laguerre polynomial
 function _alaguerre(x::Real, n::Int, k::Int)
     L = 1.0, -x + k + 1
     if n < 2
-        return L[n+1]
+        return L[n + 1]
     end
     for i in 2:n
         L = L[2], ((k + 2i - 1 - x) * L[2] - (k + i - 1) * L[1]) / i
     end
-    L[2]
+    return L[2]
 end
 
 # matrix elements of the displacement operator in the Fock Basis, assuming an
 # infinite-dimensional Hilbert space. https://doi.org/10.1103/PhysRev.177.1857
 function _Dnm(ξ::Number, n::Int, m::Int)
-    if n < m 
-        return (-1)^isodd(abs(n-m)) * conj(_Dnm(ξ, m, n)) 
+    if n < m
+        return (-1)^isodd(abs(n - m)) * conj(_Dnm(ξ, m, n))
     end
-    n -= 1; m -= 1
+    n -= 1
+    m -= 1
     s = 1.0
-    for i in m+1:n
+    for i in (m + 1):n
         s *= i
     end
-    ret = sqrt(1 / s) * ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
+    ret = sqrt(1 / s) * ξ^(n - m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n - m)
     if isnan(ret)
-        return 1.0 * (n==m)
+        return 1.0 * (n == m)
     end
-    ret
+    return ret
 end

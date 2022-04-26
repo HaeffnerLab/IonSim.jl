@@ -3,7 +3,6 @@ import QuantumOptics.stochastic
 using QuantumOptics: Basis, Operator, CompositeBasis, Ket, StateVector
 using QuantumOptics.timeevolution: DecayRates
 
-
 #############################################################################################
 # Wrap QuantumOptics solvers in order to implement our form of basis check
 #############################################################################################
@@ -56,13 +55,22 @@ using QuantumOptics.timeevolution: DecayRates
 
 # when solving for unitary evolution, it is convenient to switch back and forth between an 
 # initial state that is pure and one that is mixed
-function timeevolution.schroedinger_dynamic(tspan, rho0::T, f::Function;
-            fout::Union{Function,Nothing}=nothing, kwargs...
-        ) where {B<:Basis,T<:Operator{B,B}}
-    check_bases(f(0., 0.).basis_l, rho0.basis_l)
+function timeevolution.schroedinger_dynamic(
+    tspan,
+    rho0::T,
+    f::Function;
+    fout::Union{Function, Nothing} = nothing,
+    kwargs...
+) where {B <: Basis, T <: Operator{B, B}}
+    check_bases(f(0.0, 0.0).basis_l, rho0.basis_l)
     Jvec = []
-    timeevolution.master_dynamic(tspan, rho0, (t,rho) -> (f(t, rho), Jvec, Jvec);
-        fout=fout, kwargs...)
+    return timeevolution.master_dynamic(
+        tspan,
+        rho0,
+        (t, rho) -> (f(t, rho), Jvec, Jvec);
+        fout = fout,
+        kwargs...
+    )
 end
 
 check_bases(b1::CompositeBasis, b2::CompositeBasis) = b1 == b2 || throw(IncompatibleBases())
