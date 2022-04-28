@@ -5,7 +5,6 @@ using QuantumOptics: SparseOperator, embed
 
 export hamiltonian
 
-
 """
     hamiltonian(
             T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
@@ -51,15 +50,23 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
 
 """
 function hamiltonian(
-        T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
-        rwa_cutoff::Real=Inf, displacement::String="truncated", time_dependent_eta::Bool=false
-    ) 
-    hamiltonian(
-            T, T.configuration, timescale, lamb_dicke_order, rwa_cutoff, displacement,
-            time_dependent_eta
-        ) 
+    T::Trap;
+    timescale::Real = 1e-6,
+    lamb_dicke_order::Union{Vector{Int}, Int} = 1,
+    rwa_cutoff::Real = Inf,
+    displacement::String = "truncated",
+    time_dependent_eta::Bool = false
+)
+    return hamiltonian(
+        T,
+        T.configuration,
+        timescale,
+        lamb_dicke_order,
+        rwa_cutoff,
+        displacement,
+        time_dependent_eta
+    )
 end
-
 
 #############################################################################################
 # Hamiltonian for a linear configuration of ions
@@ -68,19 +75,28 @@ end
 # At each time step, this function updates in-place the 2D array describing the full system
 # Hamiltonian. 
 function hamiltonian(
-        T::Trap, configuration::LinearChain, timescale::Real, 
-        lamb_dicke_order::Union{Vector{Int},Int}, rwa_cutoff::Real, displacement::String,
-        time_dependent_eta::Bool
-    )
+    T::Trap,
+    configuration::LinearChain,
+    timescale::Real,
+    lamb_dicke_order::Union{Vector{Int}, Int},
+    rwa_cutoff::Real,
+    displacement::String,
+    time_dependent_eta::Bool
+)
     b, indxs, cindxs = _setup_base_hamiltonian(
-            T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dependent_eta
-        )
+        T,
+        timescale,
+        lamb_dicke_order,
+        rwa_cutoff,
+        displacement,
+        time_dependent_eta
+    )
     aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(T, timescale)
     S = SparseOperator(get_basis(T))
     function f(t, ψ)  # a two argument function is required in the QuantumOptics solvers
         @inbounds begin
             @simd for i in 1:length(indxs)
-                bt_i, conj_bt_i = b[i](t)::Tuple{ComplexF64,ComplexF64}
+                bt_i, conj_bt_i = b[i](t)::Tuple{ComplexF64, ComplexF64}
                 @simd for j in 1:length(indxs[i])
                     i1, i2 = indxs[i][j]
                     S.data[i1, i2] = bt_i
@@ -88,7 +104,7 @@ function hamiltonian(
                         S.data[i2, i1] = conj(bt_i)
                         if length(cindxs[i]) != 0
                             flag = cindxs[i][1][1]
-                            i3, i4 = cindxs[i][j+1]
+                            i3, i4 = cindxs[i][j + 1]
                             if flag == -1
                                 S.data[i3, i4] = -conj_bt_i
                                 S.data[i4, i3] = -conj(conj_bt_i)
@@ -104,7 +120,7 @@ function hamiltonian(
                 return S
             else
                 @simd for indx in aui
-                    S.data[indx, indx] = complex(0.)
+                    S.data[indx, indx] = complex(0.0)
                 end
                 @simd for i in 1:length(gbi)
                     zeeman_t = bfunc(t)::Float64
@@ -161,154 +177,230 @@ Finally, since we require the Hamiltonian to be Hermitian, h[i, j] = conj(h[j, i
 function does not keeps track of only one of these pairs.
 =#
 function _setup_base_hamiltonian(
-        T, timescale, lamb_dicke_order, rwa_cutoff, displacement, time_dependent_eta
-    )
+    T,
+    timescale,
+    lamb_dicke_order,
+    rwa_cutoff,
+    displacement,
+    time_dependent_eta
+)
     rwa_cutoff *= timescale
     modes = reverse(get_vibrational_modes(T.configuration))
     L = length(modes)
     νlist = Tuple([mode.ν for mode in modes])
-    mode_dims = [mode.N+1 for mode in modes]
-    
+    mode_dims = [mode.N + 1 for mode in modes]
+
     ions = reverse(T.configuration.ions)
     Q = prod([ion.shape[1] for ion in ions])
     ion_arrays = [spdiagm(0 => [true for _ in 1:ion.shape[1]]) for ion in ions]
-    
+
     ηm, Δm, Ωm = _ηmatrix(T), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
     lamb_dicke_order = _check_lamb_dicke_order(lamb_dicke_order, L)
     ld_array, rows, vals = _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     if displacement == "truncated" && time_dependent_eta
-        rootlist = map(x->real.(roots(_He(x))), mode_dims)
+        rootlist = map(x -> real.(roots(_He(x))), mode_dims)
     end
 
     indxs_dict = Dict()
-    repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
-    conj_repeated_indices = Vector{Vector{Tuple{Int64,Int64}}}(undef, 0)
+    repeated_indices = Vector{Vector{Tuple{Int64, Int64}}}(undef, 0)
+    conj_repeated_indices = Vector{Vector{Tuple{Int64, Int64}}}(undef, 0)
     functions = FunctionWrapper[]
     work_eta = zeros(Float64, L)
     local ts, ion_rows, ion_cols, ion_idxs, ion_reps, rn
-    
+
     # iterate over ions and lasers
     for n in eachindex(ions), m in eachindex(T.lasers)
         if m ≡ 1
             rn = length(ions) - n + 1
             ts = subleveltransitions(ions[n])
-            C = sum([i*real.(sigma(ions[n], reverse(ts[i])...).data) for i in 1:length(ts)])
+            C = sum([
+                i * real.(sigma(ions[n], reverse(ts[i])...).data) for i in 1:length(ts)
+            ])
             if length(ions) == 1
                 K = C
             else
-                K = kron(ion_arrays[1:n-1]..., C, ion_arrays[n+1:length(ions)]...)
+                K = kron(ion_arrays[1:(n - 1)]..., C, ion_arrays[(n + 1):length(ions)]...)
             end
             ion_rows, ion_cols, ion_vals = findnz(K)
             ion_idxs = sortperm(real.(ion_vals))
             ion_reps = Int(Q / size(C, 1))
         end
-        ηnm = view(ηm, rn, m, :) 
-        function ηlist(t)  
+        ηnm = view(ηm, rn, m, :)
+        function ηlist(t)
             for i in 1:L
                 η = ηnm[i]
                 typeof(η) <: Number ? work_eta[i] = ηnm[i] : work_eta[i] = ηnm[i](t)
             end
-            work_eta
+            return work_eta
         end
-        if displacement == "truncated" && !time_dependent_eta 
+        if displacement == "truncated" && !time_dependent_eta
             D_arrays = []
             for (i, mode) in enumerate(modes)
                 push!(D_arrays, real.(displace(mode, ηlist(0)[i]).data))
             end
         end
-        
+
         # iterate over ion-laser transitions
         for (ti, tr) in enumerate(ts)
             Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]
-            Δ_2π = Δ/2π
+            Δ_2π = Δ / 2π
             typeof(Ω) <: Number && continue  # e.g. the laser doesn't shine on this ion
-            locs = view(ion_idxs, (ti - 1) * ion_reps + 1 : ti * ion_reps)
-            for j in 1:prod(mode_dims); for i in nzrange(ld_array, j)
-                ri = rows[i]
-                ri<j && continue
-                cf = vals[i]
-                pflag = abs(Δ_2π + cf) > rwa_cutoff
-                nflag = abs(Δ_2π - cf) > rwa_cutoff
-                (pflag && nflag) && continue
-                rev_indxs = false
-                idxs = _inv_get_kron_indxs((rows[i], j), mode_dims)
-                for l in 1:L
-                    (idxs[1][l] ≠ idxs[2][l] && typeof(ηnm[l]) <: Number) && @goto cl
-                end
-                s_ri = []
-                s_cri = []
-                for loc in locs
-                    if !pflag
-                        push!(s_ri, (Q*(ri - 1) + ion_rows[loc], Q*(j - 1) + ion_cols[loc]))
-                        if !nflag && ri≠j
-                            push!(s_cri, 
-                                    (Q*(j - 1) + ion_rows[loc], Q*(ri - 1) + ion_cols[loc]))
-                        end
-                    elseif !nflag
-                        push!(s_ri, (Q*(j - 1) + ion_rows[loc], Q*(ri - 1) + ion_cols[loc]))
-                        rev_indxs = true
+            locs = view(ion_idxs, ((ti - 1) * ion_reps + 1):(ti * ion_reps))
+            for j in 1:prod(mode_dims)
+                for i in nzrange(ld_array, j)
+                    ri = rows[i]
+                    ri < j && continue
+                    cf = vals[i]
+                    pflag = abs(Δ_2π + cf) > rwa_cutoff
+                    nflag = abs(Δ_2π - cf) > rwa_cutoff
+                    (pflag && nflag) && continue
+                    rev_indxs = false
+                    idxs = _inv_get_kron_indxs((rows[i], j), mode_dims)
+                    for l in 1:L
+                        (idxs[1][l] ≠ idxs[2][l] && typeof(ηnm[l]) <: Number) && @goto cl
                     end
-                end
-                if rev_indxs
-                    idxs = reverse(idxs)
-                end
-                if length(s_cri) > 0
-                    parity = sum(map(x -> isodd(abs(x[1] - x[2])), zip(idxs...)))
-                    pushfirst!(s_cri, (-1 * isodd(parity), 0))
-                end
-                
-                # push information to top-level lists/ construct time-dep function
-                if displacement == "truncated" && !time_dependent_eta
-                    D = Tuple([D_arrays[i][idxs[1][i], idxs[2][i]] for i in 1:L])
-                elseif displacement == "analytic" && !time_dependent_eta
-                    D = Tuple([_Dnm_cnst_eta(ηlist(0)[i], idxs[1][i], idxs[2][i]) for i in 1:L])
-                elseif displacement == "truncated"
-                    pflist = [_pf(mode_dims[i], idxs[1][i], idxs[2][i]) for i in 1:L]
-                end
-                row, col = s_ri[1]
-                if haskey(indxs_dict, s_ri[1]) 
-                    # this will happen when multiple lasers address the same transition
-                    functions[indxs_dict[row, col]] = 
-                        let 
+                    s_ri = []
+                    s_cri = []
+                    for loc in locs
+                        if !pflag
+                            push!(
+                                s_ri,
+                                (Q * (ri - 1) + ion_rows[loc], Q * (j - 1) + ion_cols[loc])
+                            )
+                            if !nflag && ri ≠ j
+                                push!(
+                                    s_cri,
+                                    (
+                                        Q * (j - 1) + ion_rows[loc],
+                                        Q * (ri - 1) + ion_cols[loc]
+                                    )
+                                )
+                            end
+                        elseif !nflag
+                            push!(
+                                s_ri,
+                                (Q * (j - 1) + ion_rows[loc], Q * (ri - 1) + ion_cols[loc])
+                            )
+                            rev_indxs = true
+                        end
+                    end
+                    if rev_indxs
+                        idxs = reverse(idxs)
+                    end
+                    if length(s_cri) > 0
+                        parity = sum(map(x -> isodd(abs(x[1] - x[2])), zip(idxs...)))
+                        pushfirst!(s_cri, (-1 * isodd(parity), 0))
+                    end
+
+                    # push information to top-level lists/ construct time-dep function
+                    if displacement == "truncated" && !time_dependent_eta
+                        D = Tuple([D_arrays[i][idxs[1][i], idxs[2][i]] for i in 1:L])
+                    elseif displacement == "analytic" && !time_dependent_eta
+                        D = Tuple([
+                            _Dnm_cnst_eta(ηlist(0)[i], idxs[1][i], idxs[2][i]) for i in 1:L
+                        ])
+                    elseif displacement == "truncated"
+                        pflist = [_pf(mode_dims[i], idxs[1][i], idxs[2][i]) for i in 1:L]
+                    end
+                    row, col = s_ri[1]
+                    if haskey(indxs_dict, s_ri[1])
+                        # this will happen when multiple lasers address the same transition
+                        functions[indxs_dict[row, col]] = let
                             a = functions[indxs_dict[row, col]]
                             if !time_dependent_eta
-                                FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                                    t -> a(t) .+ _D_cnst_eta(
-                                        Ω(t), Δ, νlist, timescale, idxs, D, t, L))
+                                FunctionWrapper{Tuple{ComplexF64, ComplexF64}, Tuple{Float64}}(
+                                    t ->
+                                        a(t) .+ _D_cnst_eta(
+                                            Ω(t),
+                                            Δ,
+                                            νlist,
+                                            timescale,
+                                            idxs,
+                                            D,
+                                            t,
+                                            L
+                                        )
+                                )
                             elseif displacement == "analytic"
-                                FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                                    t -> a(t) .+ _D(
-                                        Ω(t), Δ, ηlist(t), νlist, timescale, idxs, t, L))
+                                FunctionWrapper{Tuple{ComplexF64, ComplexF64}, Tuple{Float64}}(
+                                    t ->
+                                        a(t) .+ _D(
+                                            Ω(t),
+                                            Δ,
+                                            ηlist(t),
+                                            νlist,
+                                            timescale,
+                                            idxs,
+                                            t,
+                                            L
+                                        )
+                                )
                             elseif displacement == "truncated"
-                                FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                                    t -> a(t) .+ _Dtrunc( 
-                                        Ω(t), Δ, ηlist(t), νlist, rootlist, mode_dims, idxs, 
-                                        pflist, timescale, L, t))
+                                FunctionWrapper{Tuple{ComplexF64, ComplexF64}, Tuple{Float64}}(
+                                    t ->
+                                        a(t) .+ _Dtrunc(
+                                            Ω(t),
+                                            Δ,
+                                            ηlist(t),
+                                            νlist,
+                                            rootlist,
+                                            mode_dims,
+                                            idxs,
+                                            pflist,
+                                            timescale,
+                                            L,
+                                            t
+                                        )
+                                )
                             end
                         end
-                else
-                    if !time_dependent_eta
-                        f = FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                                t -> _D_cnst_eta(Ω(t), Δ, νlist, timescale, idxs, D, t, L))
-                    elseif displacement == "analytic"
-                        f = FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                                t -> _D(Ω(t), Δ, ηlist(t), νlist, timescale, idxs, t, L))
-                    elseif displacement == "truncated"
-                        f = FunctionWrapper{Tuple{ComplexF64,ComplexF64},Tuple{Float64}}(
-                                    t -> _Dtrunc( 
-                                        Ω(t), Δ, ηlist(t), νlist, rootlist, mode_dims, idxs, 
-                                        pflist, timescale, L, t))
+                    else
+                        if !time_dependent_eta
+                            f = FunctionWrapper{
+                                Tuple{ComplexF64, ComplexF64},
+                                Tuple{Float64}
+                            }(
+                                t -> _D_cnst_eta(Ω(t), Δ, νlist, timescale, idxs, D, t, L)
+                            )
+                        elseif displacement == "analytic"
+                            f = FunctionWrapper{
+                                Tuple{ComplexF64, ComplexF64},
+                                Tuple{Float64}
+                            }(
+                                t ->
+                                    _D(Ω(t), Δ, ηlist(t), νlist, timescale, idxs, t, L)
+                            )
+                        elseif displacement == "truncated"
+                            f = FunctionWrapper{
+                                Tuple{ComplexF64, ComplexF64},
+                                Tuple{Float64}
+                            }(
+                                t -> _Dtrunc(
+                                    Ω(t),
+                                    Δ,
+                                    ηlist(t),
+                                    νlist,
+                                    rootlist,
+                                    mode_dims,
+                                    idxs,
+                                    pflist,
+                                    timescale,
+                                    L,
+                                    t
+                                )
+                            )
+                        end
+                        push!(functions, f)
+                        push!(repeated_indices, s_ri)
+                        push!(conj_repeated_indices, s_cri)
+                        indxs_dict[row, col] = length(repeated_indices)
                     end
-                    push!(functions, f)
-                    push!(repeated_indices, s_ri)
-                    push!(conj_repeated_indices, s_cri)
-                    indxs_dict[row, col] = length(repeated_indices)
+                    @label cl
                 end
-                @label cl
-            end; end
+            end
         end
     end
-    functions, repeated_indices, conj_repeated_indices
+    return functions, repeated_indices, conj_repeated_indices
 end
 
 # δν(t) × aᵀa terms for Hamiltonian. This function returns an array of functions
@@ -326,20 +418,21 @@ function _setup_δν_hamiltonian(T, timescale)
         δν = modes[l].δν
         mode = modes[l]
         (mode._cnst_δν && δν(0) == 0) && continue
-        push!(δν_functions, FunctionWrapper{Float64,Tuple{Float64}}(
-                    t -> @fastmath 2π * δν(t) * τ
-                ))
+        push!(
+            δν_functions,
+            FunctionWrapper{Float64, Tuple{Float64}}(t -> @fastmath 2π * δν(t) * τ)
+        )
         δν_indices_l = Vector{Vector{Int64}}(undef, 0)
         mode_op = number(mode)
-        A = embed(get_basis(T), [N+l], [mode_op]).data
+        A = embed(get_basis(T), [N + l], [mode_op]).data
         mode_dim = mode.shape[1]
-        for i in 1:mode_dim-1
-            indices = [x[1] for x in getfield.(findall(x->x.==complex(i, 0), A), :I)]
+        for i in 1:(mode_dim - 1)
+            indices = [x[1] for x in getfield.(findall(x -> x .== complex(i, 0), A), :I)]
             push!(δν_indices_l, indices)
         end
         push!(δν_indices, δν_indices_l)
     end
-    δν_indices, δν_functions
+    return δν_indices, δν_functions
 end
 
 # Hamiltonian terms for global Bfield fluctuations encoded in T.δB. If T.δB=0, this function
@@ -356,7 +449,7 @@ function _setup_global_B_hamiltonian(T, timescale)
     global_B_scales = Vector{Float64}(undef, 0)
     δB = T.δB
     τ = timescale
-    bfunc = FunctionWrapper{Float64,Tuple{Float64}}(t -> 2π * δB(t * τ))
+    bfunc = FunctionWrapper{Float64, Tuple{Float64}}(t -> 2π * δB(t * τ))
     if T._cnst_δB && δB(0) == 0
         return global_B_indices, global_B_scales, bfunc
     end
@@ -364,14 +457,14 @@ function _setup_global_B_hamiltonian(T, timescale)
         for sublevel in sublevels(ions[n])
             ion_op = sigma(ions[n], sublevel)
             A = embed(get_basis(T), [n], [ion_op]).data
-            indices = [x[1] for x in getfield.(findall(x->x.==complex(1, 0), A), :I)]
+            indices = [x[1] for x in getfield.(findall(x -> x .== complex(1, 0), A), :I)]
             push!(global_B_indices, indices)
             # zeeman_shift(ions[n], sublevel, 1]) is the Zeeman shift of
             # sublevel in units of δB.
             push!(global_B_scales, τ * zeeman_shift(ions[n], sublevel, 1))
         end
     end
-    global_B_indices, global_B_scales, bfunc
+    return global_B_indices, global_B_scales, bfunc
 end
 
 # This mostly just strings together the results from _setup_global_B_hamiltonian and 
@@ -382,9 +475,8 @@ function _setup_fluctuation_hamiltonian(T, timescale)
     gbi, gbs, bfunc = _setup_global_B_hamiltonian(T, timescale)
     δνi, δνfuncs = _setup_δν_hamiltonian(T, timescale)
     all_unique_indices = convert(Vector{Int64}, _flattenall(unique([gbi; δνi])))
-    all_unique_indices, gbi, gbs, bfunc, δνi, δνfuncs
+    return all_unique_indices, gbi, gbs, bfunc, δνi, δνfuncs
 end
-
 
 #############################################################################################
 # internal functions
@@ -392,10 +484,10 @@ end
 
 # https://gist.github.com/ivirshup/e9148f01663278ca4972d8a2d9715f72
 function _flattenall(a::AbstractArray)
-    while any(x -> typeof(x)<:AbstractArray, a)
+    while any(x -> typeof(x) <: AbstractArray, a)
         a = collect(Iterators.flatten(a))
     end
-    a
+    return a
 end
 
 # A 3D array of Lamb-Dicke parameters for each combination of ion, laser and mode. Modes are
@@ -409,14 +501,15 @@ function _ηmatrix(T)
     for n in 1:N, m in 1:M, l in 1:L
         δν = vms[l].δν
         ν = vms[l].ν
-        eta = get_η(vms[l], lasers[m], ions[n], scaled=true)
+        eta = get_η(vms[l], lasers[m], ions[n], scaled = true)
         if eta == 0
-            ηnml[n,m,L-l+1] = 0
+            ηnml[n, m, L - l + 1] = 0
         else
-            ηnml[n,m,L-l+1] = FunctionWrapper{Float64,Tuple{Float64}}(t->eta / √(ν + δν(t)))
+            ηnml[n, m, L - l + 1] =
+                FunctionWrapper{Float64, Tuple{Float64}}(t -> eta / √(ν + δν(t)))
         end
     end
-    ηnml
+    return ηnml
 end
 
 # Returns an array of vectors. The rows and columns of the array refer to ions and lasers,
@@ -434,12 +527,12 @@ function _Δmatrix(T, timescale)
         Btot = B + ∇B * ionposition(ions[n])
         v = Vector{Float64}(undef, 0)
         for transition in subleveltransitions(ions[n])
-            ωa = transitionfrequency(ions[n], transition, B=Btot)
+            ωa = transitionfrequency(ions[n], transition, B = Btot)
             push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - ωa))
         end
         Δnmkj[n, m] = v
     end
-    Δnmkj
+    return Δnmkj
 end
 
 # Returns an array of vectors. the rows and columns of the array refer to ions and lasers,
@@ -454,7 +547,7 @@ function _Ωmatrix(T, timescale)
         E = lasers[m].E
         phase = lasers[m].ϕ
         transitions = subleveltransitions(ions[n])
-        s_indx = findall(x -> x[1] == n, lasers[m].pointing) 
+        s_indx = findall(x -> x[1] == n, lasers[m].pointing)
         if length(s_indx) == 0
             Ωnmkj[n, m] = [0 for _ in 1:length(transitions)]
             continue
@@ -463,18 +556,25 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 = 2π * timescale * s * matrix_element(ions[n], t, 1.0, lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
+            Ω0 =
+                2π *
+                timescale *
+                s *
+                matrix_element(ions[n], t, 1.0, lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else
-                push!(v, FunctionWrapper{ComplexF64,Tuple{Float64}}(
-                        t -> Ω0 * E(t) * exp(-im * phase(t)))
+                push!(
+                    v,
+                    FunctionWrapper{ComplexF64, Tuple{Float64}}(
+                        t -> Ω0 * E(t) * exp(-im * phase(t))
                     )
+                )
             end
         end
         Ωnmkj[n, m] = v
     end
-    Ωnmkj
+    return Ωnmkj
 end
 
 # Returns a tuple correpsonding to: [σ₊(t)]_ij ⋅ [D(ξ(t))]_ij, [σ₊(t)]_ji ⋅ [D(ξ(t))]_ji.
@@ -485,7 +585,7 @@ function _D(Ω, Δ, η, ν, timescale, n, t, L)
         d *= _Dnm(1im * η[i] * exp(im * 2π * ν[i] * timescale * t), n[1][i], n[2][i])
     end
     g = Ω * exp(-1im * t * Δ)
-    g * d, g * conj(d)
+    return g * d, g * conj(d)
 end
 
 # Returns a tuple correpsonding to: [σ₊(t)]_ij ⋅ [D(ξ(t))]_ij, [σ₊(t)]_ji ⋅ [D(ξ(t))]_ji.
@@ -495,26 +595,26 @@ end
 function _D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
     d = complex(1, 0)
     for i in 1:L
-        d *= D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π/2))
+        d *= D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π / 2))
     end
     g = Ω * exp(-1im * t * Δ)
-    g * d, g * conj(d)
+    return g * d, g * conj(d)
 end
 
 # Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ X_n (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
 # indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
 # This function returns (k, l) such that: T[k, l] = X₁[i1, j1] * X₂[i2, j2] *...* X_N[iN, jN]
-function _get_kron_indxs(indxs::Vector{Tuple{Int64,Int64}}, dims::Vector{Int64})
+function _get_kron_indxs(indxs::Vector{Tuple{Int64, Int64}}, dims::Vector{Int64})
     L = length(indxs)
     rowcol = Int64[0, 0]
-    @simd for i in 0:L-1
+    @simd for i in 0:(L - 1)
         if i == 0
-            @inbounds rowcol .+= indxs[L-i]
+            @inbounds rowcol .+= indxs[L - i]
         else
-            @inbounds rowcol .+= (indxs[L-i] .- 1) .* prod(view(dims, 1:i))
+            @inbounds rowcol .+= (indxs[L - i] .- 1) .* prod(view(dims, 1:i))
         end
     end
-    rowcol
+    return rowcol
 end
 
 # The inverse of _get_kron_indxs. If T = X₁ ⊗ X₂ ⊗ X₃ and X₁, X₂, X₃ are M×M, N×N and L×L
@@ -536,7 +636,7 @@ function _inv_get_kron_indxs(indxs, dims)
                 row -= jM - M
                 rowflag = true
             end
-            if !colflag && col <= jM 
+            if !colflag && col <= jM
                 @inbounds ret_cols[i] = j
                 col -= jM - M
                 colflag = true
@@ -544,20 +644,21 @@ function _inv_get_kron_indxs(indxs, dims)
             rowflag && colflag && break
         end
     end
-    Tuple(ret_rows), Tuple(ret_cols)
+    return Tuple(ret_rows), Tuple(ret_cols)
 end
 
 # similar to _Dnm, but meant to be used when η is assumed constant in ξ=iηe^(i2πνt)
 function _Dnm_cnst_eta(ξ::Number, n::Int, m::Int)
-    n < m && return _Dnm_cnst_eta(ξ, m, n) * (-1)^isodd(abs(n-m))
-    n -= 1; m -= 1
+    n < m && return _Dnm_cnst_eta(ξ, m, n) * (-1)^isodd(abs(n - m))
+    n -= 1
+    m -= 1
     s = 1.0
-    for i in m+1:n
+    for i in (m + 1):n
         s *= i
     end
-    ret = sqrt(1 / s) * ξ^(n-m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n-m)
-    isnan(ret) && return 1.0 * (n==m)
-    ret
+    ret = sqrt(1 / s) * ξ^(n - m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n - m)
+    isnan(ret) && return 1.0 * (n == m)
+    return ret
 end
 
 # If lamb_dicke_order is <: Int, this constructs a constant vector with this value of length
@@ -567,7 +668,8 @@ function _check_lamb_dicke_order(lamb_dicke_order, L)
     if typeof(lamb_dicke_order) <: Int
         return [lamb_dicke_order for _ in 1:L]
     else
-        @assert(length(lamb_dicke_order) == L,
+        @assert(
+            length(lamb_dicke_order) == L,
             "if typeof(lamb_dicke_order)<:Vector, then length of lamb_dicke_order must ",
             "equal number of modes"
         )
@@ -579,13 +681,13 @@ function _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     a = [spzeros(Float16, d, d) for d in mode_dims]
     @inbounds for (i, d) in enumerate(mode_dims)
         for k in 1:d, l in 1:k
-            if k-l <= lamb_dicke_order[i]
+            if k - l <= lamb_dicke_order[i]
                 val = (l - k) * νlist[i] * timescale
                 a[i][k, l] = exp(val)
                 l ≠ k && @inbounds a[i][l, k] = exp(-val)
             end
         end
     end
-    length(a)==1 ? ld_array = a[1] : ld_array = kron(a...)
-    ld_array, rowvals(ld_array), log.(nonzeros(ld_array))
+    length(a) == 1 ? ld_array = a[1] : ld_array = kron(a...)
+    return ld_array, rowvals(ld_array), log.(nonzeros(ld_array))
 end

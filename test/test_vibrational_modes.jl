@@ -3,8 +3,8 @@ using Suppressor
 
 @testset "vibrational_modes -- VibrationalMode" begin
     # setup system
-    vm = VibrationalMode(1, [1, 1], δν=1)
-    
+    vm = VibrationalMode(1, [1, 1], δν = 1)
+
     # make sure δν can appropriately handle constant or function
     t = 0:1:100
     ones = [1 for _ in t]
@@ -13,11 +13,11 @@ using Suppressor
     vm.δν = sin
     @test vm.δν.(t) == sin.(t)
     @test !vm._cnst_δν
-    vm = VibrationalMode(1, [1, 1], δν=t->t)
+    vm = VibrationalMode(1, [1, 1], δν = t -> t)
     @test !vm._cnst_δν
 
     # test ==
-    vm1 = VibrationalMode(1, [1, 1], δν=1)
+    vm1 = VibrationalMode(1, [1, 1], δν = 1)
     @test vm == vm1
 
     # test that updating cutoff also appropriately updates shape field
