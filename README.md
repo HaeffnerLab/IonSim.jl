@@ -5,7 +5,6 @@
 [![test status](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml/badge.svg)](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml)
 [![codecov][codecov-badge]][codecov-url]
 [![License: MIT][license-badge]][license-url]
-[![Twitter][twitter-badge]][twitter-url]
 
 A simple tool, built on top of [QuantumOptics.jl](https://qojulia.org/), for simulating the dynamics of a configuration of
 trapped ions interacting with laser light.
