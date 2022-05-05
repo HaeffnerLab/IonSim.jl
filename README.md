@@ -82,6 +82,8 @@ You can run tests with
 pkg> test IonSim
 ```
 
+Don't forget to format the code! `./scripts/format.sh`
+
 To go back to the version in the registry, use
 ```julia
 pkg> free IonSim
