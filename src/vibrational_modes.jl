@@ -1,16 +1,18 @@
 using QuantumOptics: basisstate
+using .PhysicalConstants:INVERSE_TIME
+using Unitful
 
 export VibrationalMode
 
 """
     VibrationalMode(
-            ν::Real, mode_structure::Vector{Real}, δν::Union{Function,Real}=0.; N::Int=10,
+            ν::INVERSE_TIME, mode_structure::Vector{Real}, δν::Union{Function,Real}=0.; N::Int=10,
             axis::NamedTuple{(:x,:y,:z)}=ẑ
         )
 
 **user-defined fields**
-* `ν::Real`: frequency [Hz]
-* `mode_structure::Vector{Real}`: The normalized eigenvector describing the collective motion 
+* `ν::INVERSE_TIME`: frequency [Hz]
+* `mode_structure::Vector{Real}`: The normalized eigenvector describing the collective motion
         of the ions belonging to this mode.
 * `δν::Union{Function,Real}`: Either a function describing time-dependent fluctuations of `ν`
         or a real number which will be converted to the constant function `t -> δν`.
@@ -24,7 +26,7 @@ export VibrationalMode
 Note: the iᵗʰ Fock state (|i⟩) can be obtained by indexing as `v=VibrationalMode(...); v[i]`
 """
 mutable struct VibrationalMode <: IonSimBasis
-    ν::Real
+    ν::INVERSE_TIME
     mode_structure::Vector{Real}
     δν::Function
     N::Int
@@ -62,7 +64,7 @@ end
 # suppress long output
 Base.show(io::IO, V::VibrationalMode) = print(
     io,
-    "VibrationalMode(ν=$(round(V.ν,sigdigits=4)), axis=$(_print_axis(V.axis)), N=$(V.N))"
+    "VibrationalMode(ν=$(round(u"Hz", V.ν,sigdigits=4)), axis=$(_print_axis(V.axis)), N=$(V.N))"
 )
 
 function Base.setproperty!(V::VibrationalMode, s::Symbol, v::Tv) where {Tv}

@@ -1,5 +1,6 @@
 using Test, IonSim
 # using IonSim.PhysicalConstants
+using Unitful
 using Suppressor
 
 @suppress_err begin
@@ -7,7 +8,7 @@ using Suppressor
         C = Ca40()
         lc = LinearChain(
             ions = [C, C, C, C],
-            com_frequencies = (x = 5, y = 5, z = 1),
+            com_frequencies = (x = 5u"Hz", y = 5u"Hz", z = 1u"Hz"),
             vibrational_modes = (y = [1], z = [4])
         )
         @test ions(lc) == lc.ions
@@ -20,8 +21,8 @@ using Suppressor
         @test [ionnumber(I) for I in lc.ions] == [1, 2, 3, 4]
 
         # cmode -> pre-evaluated equilibrium positions for four ion chain
-        cmode = [-0.06392393573, -0.0202155287427, 0.0202155287427, 0.0639239357]
-        if ionposition(lc.ions[1]) > 0
+        cmode = [-0.06392393573, -0.0202155287427, 0.0202155287427, 0.0639239357]u"m"
+        if ionposition(lc.ions[1]) > 0u"m"
             cmode .*= -1
         end
         @test [ionposition(I) for I in lc.ions] ≈ cmode rtol = 1e-6
@@ -30,13 +31,13 @@ using Suppressor
         warning = "Some ions point to the same thing. Making copies."
         @test_logs (:warn, warning) LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 4, y = 4, z = 1),
+            com_frequencies = (x = 4u"Hz", y = 4u"Hz", z = 1u"Hz"),
             vibrational_modes = (x = [], y = [], z = [1, 2])
         )
         # and copies should be made of the repeated ions, so that they are no longer the same
         chain1 = LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 4, y = 4, z = 1),
+            com_frequencies = (x = 4u"Hz", y = 4u"Hz", z = 1u"Hz"),
             vibrational_modes = (x = [], y = [], z = [1, 2])
         )
         @test !(chain1.ions[1] ≡ chain1.ions[2])
@@ -55,13 +56,13 @@ using Suppressor
 
         # and test calculation of characterstic length scale for linear chain, equal mass
         C = Ca40()
-        @test characteristic_length_scale(mass(C), 1e6) ≈ 4.449042804354206e-6
+        @test characteristic_length_scale(mass(C), 1e6u"Hz") ≈ 4.449042804354206e-6u"m"
 
         # and do the same for Anm, which computes the normal modes
-        @test_throws AssertionError Anm(2, (x = 0.5, y = 0.5, z = 1), (x = 1, y = 0, z = 0))
+        @test_throws AssertionError Anm(2, (x = 0.5u"Hz", y = 0.5u"Hz", z = 1u"Hz"), (x = 1, y = 0, z = 0))
         cst = [-0.2132, 0.6742, -0.6742, 0.2132]
-        freq, mode = Anm(4, (x = 2, y = 2, z = 1), (x = 0, y = 0, z = 1))[end]
-        @test freq ≈ √9.308 rtol = 1e-4
+        freq, mode = Anm(4, (x = 2u"Hz", y = 2u"Hz", z = 1u"Hz"), (x = 0, y = 0, z = 1))[end]
+        @test freq ≈ √9.308u"Hz" rtol = 1e-4
         if mode[1] > 0
             cst = -1 .* cst
         end

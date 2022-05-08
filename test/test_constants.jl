@@ -1,47 +1,41 @@
-using Test, IonSim, IonSim.PhysicalConstants, Suppressor
+using Test, IonSim, IonSim.PhysicalConstants, Suppressor, Unitful
 
 @testset "constants -- PhysicalConstant" begin
-    # test that algebraic operations on physical constants return a <:Number
-    @test typeof(c - c) <: Number
-    @test typeof(c - 1) <: Number
-    @test typeof(1 - c) <: Number
-    @test typeof(c + c) <: Number
-    @test typeof(1 + c) <: Number
-    @test typeof(c + 1) <: Number
-    @test typeof(c * c) <: Number
-    @test typeof(1 * c) <: Number
-    @test typeof(c * 1) <: Number
+    # test that algebraic operations on physical constants return a unitful quantity
+    @test typeof(c - c) <: typeof(u"c0")
+    @test typeof(c - 1u"m/s") <:  typeof(u"c0")
+    @test typeof(1u"m/s" - c) <:  typeof(u"c0")
+    @test typeof(c + c) <:  typeof(u"c0")
+    @test typeof(1u"m/s" + c) <:  typeof(u"c0")
+    @test typeof(c + 1u"m/s") <:  typeof(u"c0")
+    @test typeof(c * c) <:  typeof(u"c0"^2)
+    @test typeof(1 * c) <: typeof(u"c0")
+    @test typeof(c * 1) <: typeof(u"c0")
     @test typeof(c / c) <: Number
-    @test typeof(1 / c) <: Number
-    @test typeof(c / 1) <: Number
-    @test typeof(c^3) <: Number
-    @test typeof(c^α) <: Number
+    @test typeof(1 / c) <: typeof(u"c0"^-1)
+    @test typeof(c / 1) <: typeof(u"c0"*1.0) # this becomes a float
+    @test typeof(c^3) <: typeof(u"c0"^3)
     @test typeof(2^α) <: Number
-    @test typeof(sqrt(c)) <: Number
+    @test typeof(sqrt(c)) <: typeof(u"c0"^0.5)
     @test typeof(α^α) <: Number
 
     # Test comparisons for physical constants
-    @test c.x == c
-    @test c == c.x
+    @test ustrip(c) != c
+    @test c != ustrip(c)
     @test c == c
-    @test c.x > c - 1
-    @test c > c.x - 1
-    @test c > c - 1
-    @test c.x < c + 1
-    @test c < c.x + 1
-    @test c < c + 1
-    @test c.x ≥ c
-    @test c ≥ c.x
+    @test c > c - 1u"m/s"
+    @test c > c - 1u"m/s"
+    @test ustrip(c) < ustrip(c) + 1
+    @test c < c + 1u"m/s"
     @test c ≥ c
-    @test c.x ≤ c
-    @test c ≤ c.x
+    @test ustrip(c) ≤ ustrip(c)
     @test c ≤ c
-    @test α < c
-    @test α > ħ
+    @test α < ustrip(c)
+    @test α > ustrip(ħ)
 
     # test print/show for physicalconstants
     out = @capture_out print(c)
-    @test out == "$(c.x) [$(c.units)]"
+    @test out == "$(ustrip(c)) $(unit(c))"
 
     @test IonSim._print_axis(x̂) == "x̂"
     @test IonSim._print_axis(ŷ) == "ŷ"

@@ -1,5 +1,5 @@
-using .PhysicalConstants: PhysicalConstant
-
+using Unitful
+using .PhysicalConstants:INVERSE_TIME
 export Yb171
 
 """
@@ -24,33 +24,33 @@ export Yb171
    * `value::Function(B::Real)`: Nonlinear term(s) of Zeeman shift. Full Zeeman shift will be calculated as the sum of the usual linear term and this function
 """
 const properties_yb171 = (
-    mass = 28.8384644689030595108e-26,
-    charge = 1,
+    mass = 28.8384644689030595108e-26u"kg",
+    charge = 1u"q",
     nuclearspin = 1 // 2,
     full_level_structure = OrderedDict(
         # should this be negative, or should I increase the energy of every state by 9GHz?
-        "S1/2f=0" => (n = 6, l = 0, j = 1 // 2, f = 0, E = -9.48210909315e9),
-        "S1/2f=1" => (n = 6, l = 0, j = 1 // 2, f = 1, E = 3.16070303105e9),
-        "D3/2f=0" => (n = 5, l = 2, j = 3 // 2, f = 1, E = 6.88342460964640e14),
-        "D3/2f=1" => (n = 5, l = 2, j = 3 // 2, f = 2, E = 6.88350470564640e14),
-        "D5/2f=2" => (n = 5, l = 2, j = 5 // 2, f = 2, E = 7.29477895985202e14),
-        "D5/2f=3" => (n = 5, l = 2, j = 5 // 2, f = 3, E = 7.29474121985202e14),
-        "P1/2f=0" => (n = 6, l = 1, j = 1 // 2, f = 0, E = 8.112913749003559e14),
-        "P1/2f=1" => (n = 6, l = 1, j = 1 // 2, f = 1, E = 8.112934798003559e14),
+        "S1/2f=0" => (n = 6, l = 0, j = 1 // 2, f = 0, E = -9.48210909315e9u"Hz"),
+        "S1/2f=1" => (n = 6, l = 0, j = 1 // 2, f = 1, E = 3.16070303105e9u"Hz"),
+        "D3/2f=0" => (n = 5, l = 2, j = 3 // 2, f = 1, E = 6.88342460964640e14u"Hz"),
+        "D3/2f=1" => (n = 5, l = 2, j = 3 // 2, f = 2, E = 6.88350470564640e14u"Hz"),
+        "D5/2f=2" => (n = 5, l = 2, j = 5 // 2, f = 2, E = 7.29477895985202e14u"Hz"),
+        "D5/2f=3" => (n = 5, l = 2, j = 5 // 2, f = 3, E = 7.29474121985202e14u"Hz"),
+        "P1/2f=0" => (n = 6, l = 1, j = 1 // 2, f = 0, E = 8.112913749003559e14u"Hz"),
+        "P1/2f=1" => (n = 6, l = 1, j = 1 // 2, f = 1, E = 8.112934798003559e14u"Hz"),
         "[3/2]1/2f=0" =>
-            (n = 6, l = nothing, j = 1 // 2, f = 0, E = 1.008917341058788e15),
+            (n = 6, l = nothing, j = 1 // 2, f = 0, E = 1.008917341058788e15u"Hz"),
         "[3/2]1/2f=1" =>
-            (n = 6, l = nothing, j = 1 // 2, f = 1, E = 1.008917341058788e15),
+            (n = 6, l = nothing, j = 1 // 2, f = 1, E = 1.008917341058788e15u"Hz"),
         "[3/2]3/2f=1" =>
-            (n = 6, l = nothing, j = 3 // 2, f = 1, E = 8.621425511314839e14),
+            (n = 6, l = nothing, j = 3 // 2, f = 1, E = 8.621425511314839e14u"Hz"),
         "[3/2]3/2f=2" =>
-            (n = 6, l = nothing, j = 3 // 2, f = 2, E = 8.621425511314839e14),
+            (n = 6, l = nothing, j = 3 // 2, f = 2, E = 8.621425511314839e14u"Hz"),
         "[5/2]5/2f=2" =>
-            (n = 6, l = nothing, j = 5 // 2, f = 2, E = 9.70461163716380e14),
+            (n = 6, l = nothing, j = 5 // 2, f = 2, E = 9.70461163716380e14u"Hz"),
         "[5/2]5/2f=3" =>
-            (n = 6, l = nothing, j = 5 // 2, f = 3, E = 9.70461163716380e14),
-        "F7/2f=3" => (n = 6, l = 3, j = 7 // 2, f = 3, E = 6.42115934728750e14),
-        "F7/2f=4" => (n = 6, l = 3, j = 7 // 2, f = 4, E = 6.42119554728750e14),
+            (n = 6, l = nothing, j = 5 // 2, f = 3, E = 9.70461163716380e14u"Hz"),
+        "F7/2f=3" => (n = 6, l = 3, j = 7 // 2, f = 3, E = 6.42115934728750e14u"Hz"),
+        "F7/2f=4" => (n = 6, l = 3, j = 7 // 2, f = 4, E = 6.42119554728750e14u"Hz"),
     ),
     full_transitions = Dict(
         # Laser lines
@@ -143,7 +143,7 @@ mutable struct Yb171 <: Ion
     sublevels::Vector{Tuple{String, Real}}
     sublevel_aliases::Dict{String, Tuple}
     shape::Vector{Int}
-    stark_shift::OrderedDict{Tuple, Real}
+    stark_shift::OrderedDict{Tuple, INVERSE_TIME}
     ionnumber::Union{Int, Missing}
     position::Union{Real, Missing}
     function Yb171(

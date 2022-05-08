@@ -1,36 +1,29 @@
 module PhysicalConstants
+using Unitful
 
 import Base.sqrt
 
-export μB, ħ, c, e, ϵ₀, α, kB, eye3, c_rank1, c_rank2
-
-"""
-    PhysicalConstant(x::Real)
-Useful physical constants. Values are in SI units.
-"""
-struct PhysicalConstant <: Real
-    x::Real
-    units::String
-end
+export μB, ħ, c, e, ϵ₀, α, eye3, c_rank1, c_rank2, INVERSE_TIME, MAGNETIC
 
 #############################################################################################
 # Physical constants (everything in SI units)
 #############################################################################################
 
 """`μB` = 9.27400994e-24 J⋅T⁻¹ <br> (Bohr Magneton)"""
-const μB = PhysicalConstant(9.27400994e-24, "J⋅T⁻¹")
+const μB = u"μB"
 """`ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
-const ħ = PhysicalConstant(1.0545718e-34, "m²kg/s")
+const ħ = u"ħ"
 """`c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
-const c = PhysicalConstant(2.99792458e8, "m/s")
+const c =  u"c0"
 """`e` = 1.60217662e-19 C <br> (charge of electron)"""
-const e = PhysicalConstant(1.60217662e-19, "C")
+const e = u"q"
 """`ϵ₀` = 8.85418782e-12 ``(s^4A^2) / (m^3 kg)``"""
-const ϵ₀ = PhysicalConstant(8.85418782e-12, "(s^4A^2) / (m^3 kg)")
+const ϵ₀ = u"ϵ0"
 """`α` = e²/4πϵ₀ħc``"""
-const α = PhysicalConstant(0.007297352557920479, "")
-"""`kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
-const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
+const α = u"q"*u"q"/4/pi/u"ϵ0"/u"ħ"/u"c0" |> NoUnits
+
+const INVERSE_TIME = Union{typeof(1u"Hz"), typeof(1.0u"Hz")}
+const MAGNETIC = Union{typeof(1u"T"), typeof(1.0u"T")}
 
 #############################################################################################
 # 3D real-space tensors
@@ -59,25 +52,6 @@ const c_rank2 = cat(
     1 / sqrt(6) * [[1, -im, 0] [-im, -1, 0] [0, 0, 0]];
     dims = 3
 ) #q=2
-
-Base.print(pc::PhysicalConstant) = print("$(pc.x) [$(pc.units)]")
-Base.show(io::IO, pc::PhysicalConstant) = print(io, "$(pc.x) [$(pc.units)]")
-
-Base.convert(::Type{<:Number}, x::PhysicalConstant) = map(x -> x.x, x)
-Base.promote_rule(::Number, ::PhysicalConstant) = Number
-Base.Fix2(f, x::PhysicalConstant) = Base.Fix2(f, x.x)
-
-Base.:*(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x * x2.x
-Base.:/(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x / x2.x
-Base.:+(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x + x2.x
-Base.:-(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x - x2.x
-Base.:^(x1::PhysicalConstant, x2::PhysicalConstant) = x1.x^x2.x
-Base.:(>)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(>)(x1.x, x2.x)
-Base.:(<)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(<)(x1.x, x2.x)
-Base.:(≥)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(≥)(x1.x, x2.x)
-Base.:(≤)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(≤)(x1.x, x2.x)
-
-sqrt(x1::PhysicalConstant) = sqrt(x1.x)
 
 end  # module
 

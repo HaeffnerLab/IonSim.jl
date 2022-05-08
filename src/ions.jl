@@ -2,6 +2,7 @@ using WignerSymbols: wigner3j, wigner6j
 using LinearAlgebra: cross
 #using .PhysicalConstants: e, ħ, α, μB, e, eye3, c_rank1, c_rank2
 using IonSim.PhysicalConstants
+using Unitful
 
 export Ion,
     speciesproperties,
@@ -54,16 +55,16 @@ speciesproperties(I::Ion)::NamedTuple = I.species_properties
 sublevels(I::Ion)::Vector{Tuple{String, Real}} = I.sublevels
 sublevel_aliases(I::Ion)::Dict{String, Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
-stark_shift(I::Ion)::OrderedDict{Tuple, Real} = I.stark_shift
+stark_shift(I::Ion)::OrderedDict{Tuple, INVERSE_TIME} = I.stark_shift
 ionnumber(I::Ion)::Union{Int, Missing} = I.ionnumber
-ionposition(I::Ion)::Union{Real, Missing} = I.position
+ionposition(I::Ion)::Union{Unitful.Length, Missing} = I.position
 
 #############################################################################################
 # General properties of species
 #############################################################################################
 
-mass(I::Ion)::Real = speciesproperties(I).mass
-charge(I::Ion)::Real = speciesproperties(I).charge * e
+mass(I::Ion)::Unitful.Mass = speciesproperties(I).mass
+charge(I::Ion)::Unitful.Charge = speciesproperties(I).charge
 nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
 
 #############################################################################################
@@ -126,21 +127,21 @@ end
 
 """
     clear_all_sublevel_aliases!(I::Ion)
-Applies `clear_sublevel_alias!` to all sublevels of `I`.  
+Applies `clear_sublevel_alias!` to all sublevels of `I`.
 """
 function clear_all_sublevel_aliases!(I::Ion)
     return empty!(I.sublevel_aliases)
 end
 
 """
-    set_stark_shift!(I::Ion, sublevel, shift::Real)
+    set_stark_shift!(I::Ion, sublevel, shift::INVERSE_TIME)
 Applies a stark shift `shift` to the chosen `sublevel` of `I` (overwriting any previously assigned stark shift).
 """
-function set_stark_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
+function set_stark_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::INVERSE_TIME)
     validatesublevel(I, sublevel)
     return I.stark_shift[(sublevel[1], Rational(sublevel[2]))] = shift
 end
-set_stark_shift!(I::Ion, alias::String, shift::Real) =
+set_stark_shift!(I::Ion, alias::String, shift::INVERSE_TIME) =
     set_stark_shift!(I, alias2sublevel(I, alias), shift)
 """
     set_stark_shift!(I::Ion, stark_shift_dict::Dict)
@@ -152,13 +153,13 @@ function set_stark_shift!(I::Ion, stark_shift_dict::Dict)
     end
 end
 
-""" 
+"""
     zero_stark_shift!(I::Ion)
 Sets the stark shift of all sublevels of `I` to zero.
 """
 function zero_stark_shift!(I::Ion)
     for sublevel in keys(stark_shift(I))
-        I.stark_shift[sublevel] = 0.0
+        I.stark_shift[sublevel] = 0.0u"Hz"
     end
 end
 
@@ -201,7 +202,7 @@ end
 
 """
     sublevel2level(I::Ion, sublevel)
-Retuns the energy level of `I` corresponding to `sublevel`.
+Returns the energy level of `I` corresponding to `sublevel`.
 """
 function sublevel2level(I::Ion, sublevel::Tuple{String, Real})
     validatesublevel(I, sublevel)
@@ -310,38 +311,38 @@ end
 stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 
 """
-    zeeman_shift(I::Ion, sublevel}, B::Real)
+    zeeman_shift(I::Ion, sublevel}, B::MAGNETIC)
 Returns the Zeeman shift at a magnetic field of `B` of `sublevel` of `I`.
 
 If `sublevel` has a custom g-factor defined, then this is used. Otherwise, `landegf` is used to compute the Landé g-factor.
 
 Zeeman shift calculated as ``ΔE = (μ_B/ħ) ⋅ g_f ⋅ B ⋅ m / 2π``
 """
-function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::Real)
+function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::MAGNETIC)
     validatesublevel(I, sublevel)
     properties = speciesproperties(I)
     if haskey(properties, :nonlinear_zeeman) &&
        haskey(properties.nonlinear_zeeman, sublevel)
         nonlinear = properties.nonlinear_zeeman[sublevel](B)
     else
-        nonlinear = 0.0
+        nonlinear = 0.0u"Hz"
     end
     return zeeman_shift(B, landegf(I, sublevel[1]), sublevel[2]) + nonlinear
 end
-zeeman_shift(B::Real, g::Real, m::Real) = (μB / ħ) * g * B * m / 2π
-zeeman_shift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 // 2) =
+zeeman_shift(B::MAGNETIC, g::Real, m::Real) =  ( (μB / ħ) * g * B * m / 2π ) |> u"Hz"
+zeeman_shift(B::MAGNETIC, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 // 2) =
     zeeman_shift(B, landegf(l, j, f, i, s), m)
-zeeman_shift(B::Real, qnums::NamedTuple) =
+zeeman_shift(B::MAGNETIC, qnums::NamedTuple) =
     zeeman_shift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
-zeeman_shift(I::Ion, alias::String, B::Real) = zeeman_shift(I, alias2sublevel(I, alias), B)
+zeeman_shift(I::Ion, alias::String, B::MAGNETIC) = zeeman_shift(I, alias2sublevel(I, alias), B)
 
 # This function is written to be able to accept either a level or sublevel in the second argument
-# Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
+# Since both levels and aliases are strings, multidispatch can't tell the difference, so the second method distinguishes these cases with an if statement.
 """
     energy(I::Ion, sublevel; B=0, ignore_starkshift=false)
 Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting the value of the magnetic field `B`. The Stark shift may be omitted by setting `ignore_starkshift=true`.
 """
-function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_starkshift = false)
+function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0u"T", ignore_starkshift = false)
     validatesublevel(I, sublevel)
     E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
     zeeman = zeeman_shift(I, sublevel, B)
@@ -349,10 +350,10 @@ function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_starkshift 
     return E0 + zeeman + stark
 end
 """
-    energy(I::Ion, level::trSing)
+    energy(I::Ion, level::String)
 Returns the energy of `level` of `I`.
 """
-function energy(I::Ion, level_or_alias::String; B = 0, ignore_starkshift = false)
+function energy(I::Ion, level_or_alias::String; B = 0u"T", ignore_starkshift = false)
     # If the second argument is a String, it could be either a level name or the alias of a sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Return the bare energy of that level.
@@ -376,7 +377,7 @@ Computes the absolute values of the difference in energies between `transition[1
 
 If between sublevels, then the Zeeman shift may be included by setting the value of the magnetic field `B`, and Stark shifts may be omitted by setting `ignore_starkshift=true`.
 """
-function transitionfrequency(I::Ion, transition::Tuple; B = 0, ignore_starkshift = false)
+function transitionfrequency(I::Ion, transition::Tuple; B = 0u"T", ignore_starkshift = false)
     # Multidispatch of the function energy should make this work regardless of whether the transition is between levels or sublevels, and regardless of whether or not aliases are used
     return abs(
         energy(I, transition[1], B = B, ignore_starkshift = ignore_starkshift) -
@@ -388,7 +389,7 @@ end
     transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
 Returns the wavelength corresponding to `transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)`.
 """
-function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_starkshift = false)
+function transitionwavelength(I::Ion, transition::Tuple; B = 0u"T", ignore_starkshift = false)
     return c /
            transitionfrequency(I, transition, B = B, ignore_starkshift = ignore_starkshift)
 end
@@ -470,12 +471,12 @@ function lifetime(I::Ion, level::String)
     if totaltransitionrate == 0.0
         return Inf
     else
-        return 1.0 / totaltransitionrate
+        return (1.0 / totaltransitionrate)
     end
 end
 
 """
-    matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    matrix_element(I::Ion, transition::Tuple, Efield::INVERSE_TIME, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
 Computes the matrix elements (units of Hz) between two energy sublevels
 **args**
 * `I`: Ion undergoing transition
@@ -493,10 +494,10 @@ function matrix_element(
     m1::Real,
     m2::Real,
     I::Real,
-    ΔE::Real,
+    ΔE::INVERSE_TIME,
     A12::Real,
     multipole::String,
-    Efield::Real,
+    Efield::INVERSE_TIME,
     khat::NamedTuple,
     ϵhat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
@@ -557,7 +558,7 @@ end
 function matrix_element(
     I::Ion,
     transition::Tuple,
-    Efield::Real,
+    Efield::INVERSE_TIME,
     khat::NamedTuple,
     ϵhat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
@@ -642,10 +643,10 @@ function _construct_sublevels(selected_sublevels, properties)
 end
 
 function _construct_starkshift(starkshift, sublevels)
-    starkshift_full = OrderedDict{Tuple, Real}()
+    starkshift_full = OrderedDict{Tuple, INVERSE_TIME}()
     for sublevel in sublevels
         starkshift_full[sublevel] =
-            (haskey(starkshift, sublevel) ? starkshift[sublevel] : 0.0)
+            (haskey(starkshift, sublevel) ? starkshift[sublevel] : 0.0u"Hz")
     end
     return starkshift_full
 end
@@ -676,7 +677,7 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
         starkshift_full_new = OrderedDict{Tuple, Real}()
         for sublevel in sublevels(I)
             starkshift_full_new[sublevel] = (
-                haskey(starkshift_full_old, sublevel) ? starkshift_full_old[sublevel] : 0.0
+                haskey(starkshift_full_old, sublevel) ? starkshift_full_old[sublevel] : 0.0u"Hz"
             )
         end
         Core.setproperty!(I, :stark_shift, starkshift_full_new)

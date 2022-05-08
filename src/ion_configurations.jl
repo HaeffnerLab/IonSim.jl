@@ -1,6 +1,7 @@
 using LinearAlgebra: eigen
 using NLsolve: nlsolve
-using .PhysicalConstants: e, ϵ₀
+using .PhysicalConstants: e, ϵ₀,INVERSE_TIME
+using Unitful
 
 export IonConfiguration,
     ions,
@@ -12,7 +13,7 @@ export IonConfiguration,
 
 """
     IonConfiguration
-Physical configuration of ions. Stores a collection of ions and  information about the 
+Physical configuration of ions. Stores a collection of ions and  information about the
 interactions of their center of mass motion.
 """
 abstract type IonConfiguration end
@@ -27,7 +28,7 @@ ions(I::IonConfiguration)::Vector{Ion} = I.ions
 """
     linear_equilibrium_positions(N::Int)
 Returns the scaled equilibrium positions of `N` ions in a harmonic potential, assuming that
-all ions have the same mass. 
+all ions have the same mass.
 [ref](https://link.springer.com/content/pdf/10.1007%2Fs003400050373.pdf)
 """
 function linear_equilibrium_positions(N::Int)
@@ -64,20 +65,21 @@ function linear_equilibrium_positions(N::Int)
 end
 
 """
-    characteristic_length_scale(M::Real, ν::Real)
+    characteristic_length_scale(M::Unitful.Mass, ν::INVERSE_TIME)
 Returns the characteristic length scale for a linear chain of identical ions of mass `M`
-and with axial trap frequency 2π × ν.
+and with axial trap frequency 2π × ν. #TODO: Is this in hertz?
 """
-characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
+characteristic_length_scale(M::Unitful.Mass, ν::INVERSE_TIME) =
+    (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 // 3) |> u"m"
 
 """
     Anm(N::Real, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
-Computes the normal modes and corresponding trap frequencies along a particular `axis` for a 
-collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first 
+Computes the normal modes and corresponding trap frequencies along a particular `axis` for a
+collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first
 element the frequency of the normal mode and 2nd element the corresponding eigenvector.
 
-`com` should be a `NamedTuple` of COM frequences for the different axes: 
-`(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of 
+`com` should be a `NamedTuple` of COM frequences for the different axes:
+`(x<:INVERSE_TIME, y<:INVERSE_TIME, z<:INVERSE_TIME)`, where the ``z``-axis is taken to be parallel to the axis of
 the crystal.
 """
 function Anm(N::Int, com::NamedTuple{(:x, :y, :z)}, axis::NamedTuple{(:x, :y, :z)})
@@ -118,7 +120,7 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 
 """
     LinearChain(;
-            ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
+            ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)},
             vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
         )
 
@@ -127,17 +129,17 @@ harmonic potential and forming a linear coulomb crystal.
 
 **user-defined fields**
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
-* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
-        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
+* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`:
+        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be
         parallel to the crystal's symmetry axis.
-* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
-    Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
-    mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
+* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`.
+    Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest
+    mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
     Note: `vibrational_modes=(x=[],y=[],z=[1])`, `vibrational_modes=(y=[],z=[1])`
     and `vibrational_modes=(;z=[1])` are all acceptable and equivalent.
 **derived fields**
-* `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an 
+* `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an
     array of tuples where the first element is a vibrational frequency [Hz] and the second
     element is a vector describing the corresponding normalized normal mode structure.
 """

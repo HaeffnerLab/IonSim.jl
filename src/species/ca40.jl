@@ -1,5 +1,5 @@
-using .PhysicalConstants: PhysicalConstant
-
+using Unitful
+using .PhysicalConstants:INVERSE_TIME
 export Ca40
 
 """
@@ -7,11 +7,11 @@ export Ca40
 `Namedtuple` of properties of the ion species Ca40.
 
 **Required keywords**
-* `mass`: Mass of ion in kg
-* `charge`: Charge of ion in units of elementary charge
+* `mass`: Mass of ion
+* `charge`: Charge of ion
 * `full_level_structure`: OrderedDict describing properties of each energy level
   * `key::String`: Name of energy level. Spectroscopic notation encouraged, e.g. `"S1/2,f=1"`
-  * `value::NamedTuple(:n, :l, :j, :f, :E)`: Quantum numbers `n`, `l`, `j`, `f`, and energy `E` (in Hz)
+  * `value::NamedTuple(:n, :l, :j, :f, :E)`: Quantum numbers `n`, `l`, `j`, `f`, and energy `E`
 * `full_transitions`: Dict of all allowed transitions between energy levels
   * `key::Tuple{String,String}` Pair of levels, ordered (lower, upper) in energy
   * `value::NamedTuple(:multipole, :einsteinA)`: Leading-order multipole of the transition (e.g. `"E1"`, `"E2"`) and Einstein A coefficient (between fine structure levels only; hyperfine factors are calculated when needed)
@@ -24,15 +24,15 @@ export Ca40
    * `value::Function(B::Real)`: Nonlinear term(s) of Zeeman shift. Full Zeeman shift will be calculated as the sum of the usual linear term and this function
 """
 const properties_ca40 = (
-    mass = 6.635943757345042e-26,
-    charge = 1,
+    mass = 6.635943757345042e-26u"kg",
+    charge = 1u"q",
     nuclearspin = 0,
     full_level_structure = OrderedDict(
-        "S1/2" => (n = 4, l = 0, j = 1 // 2, f = 1 // 2, E = 0),
-        "D3/2" => (n = 3, l = 2, j = 3 // 2, f = 3 // 2, E = 4.09335071228e14),
-        "D5/2" => (n = 3, l = 2, j = 5 // 2, f = 5 // 2, E = 4.1115503183857306e14),
-        "P1/2" => (n = 4, l = 1, j = 1 // 2, f = 1 // 2, E = 7.554e14),
-        "P3/2" => (n = 4, l = 1, j = 3 // 2, f = 3 // 2, E = 7.621e14),
+        "S1/2" => (n = 4, l = 0, j = (1 // 2), f = (1 // 2), E = 0u"Hz"),
+        "D3/2" => (n = 3, l = 2, j = (3 // 2), f = (3 // 2), E = 4.09335071228e14u"Hz"),
+        "D5/2" => (n = 3, l = 2, j = (5 // 2), f = (5 // 2), E = 4.1115503183857306e14u"Hz"),
+        "P1/2" => (n = 4, l = 1, j = (1 // 2), f = (1 // 2), E = 7.554e14u"Hz"),
+        "P3/2" => (n = 4, l = 1, j = (3 // 2), f = (3 // 2), E = 7.621e14u"Hz"),
     ),
     full_transitions = Dict(
         ("S1/2", "D5/2") => (multipole = "E2", einsteinA = 8.562e-1),
@@ -76,16 +76,16 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 * `shape`::Vector{Int}: Dimension of the Hilbert space
 * `stark_shift::OrderedDict`: A dictionary with keys denoting the selected levels and values, a real number for describing a shift of the level's energy. This is just a convenient way to add Stark shifts to the simulation without additional resources
 * `ionnumber`: When the ion is added to an `IonConfiguration`, this value keeps track of its order in the chain
-* `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its physical position in meters
+* `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its physical position
 """
 mutable struct Ca40 <: Ion
     species_properties::NamedTuple
     sublevels::Vector{Tuple{String, Real}}
     sublevel_aliases::Dict{String, Tuple}
     shape::Vector{Int}
-    stark_shift::OrderedDict{Tuple, Real}
+    stark_shift::OrderedDict{Tuple, INVERSE_TIME}
     ionnumber::Union{Int, Missing}
-    position::Union{Real, Missing}
+    position::Union{Unitful.Length, Missing}
     function Ca40(
         selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing;
         starkshift = Dict()
