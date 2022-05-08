@@ -479,6 +479,6 @@ function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled = false)
         scaled ? ν = 1 : ν = V.ν
         x0 = √(ħ / (2 * mass(I) * 2π * ν))
         cosθ = ndot(L.k, V.axis)
-        k * x0 * cosθ * V.mode_structure[ionnumber(I)]
+        k * x0 * cosθ * V.mode_structure[ionnumber(I)] |> NoUnits
     end
 end

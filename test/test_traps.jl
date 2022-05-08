@@ -155,9 +155,10 @@ using Unitful
 
         # test get_η
         # η = |k|cos(θ) * √(ħ / (2M ⋅ N ⋅ 2πν)); cos(θ) ≡ k̂ ⋅ mode_axis; N ≡ number of ions
-        η(ν) = (2π / λ) * sqrt(ħ / (2 * mass(C) * 2 * 2π * ν))
+        η(ν) = (2π / λ) * sqrt(ħ / (2 * mass(C) * 2 * 2π * ν)) |> NoUnits
         @test abs(get_η(zmode, L, C)) ≈ η(zmode.ν)
         L.k = (x̂ + ẑ) / √2
         @test abs(get_η(xmode, L, C)) ≈ η(xmode.ν) / √2
+        @test typeof(η(xmode.ν)) <: Number
     end
 end  # end suppress

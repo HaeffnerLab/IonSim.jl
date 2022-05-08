@@ -2,6 +2,8 @@ using QuantumOptics: DenseOperator
 using LinearAlgebra: diagm, norm
 using Test, IonSim
 using Suppressor
+using Unitful
+using IonSim.PhysicalConstants: INVERSE_TIME #todo: i shouldn't have to do this, it should be exported
 
 Base.:(*)(s::String, i::Int) = i == 1 ? s : 0
 Base.:(*)(i::Int, s::String) = Base.:(*)(s, i)
@@ -65,6 +67,7 @@ end
 
 @suppress_err begin
     @testset "hamiltonians -- misc functions" begin
+        # TODO: get the units right on here
         # make sure _D and _D_constant_eta return the same thing for constant eta
         L = 10
         Ω = 1e6randn()
@@ -119,17 +122,17 @@ end
         L2 = copy(L1)
 
         # _Ωmatrix
-        L1.E = 1
+        L1.E = 1u"V/m"
         L1.ϕ = 0
-        L2.E = 2
+        L2.E = 2u"V/m"
         L2.ϕ = 2
         chain = LinearChain(
             ions = [C, C1],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
         T = Trap(configuration = chain, lasers = [L1, L2])
-        Ωnmkj = IonSim._Ωmatrix(T, 1)
+        Ωnmkj = IonSim._Ωmatrix(T, 1u"s")
         t = rand(0:1e-3:100)
 
         # coupling strength between ion1-laser1 and ion2-laser2 should be identical for all
@@ -143,9 +146,10 @@ end
         @test [2exp(-2im) * resolve(i, t) for i in Ωnmkj[2, 1]] == [resolve(i, t) for i in Ωnmkj[2, 2]]
 
         # make sure time-dep L.E and L.ϕ propagate appropriately
-        L1.E = cos
+        # TODO: this seems dangerous...
+        L1.E = x -> 1u"V/m"*cos(ustrip(x))
         L1.ϕ = t -> t^2
-        Ωnmkj = IonSim._Ωmatrix(T, 1)
+        Ωnmkj = IonSim._Ωmatrix(T, 1u"s")
         t = 0:1e-3:100
         for Ω in Ωnmkj[1, 1]
             if typeof(Ω) <: Number
@@ -156,36 +160,36 @@ end
 
         # _Δmatrix
         # zero B, zero laser detuning, zero stark shift should give an array of zeros
-        Δ = IonSim._Δmatrix(T, 1)
+        Δ = IonSim._Δmatrix(T, 1u"s")
         for i in 1:2, j in 1:2
             @test Δ[i, j][1] == 0
         end
 
         # zero B, zero stark shift, non-zero laser detuning should return columns that all have
         # the same value
-        L1.Δ = 1
-        L2.Δ = -1
-        Δ = IonSim._Δmatrix(T, 1)
+        L1.Δ = 1u"1/s"
+        L2.Δ = -1u"1/s"
+        Δ = IonSim._Δmatrix(T, 1u"s")
         @test Δ[1, 1][1] ≈ 2π && Δ[2, 1][1] ≈ 2π && Δ[1, 2][1] ≈ -2π && Δ[2, 2][1] ≈ -2π
 
         # zero B, zero laser detuning, now add stark shift to just one of the ions
-        L1.Δ = 0
-        L2.Δ = 0
-        set_stark_shift!(C, ("S1/2", -1 / 2), 1)
-        Δ = IonSim._Δmatrix(T, 1)
+        L1.Δ = 0u"1/s"
+        L2.Δ = 0u"1/s"
+        set_stark_shift!(C, ("S1/2", -1 / 2), 1u"1/s")
+        Δ = IonSim._Δmatrix(T, 1u"s")
         @test Δ[1, 1][1] ≈ 2π && Δ[1, 2][1] ≈ 2π && Δ[2, 1][1] ≈ 0 && Δ[2, 2][1] ≈ 0
 
         # lastly let's test when resonant
         zero_stark_shift!(C)
-        T.B = 1e-4
+        T.B = 1e-4u"T"
         L1.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        Δ = IonSim._Δmatrix(T, 1)
+        Δ = IonSim._Δmatrix(T, 1u"s")
         @test Δ[1, 1][1] ≈ 0
 
         # _ηmatrix
         chain = LinearChain(
             ions = [C, C1],
-            com_frequencies = (x = 2e6, y = 2e6, z = 1e6),
+            com_frequencies = (x = 2e6u"1/s", y = 2e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (x = [1], y = [2], z = [1])
         )
         L1.k = (x̂ + ẑ) / √2
@@ -197,13 +201,13 @@ end
         T = Trap(configuration = chain, lasers = [L1, L2, L3])
         η = IonSim._ηmatrix(T)
 
-        # η[1,1,1] corresponds laser1, ion1, mode1 (x̂) and η[1,1,3] corresponds laser1, ion1, 
+        # η[1,1,1] corresponds laser1, ion1, mode1 (x̂) and η[1,1,3] corresponds laser1, ion1,
         # mode3 (ẑ). They both have the same projection on L1.k, but the frequency of mode1 is
-        # twice as large as mode2, so it's L-D factor should be √2 times smaller 
+        # twice as large as mode2, so it's L-D factor should be √2 times smaller
         @test abs(η[1, 1, end](1.0)) ≈ abs(η[1, 1, end - 2](1.0) / √2)
         # With this setup, the L-D factor should be the same for ion1 and ion2
         @test η[1, 1, end](1.0) ≈ η[2, 1, end](1.0)
-        # η[1, 2, 2] is the 1st ion, 2nd laser and y-stretch-mode. The L-D factor should be 
+        # η[1, 2, 2] is the 1st ion, 2nd laser and y-stretch-mode. The L-D factor should be
         # opposite in sign, equal in magnitude to the 2nd ion, 2nd laser and y-stretch-mode
         @test η[1, 2, end - 1](1.0) ≈ -η[2, 2, end - 1](1.0)
         # L3, which is in the ẑ direction should only have projection on zmode (mode3)
@@ -226,13 +230,13 @@ end
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
         T = Trap(configuration = chain, lasers = [L], δB = 0)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
 
-        # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays 
+        # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays
         @test length(global_B_indices) == 0 && length(global_B_scales) == 0
         # and bfunc should be identically zero like T.δB
         @test sum(bfunc.(0:1e4)) == 0
@@ -249,14 +253,14 @@ end
         # Not sure what this test is supposed to be; commented out for now
         # # and make sure that the susceptibilites are correct
         # zs = [zeeman_shift(1, quantumnumbers(C, sublevel)) for sublevel in sublevels(C)]
-        # @test length(unique([global_B_scales; zs])) == length(zs) 
+        # @test length(unique([global_B_scales; zs])) == length(zs)
 
         # test _setup_δν_hamiltonian
 
-        # setup system 
+        # setup system
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
         T = Trap(configuration = chain, lasers = [L], δB = 0)
@@ -274,7 +278,7 @@ end
         # add another mode with δν=0 and test output
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (y = [1], z = [1])
         )
         T = Trap(configuration = chain, lasers = [L], δB = 0)
@@ -327,7 +331,7 @@ end
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
         T = Trap(configuration = chain, B = 4e-4, Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
@@ -336,7 +340,7 @@ end
         N = mode.N + 1
         Efield_from_rabi_frequency!(1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
-        ## first just shine light on 1st ion 
+        ## first just shine light on 1st ion
         L.pointing = [(1, 1.0)]
         ridxs, cidxs = get_indices(1, [N], false)
         _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
@@ -363,7 +367,7 @@ end
         L1.λ = transitionwavelength(C1, ("S1/2", "D5/2"))
         chain1 = LinearChain(
             ions = [C1, C1],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1, 2])
         )
         T1 = Trap(
@@ -399,7 +403,7 @@ end
         @test length(unique([ridxs; r])) == length(ridxs)
         @test length(unique([cidxs; c])) - 1 == length(cidxs)
 
-        ## when laser tuned to carrier, setting an rwa_cutoff below the vibrationl_mode frequency 
+        ## when laser tuned to carrier, setting an rwa_cutoff below the vibrationl_mode frequency
         ## should have the same effect
         L.λ = transitionwavelength(C1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T1)
         _, repeated_indices, conj_repeated_indices =
@@ -415,7 +419,7 @@ end
     #     L.pointing = [(1, 1.0), (2, 1.0)]
     #     L.λ = transitionwavelength(C1, ("S1/2", "D5/2"))
     #     chain = LinearChain(
-    #                 ions=[C1, C2], com_frequencies=(x=3e6,y=3e6,z=1e6), 
+    #                 ions=[C1, C2], com_frequencies=(x=3e6,y=3e6,z=1e6),
     #                 vibrational_modes=(;z=[1,2])
     #             )
     #     T = Trap(configuration=chain, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L])
@@ -439,7 +443,7 @@ end
     #     η22 = get_η(mode2, L, C2)
     #     mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
     #     mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
-    #     Hp(t) = (ion_op(t) ⊗ one(C2) ⊗ mode_op1(t, η=η11) ⊗ mode_op2(t, η=η12) 
+    #     Hp(t) = (ion_op(t) ⊗ one(C2) ⊗ mode_op1(t, η=η11) ⊗ mode_op2(t, η=η12)
     #              + one(C1) ⊗ ion_op(t) ⊗ mode_op1(t, η=η21) ⊗ mode_op2(t, η=η22))
     #     qoH(t) = Hp(t) + dagger(Hp(t))
     #     tp = abs(51randn())
@@ -454,7 +458,7 @@ end
     #     H1 = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=false)
     #     H = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=true)
     #     @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
-    #     @test H1(tp, 0).data ≈ H(tp, 0).data  
+    #     @test H1(tp, 0).data ≈ H(tp, 0).data
 
     #     # full hamiltonian (w/o conj_repeated_indices)
     #     H = hamiltonian(T, lamb_dicke_order=101, rwa_cutoff=1e10)
