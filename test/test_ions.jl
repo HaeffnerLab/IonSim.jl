@@ -45,10 +45,10 @@ using Unitful
         set_sublevel_alias!(C, ("D5/2", -5 / 2), "D")
 
         #test stark shift
-        set_stark_shift!(C, "S", 10.0u"Hz")
-        @test stark_shift(C, "S") == 10.0u"Hz"
+        set_stark_shift!(C, "S", 10.0u"1/s")
+        @test stark_shift(C, "S") == 10.0u"1/s"
         zero_stark_shift!(C)
-        @test stark_shift(C, "S") == 0.0u"Hz"
+        @test stark_shift(C, "S") == 0.0u"1/s"
 
         # test levels and sublevels
         @test levels(C) == ["S1/2", "D5/2"]
@@ -83,22 +83,21 @@ using Unitful
         @test landegf(C, "D") == 6 // 5
 
         # test zeeman shift using quantum numbers of the S and D states
-        @test zeeman_shift(1e-4u"T", quantumnumbers(C, "S")) ≈ -1.3996244961550953e6u"Hz"
-        @test zeeman_shift(1e-4u"T", quantumnumbers(C, "D")) ≈ -4.198873488465285e6u"Hz"
+        @test zeeman_shift(1e-4u"T", quantumnumbers(C, "S")) ≈ -1.3996244961550953e6u"1/s"
+        @test zeeman_shift(1e-4u"T", quantumnumbers(C, "D")) ≈ -4.198873488465285e6u"1/s"
 
         # test zeeman shift using the ion itself as an input, which will use the custom-defined g-factors
         # for the S1/2 and D5/2 states and thus give slightly different results
-        @test zeeman_shift(C, "S", 1e-4u"T") ≈ -1.4012037204665968e6u"Hz"
-        @test zeeman_shift(C, "D", 1e-4u"T") ≈ -4.200042174919575e6u"Hz"
+        @test zeeman_shift(C, "S", 1e-4u"T") ≈ -1.4012037204665968e6u"1/s"
+        @test zeeman_shift(C, "D", 1e-4u"T") ≈ -4.200042174919575e6u"1/s"
 
         @test leveltransitions(C) == [("S1/2", "D5/2")]
         @test length(subleveltransitions(C)) == 10
 
-        @test lifetime(C, "D5/2") ≈ 1.16795141322121
+        @test lifetime(C, "D5/2") ≈ 1.16795141322121u"s"
 
-        # TODO: something's wrong with the units here
-        @test ustrip(matrix_element(C, ("S", "D"), 1e5u"Hz", x̂, ŷ, ẑ)) ≈
-              472761.18184781645
+        @test matrix_element(C, ("S", "D"), 1e5u"V/m", x̂, ŷ, ẑ) ≈
+              472761.18184781645u"1/s"
 
         # # make sure improper indexing of Ca40 yields an AssertionError
         @test_throws AssertionError C[""]

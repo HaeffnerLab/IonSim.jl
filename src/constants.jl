@@ -3,7 +3,7 @@ using Unitful
 
 import Base.sqrt
 
-export μB, ħ, c, e, ϵ₀, α, eye3, c_rank1, c_rank2, INVERSE_TIME, MAGNETIC
+export μB, ħ, c, e, ϵ₀, α, eye3, c_rank1, c_rank2, INVERSE_TIME, MAGNETIC, MAGNETIC_PER_LENGTH, ELECTRIC
 
 #############################################################################################
 # Physical constants (everything in SI units)
@@ -22,8 +22,10 @@ const ϵ₀ = u"ϵ0"
 """`α` = e²/4πϵ₀ħc``"""
 const α = u"q" * u"q" / 4 / pi / u"ϵ0" / u"ħ" / u"c0" |> NoUnits
 
-const INVERSE_TIME = Union{typeof(1u"Hz"), typeof(1.0u"Hz")}
+const INVERSE_TIME = Union{typeof(1u"1/s"), typeof(1.0u"1/s")} #TODO: check if this works for Hz too
+const ELECTRIC = Union{typeof(1u"V/m"), typeof(1.0u"V/m")}
 const MAGNETIC = Union{typeof(1u"T"), typeof(1.0u"T")}
+const MAGNETIC_PER_LENGTH = Union{typeof(1u"T/m"), typeof(1.0u"T/m")}
 
 #############################################################################################
 # 3D real-space tensors

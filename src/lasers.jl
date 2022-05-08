@@ -1,18 +1,19 @@
-using .PhysicalConstants: c
+using .PhysicalConstants: c, ELECTRIC, INVERSE_TIME
+using Unitful
 
 export Laser
 
 """
-    Laser(;λ=nothing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
-        
+    Laser(;λ=nothing, E=0u"V/m", Δ=0u"1/s", ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
+
 The physical parameters defining laser light.
 **args**
-* `λ::Union{Real,Nothing}`: the wavelength of the laser in meters
-* `E::Union{Function,Real}`: magnitude of the E-field in V/m
+* `λ::Union{Unitful.Length,Nothing}`: the wavelength of the laser in meters
+* `E::Union{Function,ELECTRIC}`: magnitude of the E-field in V/m
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
 * `k::NamedTuple`: (k.x, k.y, k.z), propagation direction, requires norm of 1
-* `ϕ::Union{Function,Real}`: time-dependent phase. of course, this can also be used to model a 
+* `ϕ::Union{Function,Real}`: time-dependent phase. of course, this can also be used to model a
     time-dependent detuning. Units are in radians. Note: if this is set to a function of time,
     then when constructing a Hamiltonian with the `hamiltonian` function, the units of time
     will be as specified by the `timescale` keyword argument.
@@ -21,17 +22,17 @@ The physical parameters defining laser light.
     factor for the laser's Efield which must be between 0 and 1).
 """
 mutable struct Laser
-    λ::Union{Real, Nothing}
+    λ::Union{Unitful.Length, Nothing}
     E::Function
-    Δ::Real
+    Δ::INVERSE_TIME
     ϵ::NamedTuple{(:x, :y, :z)}
     k::NamedTuple{(:x, :y, :z)}
     ϕ::Function
     pointing::Vector
     function Laser(;
         λ = nothing,
-        E::TE = 0,
-        Δ = 0,
+        E::TE = 0u"V/m",
+        Δ = 0u"1/s",
         ϵ = (x̂ + ŷ) / √2,
         k = ẑ,
         ϕ::Tϕ = 0,
@@ -50,7 +51,7 @@ mutable struct Laser
         for s in scaling
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
-        TE <: Number ? Et(t) = E : Et = E
+        TE <: ELECTRIC ? Et(t) = E : Et = E
         Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
         return new(λ, Et, Δ, ϵ, k, ϕt, pointing)
     end
@@ -82,12 +83,12 @@ function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
         @assert isapprox(norm(v), 1, rtol = rtol) "!(|ϵ| = 1)"
         # if ! isapprox(ndot(L.k, v), 0, rtol=rtol)
         #     @warn "!(ϵ ⟂ k)"
-        # end 
+        # end
     elseif s == :k
         @assert isapprox(norm(v), 1, rtol = rtol) "!(|k| = 1)"
         # if ! isapprox(ndot(v, L.ϵ), 0, rtol=rtol)
         #     @warn "!(ϵ ⟂ k)"
-        # end 
+        # end
     elseif s == :pointing
         b = Tv <: Vector{Tuple{Int64, Float64}} || Tv <: Vector{Tuple{Int64, Int64}}
         @assert b "type != Vector{Tuple{Int,Real}}"

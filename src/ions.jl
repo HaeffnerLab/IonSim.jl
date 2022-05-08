@@ -159,7 +159,7 @@ Sets the stark shift of all sublevels of `I` to zero.
 """
 function zero_stark_shift!(I::Ion)
     for sublevel in keys(stark_shift(I))
-        I.stark_shift[sublevel] = 0.0u"Hz"
+        I.stark_shift[sublevel] = 0.0u"1/s"
     end
 end
 
@@ -325,11 +325,11 @@ function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::MAGNETIC)
        haskey(properties.nonlinear_zeeman, sublevel)
         nonlinear = properties.nonlinear_zeeman[sublevel](B)
     else
-        nonlinear = 0.0u"Hz"
+        nonlinear = 0.0u"1/s"
     end
     return zeeman_shift(B, landegf(I, sublevel[1]), sublevel[2]) + nonlinear
 end
-zeeman_shift(B::MAGNETIC, g::Real, m::Real) = ((μB / ħ) * g * B * m / 2π) |> u"Hz"
+zeeman_shift(B::MAGNETIC, g::Real, m::Real) = ((μB / ħ) * g * B * m / 2π) |> u"s^-1"
 zeeman_shift(B::MAGNETIC, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 // 2) =
     zeeman_shift(B, landegf(l, j, f, i, s), m)
 zeeman_shift(B::MAGNETIC, qnums::NamedTuple) =
@@ -473,21 +473,21 @@ The sum is taken over all levels that the species may have, rather than the leve
 """
 function lifetime(I::Ion, level::String)
     @assert level in keys(speciesproperties(I).full_level_structure) "Ion species $(typeof(I)) does not contain level $level"
-    totaltransitionrate = 0.0
+    totaltransitionrate = 0.0u"1/s"
     for (transition, info) in speciesproperties(I).full_transitions
         if transition[2] == level
             totaltransitionrate += info.einsteinA
         end
     end
-    if totaltransitionrate == 0.0
-        return Inf
+    if totaltransitionrate == 0.0u"1/s"
+        return Inf*1u"s"
     else
-        return (1.0 / totaltransitionrate)
+        return (1.0 / totaltransitionrate) |> u"s"
     end
 end
 
 """
-    matrix_element(I::Ion, transition::Tuple, Efield::INVERSE_TIME, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    matrix_element(I::Ion, transition::Tuple, Efield::ELECTRIC, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
 Computes the matrix elements (units of Hz) between two energy sublevels
 **args**
 * `I`: Ion undergoing transition
@@ -506,9 +506,9 @@ function matrix_element(
     m2::Real,
     I::Real,
     ΔE::INVERSE_TIME,
-    A12::Real,
+    A12::INVERSE_TIME,
     multipole::String,
-    Efield::INVERSE_TIME,
+    Efield::ELECTRIC,
     khat::NamedTuple,
     ϵhat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
@@ -537,7 +537,7 @@ function matrix_element(
 
     if multipole == "E1"
         if abs(q) > 1
-            return 0
+            return 0u"1/s"
         else
             hyperfine_factor =
                 abs(sqrt((2 * f1 + 1) * (2 * f2 + 1)) * wigner6j(j2, I, f2, f1, 1, j1))
@@ -550,7 +550,7 @@ function matrix_element(
         end
     elseif multipole == "E2"
         if abs(q) > 2
-            return 0
+            return 0u"1/s"
         else
             hyperfine_factor =
                 abs(sqrt((2 * f1 + 1) * (2 * f2 + 1)) * wigner6j(j2, I, f2, f1, 2, j1))
@@ -564,12 +564,12 @@ function matrix_element(
     else
         @error "calculation of atomic transition matrix element for transition type $type not currently supported"
     end
-    return units_factor * hyperfine_factor * geometric_factor / 2π
+    return units_factor * hyperfine_factor * geometric_factor / 2π |> u"s^-1"
 end
 function matrix_element(
     I::Ion,
     transition::Tuple,
-    Efield::INVERSE_TIME,
+    Efield::ELECTRIC,
     khat::NamedTuple,
     ϵhat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
@@ -657,7 +657,7 @@ function _construct_starkshift(starkshift, sublevels)
     starkshift_full = OrderedDict{Tuple, INVERSE_TIME}()
     for sublevel in sublevels
         starkshift_full[sublevel] =
-            (haskey(starkshift, sublevel) ? starkshift[sublevel] : 0.0u"Hz")
+            (haskey(starkshift, sublevel) ? starkshift[sublevel] : 0.0u"1/s")
     end
     return starkshift_full
 end
@@ -689,7 +689,7 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
         for sublevel in sublevels(I)
             starkshift_full_new[sublevel] = (
                 haskey(starkshift_full_old, sublevel) ? starkshift_full_old[sublevel] :
-                0.0u"Hz"
+                0.0u"1/s"
             )
         end
         Core.setproperty!(I, :stark_shift, starkshift_full_new)

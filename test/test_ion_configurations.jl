@@ -8,7 +8,7 @@ using Suppressor
         C = Ca40()
         lc = LinearChain(
             ions = [C, C, C, C],
-            com_frequencies = (x = 5u"Hz", y = 5u"Hz", z = 1u"Hz"),
+            com_frequencies = (x = 5u"1/s", y = 5u"1/s", z = 1u"1/s"),
             vibrational_modes = (y = [1], z = [4])
         )
         @test ions(lc) == lc.ions
@@ -31,13 +31,13 @@ using Suppressor
         warning = "Some ions point to the same thing. Making copies."
         @test_logs (:warn, warning) LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 4u"Hz", y = 4u"Hz", z = 1u"Hz"),
+            com_frequencies = (x = 4u"1/s", y = 4u"1/s", z = 1u"1/s"),
             vibrational_modes = (x = [], y = [], z = [1, 2])
         )
         # and copies should be made of the repeated ions, so that they are no longer the same
         chain1 = LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 4u"Hz", y = 4u"Hz", z = 1u"Hz"),
+            com_frequencies = (x = 4u"1/s", y = 4u"1/s", z = 1u"1/s"),
             vibrational_modes = (x = [], y = [], z = [1, 2])
         )
         @test !(chain1.ions[1] ≡ chain1.ions[2])
@@ -56,18 +56,18 @@ using Suppressor
 
         # and test calculation of characterstic length scale for linear chain, equal mass
         C = Ca40()
-        @test characteristic_length_scale(mass(C), 1e6u"Hz") ≈ 4.449042804354206e-6u"m"
+        @test characteristic_length_scale(mass(C), 1e6u"1/s") ≈ 4.449042804354206e-6u"m"
 
         # and do the same for Anm, which computes the normal modes
         @test_throws AssertionError Anm(
             2,
-            (x = 0.5u"Hz", y = 0.5u"Hz", z = 1u"Hz"),
+            (x = 0.5u"1/s", y = 0.5u"1/s", z = 1u"1/s"),
             (x = 1, y = 0, z = 0)
         )
         cst = [-0.2132, 0.6742, -0.6742, 0.2132]
         freq, mode =
-            Anm(4, (x = 2u"Hz", y = 2u"Hz", z = 1u"Hz"), (x = 0, y = 0, z = 1))[end]
-        @test freq ≈ √9.308u"Hz" rtol = 1e-4
+            Anm(4, (x = 2u"1/s", y = 2u"1/s", z = 1u"1/s"), (x = 0, y = 0, z = 1))[end]
+        @test freq ≈ √9.308u"1/s" rtol = 1e-4
         if mode[1] > 0
             cst = -1 .* cst
         end

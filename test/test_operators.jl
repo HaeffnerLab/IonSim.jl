@@ -9,7 +9,7 @@ using Suppressor
     C = Ca40([("S1/2", -1 // 2), ("D5/2", -1 // 2)])
     chain = LinearChain(
         ions = [C, C],
-        com_frequencies = (x = 2u"Hz", y = 2u"Hz", z = 1u"Hz"),
+        com_frequencies = (x = 2u"1/s", y = 2u"1/s", z = 1u"1/s"),
         vibrational_modes = (x = [1], y = [], z = [1])
     )
     T = Trap(configuration = chain)
