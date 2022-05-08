@@ -14,13 +14,13 @@ const μB = u"μB"
 """`ħ` = 1.0545718e-34 m²kg/s <br> (Planck's constant / 2π)"""
 const ħ = u"ħ"
 """`c` = 2.99792458e8 m/s <br> (speed of light in vacuum)"""
-const c =  u"c0"
+const c = u"c0"
 """`e` = 1.60217662e-19 C <br> (charge of electron)"""
 const e = u"q"
 """`ϵ₀` = 8.85418782e-12 ``(s^4A^2) / (m^3 kg)``"""
 const ϵ₀ = u"ϵ0"
 """`α` = e²/4πϵ₀ħc``"""
-const α = u"q"*u"q"/4/pi/u"ϵ0"/u"ħ"/u"c0" |> NoUnits
+const α = u"q" * u"q" / 4 / pi / u"ϵ0" / u"ħ" / u"c0" |> NoUnits
 
 const INVERSE_TIME = Union{typeof(1u"Hz"), typeof(1.0u"Hz")}
 const MAGNETIC = Union{typeof(1u"T"), typeof(1.0u"T")}

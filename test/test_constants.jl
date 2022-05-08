@@ -3,17 +3,17 @@ using Test, IonSim, IonSim.PhysicalConstants, Suppressor, Unitful
 @testset "constants -- PhysicalConstant" begin
     # test that algebraic operations on physical constants return a unitful quantity
     @test typeof(c - c) <: typeof(u"c0")
-    @test typeof(c - 1u"m/s") <:  typeof(u"c0")
-    @test typeof(1u"m/s" - c) <:  typeof(u"c0")
-    @test typeof(c + c) <:  typeof(u"c0")
-    @test typeof(1u"m/s" + c) <:  typeof(u"c0")
-    @test typeof(c + 1u"m/s") <:  typeof(u"c0")
-    @test typeof(c * c) <:  typeof(u"c0"^2)
+    @test typeof(c - 1u"m/s") <: typeof(u"c0")
+    @test typeof(1u"m/s" - c) <: typeof(u"c0")
+    @test typeof(c + c) <: typeof(u"c0")
+    @test typeof(1u"m/s" + c) <: typeof(u"c0")
+    @test typeof(c + 1u"m/s") <: typeof(u"c0")
+    @test typeof(c * c) <: typeof(u"c0"^2)
     @test typeof(1 * c) <: typeof(u"c0")
     @test typeof(c * 1) <: typeof(u"c0")
     @test typeof(c / c) <: Number
     @test typeof(1 / c) <: typeof(u"c0"^-1)
-    @test typeof(c / 1) <: typeof(u"c0"*1.0) # this becomes a float
+    @test typeof(c / 1) <: typeof(u"c0" * 1.0) # this becomes a float
     @test typeof(c^3) <: typeof(u"c0"^3)
     @test typeof(2^α) <: Number
     @test typeof(sqrt(c)) <: typeof(u"c0"^0.5)

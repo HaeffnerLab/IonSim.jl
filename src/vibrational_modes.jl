@@ -1,5 +1,5 @@
 using QuantumOptics: basisstate
-using .PhysicalConstants:INVERSE_TIME
+using .PhysicalConstants: INVERSE_TIME
 using Unitful
 
 export VibrationalMode

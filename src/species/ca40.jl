@@ -1,5 +1,5 @@
 using Unitful
-using .PhysicalConstants:INVERSE_TIME
+using .PhysicalConstants: INVERSE_TIME
 export Ca40
 
 """
@@ -30,7 +30,8 @@ const properties_ca40 = (
     full_level_structure = OrderedDict(
         "S1/2" => (n = 4, l = 0, j = (1 // 2), f = (1 // 2), E = 0u"Hz"),
         "D3/2" => (n = 3, l = 2, j = (3 // 2), f = (3 // 2), E = 4.09335071228e14u"Hz"),
-        "D5/2" => (n = 3, l = 2, j = (5 // 2), f = (5 // 2), E = 4.1115503183857306e14u"Hz"),
+        "D5/2" =>
+            (n = 3, l = 2, j = (5 // 2), f = (5 // 2), E = 4.1115503183857306e14u"Hz"),
         "P1/2" => (n = 4, l = 1, j = (1 // 2), f = (1 // 2), E = 7.554e14u"Hz"),
         "P3/2" => (n = 4, l = 1, j = (3 // 2), f = (3 // 2), E = 7.621e14u"Hz"),
     ),

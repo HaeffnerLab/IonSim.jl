@@ -1,6 +1,6 @@
 using LinearAlgebra: eigen
 using NLsolve: nlsolve
-using .PhysicalConstants: e, ϵ₀,INVERSE_TIME
+using .PhysicalConstants: e, ϵ₀, INVERSE_TIME
 using Unitful
 
 export IonConfiguration,

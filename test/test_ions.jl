@@ -97,7 +97,8 @@ using Unitful
         @test lifetime(C, "D5/2") ≈ 1.16795141322121
 
         # TODO: something's wrong with the units here
-        @test ustrip(matrix_element(C, ("S", "D"), 1e5u"Hz", x̂, ŷ, ẑ)) ≈ 472761.18184781645
+        @test ustrip(matrix_element(C, ("S", "D"), 1e5u"Hz", x̂, ŷ, ẑ)) ≈
+              472761.18184781645
 
         # # make sure improper indexing of Ca40 yields an AssertionError
         @test_throws AssertionError C[""]

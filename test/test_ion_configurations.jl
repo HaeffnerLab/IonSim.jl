@@ -59,9 +59,14 @@ using Suppressor
         @test characteristic_length_scale(mass(C), 1e6u"Hz") ≈ 4.449042804354206e-6u"m"
 
         # and do the same for Anm, which computes the normal modes
-        @test_throws AssertionError Anm(2, (x = 0.5u"Hz", y = 0.5u"Hz", z = 1u"Hz"), (x = 1, y = 0, z = 0))
+        @test_throws AssertionError Anm(
+            2,
+            (x = 0.5u"Hz", y = 0.5u"Hz", z = 1u"Hz"),
+            (x = 1, y = 0, z = 0)
+        )
         cst = [-0.2132, 0.6742, -0.6742, 0.2132]
-        freq, mode = Anm(4, (x = 2u"Hz", y = 2u"Hz", z = 1u"Hz"), (x = 0, y = 0, z = 1))[end]
+        freq, mode =
+            Anm(4, (x = 2u"Hz", y = 2u"Hz", z = 1u"Hz"), (x = 0, y = 0, z = 1))[end]
         @test freq ≈ √9.308u"Hz" rtol = 1e-4
         if mode[1] > 0
             cst = -1 .* cst

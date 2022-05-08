@@ -329,12 +329,13 @@ function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::MAGNETIC)
     end
     return zeeman_shift(B, landegf(I, sublevel[1]), sublevel[2]) + nonlinear
 end
-zeeman_shift(B::MAGNETIC, g::Real, m::Real) =  ( (μB / ħ) * g * B * m / 2π ) |> u"Hz"
+zeeman_shift(B::MAGNETIC, g::Real, m::Real) = ((μB / ħ) * g * B * m / 2π) |> u"Hz"
 zeeman_shift(B::MAGNETIC, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 // 2) =
     zeeman_shift(B, landegf(l, j, f, i, s), m)
 zeeman_shift(B::MAGNETIC, qnums::NamedTuple) =
     zeeman_shift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
-zeeman_shift(I::Ion, alias::String, B::MAGNETIC) = zeeman_shift(I, alias2sublevel(I, alias), B)
+zeeman_shift(I::Ion, alias::String, B::MAGNETIC) =
+    zeeman_shift(I, alias2sublevel(I, alias), B)
 
 # This function is written to be able to accept either a level or sublevel in the second argument
 # Since both levels and aliases are strings, multidispatch can't tell the difference, so the second method distinguishes these cases with an if statement.
@@ -377,7 +378,12 @@ Computes the absolute values of the difference in energies between `transition[1
 
 If between sublevels, then the Zeeman shift may be included by setting the value of the magnetic field `B`, and Stark shifts may be omitted by setting `ignore_starkshift=true`.
 """
-function transitionfrequency(I::Ion, transition::Tuple; B = 0u"T", ignore_starkshift = false)
+function transitionfrequency(
+    I::Ion,
+    transition::Tuple;
+    B = 0u"T",
+    ignore_starkshift = false
+)
     # Multidispatch of the function energy should make this work regardless of whether the transition is between levels or sublevels, and regardless of whether or not aliases are used
     return abs(
         energy(I, transition[1], B = B, ignore_starkshift = ignore_starkshift) -
@@ -389,7 +395,12 @@ end
     transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
 Returns the wavelength corresponding to `transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)`.
 """
-function transitionwavelength(I::Ion, transition::Tuple; B = 0u"T", ignore_starkshift = false)
+function transitionwavelength(
+    I::Ion,
+    transition::Tuple;
+    B = 0u"T",
+    ignore_starkshift = false
+)
     return c /
            transitionfrequency(I, transition, B = B, ignore_starkshift = ignore_starkshift)
 end
@@ -677,7 +688,8 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
         starkshift_full_new = OrderedDict{Tuple, Real}()
         for sublevel in sublevels(I)
             starkshift_full_new[sublevel] = (
-                haskey(starkshift_full_old, sublevel) ? starkshift_full_old[sublevel] : 0.0u"Hz"
+                haskey(starkshift_full_old, sublevel) ? starkshift_full_old[sublevel] :
+                0.0u"Hz"
             )
         end
         Core.setproperty!(I, :stark_shift, starkshift_full_new)

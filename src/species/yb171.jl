@@ -1,5 +1,5 @@
 using Unitful
-using .PhysicalConstants:INVERSE_TIME
+using .PhysicalConstants: INVERSE_TIME
 export Yb171
 
 """
