@@ -79,7 +79,7 @@ collection of `N` ions in a linear Coloumb crystal and returns an array of tuple
 element the frequency of the normal mode and 2nd element the corresponding eigenvector.
 
 `com` should be a `NamedTuple` of COM frequences for the different axes:
-`(x<:Number, y<:Number, z<:Number)`, where the ``z``-axis is taken to be parallel to the axis of
+`(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of
 the crystal.
 """
 function Anm(N::Int, com::NamedTuple{(:x, :y, :z)}, axis::NamedTuple{(:x, :y, :z)})

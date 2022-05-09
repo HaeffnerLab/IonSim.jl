@@ -570,7 +570,7 @@ function _Ωmatrix(T, timescale)
                 s *
                 matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) /
                 2.0
-            if Ω0 == 0
+            if ustrip(Ω0) == 0
                 push!(v, 0)
             else
                 push!(
@@ -594,7 +594,7 @@ function _D(Ω, Δ, η, ν, timescale, n, t, L)
         d *= _Dnm(1im * η[i] * exp(im * 2π * ν[i] * timescale * t), n[1][i], n[2][i])
     end
     # TODO: Shouldn't we use the timescale here?
-    g = Ω * exp(-1im * t * timescale * Δ) * 1u"s"
+    g = ustrip(Ω) * exp(ustrip(-1im * t * Δ))
     return g * d, g * conj(d)
 end
 
@@ -608,7 +608,7 @@ function _D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
         d *= D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π / 2))
     end
     # TODO: Shouldn't we use the timescale here?
-    g = ustrip(Ω * exp(ustrip(-1im * t * timescale * Δ)))
+    g = ustrip(Ω) * exp(ustrip(-1im * t * Δ))
     return g * d, g * conj(d)
 end
 
