@@ -20,7 +20,13 @@ using Unitful
         L.k = (x̂ + ẑ) / √2
         L.ϵ = (x̂ - ẑ) / √2 # I have no idea how this worked before; previously this was set to ŷ which gives zero coupling strength to Δm=0
         Ω = (rand() + 0.1) * 1e6
-        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(
+            Ω * 1u"1/s",
+            T,
+            1,
+            1,
+            (("S1/2", -1 / 2), ("D5/2", -1 / 2))
+        )
 
         h = hamiltonian(T)
         tspan = 0:1e-3:4
@@ -35,7 +41,7 @@ using Unitful
 
         # add detuning
         Δ = (rand() + 0.5) * 10e5
-        L.Δ = Δ*1u"1/s"
+        L.Δ = Δ * 1u"1/s"
         h = hamiltonian(T)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -51,8 +57,8 @@ using Unitful
 
         # add detuning using ion's stark_shift field
         L.Δ = 0u"1/s"
-        C.stark_shift[("S1/2", -1 / 2)] = -Δ*1u"1/s" / 2
-        C.stark_shift[("D5/2", -1 / 2)] = Δ*1u"1/s" / 2
+        C.stark_shift[("S1/2", -1 / 2)] = -Δ * 1u"1/s" / 2
+        C.stark_shift[("D5/2", -1 / 2)] = Δ * 1u"1/s" / 2
         h = hamiltonian(T)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -138,7 +144,13 @@ using Unitful
             transitionfrequency(1, ("S1/2", "D5/2"), T)
         L.ϕ = t -> Δf * t
         Ω = (rand() + 0.1) * 1e6
-        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(
+            Ω * 1u"1/s",
+            T,
+            1,
+            1,
+            (("S1/2", -1 / 2), ("D5/2", -1 / 2))
+        )
 
         h = hamiltonian(T)
         tspan = 0:1e-3:4
@@ -201,7 +213,12 @@ using Unitful
             com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, B = 4e-4u"T", Bhat = (x̂ + ẑ) / √2, lasers = [L1, L2])
+        T = Trap(
+            configuration = chain,
+            B = 4e-4u"T",
+            Bhat = (x̂ + ẑ) / √2,
+            lasers = [L1, L2]
+        )
         L1.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         L2.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         mode = T.configuration.vibrational_modes.z[1]
@@ -220,8 +237,20 @@ using Unitful
         η = abs(get_η(mode, L1, C))
         Ω = √(1e3 * ϵ) / η  # This will give a 1kHz MS strength, since coupling goes like (ηΩ)^2/ϵ
 
-        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
-        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 2, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(
+            Ω * 1u"1/s",
+            T,
+            1,
+            1,
+            (("S1/2", -1 / 2), ("D5/2", -1 / 2))
+        )
+        Efield_from_rabi_frequency!(
+            Ω * 1u"1/s",
+            T,
+            2,
+            1,
+            (("S1/2", -1 / 2), ("D5/2", -1 / 2))
+        )
         ψi = ionstate(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)) ⊗ mode[0]  # initial state
         h = hamiltonian(T, rwa_cutoff = 5e5)
         tspan = 0:0.25:1000

@@ -563,7 +563,13 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 = 1u"m/V" * 2π * timescale * s * matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
+            Ω0 =
+                1u"m/V" *
+                2π *
+                timescale *
+                s *
+                matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) /
+                2.0
             if Ω0 == 0
                 push!(v, 0)
             else
