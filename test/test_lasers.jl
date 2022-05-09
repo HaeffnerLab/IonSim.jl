@@ -21,7 +21,7 @@ using Unitful
     # should be able to set L.E, L.ϕ to a function of time
     @test L.E.(t) == ones*1u"V/m"
     @test L.ϕ.(t) == ones
-    L = Laser(E = x -> 1u"V/m"*sin(ustrip(x)), ϕ = sin)
+    L = Laser(E = x -> 1u"V/m"*sin(x), ϕ = sin)
     @test L.E.(t) == sin.(t)*1u"V/m"
     @test L.ϕ.(t) == sin.(t)
 

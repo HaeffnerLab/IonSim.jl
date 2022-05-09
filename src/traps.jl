@@ -102,7 +102,7 @@ mutable struct Trap
                  $(length(configuration.ions)) ions."""
             )
         end
-        if TδB <: MAGNETIC
+        if TδB <: Number
             _cnst_δB = true
             δBt(t) = δB
         else
@@ -121,7 +121,7 @@ end
 
 function Base.setproperty!(T::Trap, s::Symbol, v::Tv) where {Tv}
     if s == :δB
-        if Tv <: MAGNETIC
+        if Tv <: Number
             _cnst_δB = true
             vt(t) = v
         else
@@ -476,7 +476,7 @@ for a given vibrational mode, ion and laser.
 function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled = false)
     @fastmath begin
         k = 2π / L.λ
-        scaled ? ν = 1 : ν = V.ν
+        scaled ? ν = 1u"1/s" : ν = V.ν #TODO: check units
         x0 = √(ħ / (2 * mass(I) * 2π * ν))
         cosθ = ndot(L.k, V.axis)
         k * x0 * cosθ * V.mode_structure[ionnumber(I)] |> NoUnits

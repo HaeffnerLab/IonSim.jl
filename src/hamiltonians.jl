@@ -244,7 +244,7 @@ function _setup_base_hamiltonian(
 
         # iterate over ion-laser transitions
         for (ti, tr) in enumerate(ts)
-            Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]
+            Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]*1u"1/s" # TODO is this the right units?
             Δ_2π = Δ / 2π
             typeof(Ω) <: Number && continue  # e.g. the laser doesn't shine on this ion
             locs = view(ion_idxs, ((ti - 1) * ion_reps + 1):(ti * ion_reps))
@@ -508,7 +508,7 @@ function _ηmatrix(T)
             ηnml[n, m, L - l + 1] = 0
         else
             ηnml[n, m, L - l + 1] =
-                FunctionWrapper{Float64, Tuple{Float64}}(t -> eta / √(ν + δν(t)))
+                FunctionWrapper{Float64, Tuple{Float64}}(t -> eta / √(ν*1u"s" + δν(t))) #TODO: why do I need to do
         end
     end
     return ηnml
@@ -558,19 +558,16 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 =
-                2π *
-                timescale
+            Ω0 = 1u"m/V" * 2π *
+                timescale * 1u"1/s" #TODO: Why do we have to multiply by Hz?
                 s *
-                matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0u"V/m"
-            if Ω0 == 0
+                matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
+            if ustrip(Ω0) == 0
                 push!(v, 0)
             else
                 push!(
-                    v,
-                    FunctionWrapper{ComplexF64, Tuple{Float64}}(
-                        t -> Ω0 * E(t) * exp(-im * phase(t))
-                    )
+                    v, #TODO: FunctionWrapper doesn't play nice with Unitful.
+                    FunctionWrapper{ComplexF64, Tuple{Float64}}(t -> (Ω0 * E(t) * exp(-im * phase(t))) |> NoUnits )
                 )
             end
         end
@@ -586,7 +583,8 @@ function _D(Ω, Δ, η, ν, timescale, n, t, L)
     for i in 1:L
         d *= _Dnm(1im * η[i] * exp(im * 2π * ν[i] * timescale * t), n[1][i], n[2][i])
     end
-    g = Ω * exp(-1im * t * Δ)
+    # TODO: Shouldn't we use the timescale here?
+    g = Ω * exp(-1im * t * timescale * Δ) * 1u"s"
     return g * d, g * conj(d)
 end
 
@@ -599,7 +597,8 @@ function _D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
     for i in 1:L
         d *= D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π / 2))
     end
-    g = Ω * exp(-1im * t * Δ)
+    # TODO: Shouldn't we use the timescale here?
+    g = Ω * exp(-1im * t * timescale * Δ) * 1u"s"
     return g * d, g * conj(d)
 end
 

@@ -51,7 +51,7 @@ mutable struct Laser
         for s in scaling
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
-        TE <: ELECTRIC ? Et(t) = E : Et = E
+        TE <: Number ? Et(t) = E : Et = E
         Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
         return new(λ, Et, Δ, ϵ, k, ϕt, pointing)
     end

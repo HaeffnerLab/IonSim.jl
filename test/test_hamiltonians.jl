@@ -67,14 +67,14 @@ end
 
 @suppress_err begin
     @testset "hamiltonians -- misc functions" begin
-        # TODO: get the units right on here
+        # TODO: enforce units on here
         # make sure _D and _D_constant_eta return the same thing for constant eta
         L = 10
-        Ω = 1e6randn()
-        Δ = 10randn()
+        Ω = 1e6randn()u"1/s"
+        Δ = 10randn()u"1/s"
         η = [abs(randn()) for _ in 1:L]
-        ν = [10randn() for _ in 1:L]
-        timescale = 10randn()
+        ν = [10randn() for _ in 1:L]u"1/s"
+        timescale = 10randn()u"s"
         n = [[rand(1:20) for _ in 1:L], [rand(1:5) for _ in 1:L]]
         t = randn()
         d1 = IonSim._D(Ω, Δ, η, ν, timescale, n, t, L)
@@ -146,8 +146,7 @@ end
         @test [2exp(-2im) * resolve(i, t) for i in Ωnmkj[2, 1]] == [resolve(i, t) for i in Ωnmkj[2, 2]]
 
         # make sure time-dep L.E and L.ϕ propagate appropriately
-        # TODO: this seems dangerous...
-        L1.E = x -> 1u"V/m"*cos(ustrip(x))
+        L1.E = x -> 1u"V/m"*cos(x)
         L1.ϕ = t -> t^2
         Ωnmkj = IonSim._Ωmatrix(T, 1u"s")
         t = 0:1e-3:100
@@ -233,7 +232,7 @@ end
             com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, lasers = [L], δB = 0)
+        T = Trap(configuration = chain, lasers = [L], δB = 0u"T")
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
 
         # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays
@@ -263,7 +262,7 @@ end
             com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, lasers = [L], δB = 0)
+        T = Trap(configuration = chain, lasers = [L], δB = 0u"T")
         # should return empty arrays if δν=0
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         @test length(δν_indices) == 0 && length(δν_functions) == 0
@@ -281,7 +280,7 @@ end
             com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (y = [1], z = [1])
         )
-        T = Trap(configuration = chain, lasers = [L], δB = 0)
+        T = Trap(configuration = chain, lasers = [L], δB = 0u"T")
         T.configuration.vibrational_modes.y[1].N = 3
         T.configuration.vibrational_modes.z[1].N = 3
         T.configuration.vibrational_modes.z[1].δν = 1
@@ -309,7 +308,7 @@ end
         @test δν_functions[2].(t) == 2π .* sin.(t)
 
         # _setup_fluctuation_hamiltonian
-        T = Trap(configuration = chain, lasers = [L], δB = 1)
+        T = Trap(configuration = chain, lasers = [L], δB = 1u"T")
         T.configuration.vibrational_modes.y[1].δν = cos
         T.configuration.vibrational_modes.z[1].δν = sin
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
