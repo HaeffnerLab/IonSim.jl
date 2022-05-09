@@ -3,6 +3,7 @@ using FunctionWrappers: FunctionWrapper
 using PolynomialRoots: roots
 using QuantumOptics: SparseOperator, embed
 using Unitful
+using .PhysicalConstants: MAGNETIC
 
 export hamiltonian
 
@@ -186,7 +187,7 @@ function _setup_base_hamiltonian(
     displacement,
     time_dependent_eta
 )
-    rwa_cutoff *= timescale
+    rwa_cutoff *= timescale*1u"1/s"
     modes = reverse(get_vibrational_modes(T.configuration))
     L = length(modes)
     νlist = Tuple([mode.ν for mode in modes])
@@ -244,7 +245,7 @@ function _setup_base_hamiltonian(
 
         # iterate over ion-laser transitions
         for (ti, tr) in enumerate(ts)
-            Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]*1u"1/s" # TODO is this the right units?
+            Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]
             Δ_2π = Δ / 2π
             typeof(Ω) <: Number && continue  # e.g. the laser doesn't shine on this ion
             locs = view(ion_idxs, ((ti - 1) * ion_reps + 1):(ti * ion_reps))
@@ -422,7 +423,7 @@ function _setup_δν_hamiltonian(T, timescale)
         (mode._cnst_δν && δν(0) == 0) && continue
         push!(
             δν_functions,
-            FunctionWrapper{Float64, Tuple{Float64}}(t -> @fastmath 2π * δν(t) * τ)
+            FunctionWrapper{Float64, Tuple{Float64}}(t -> @fastmath 2π * δν(t) * τ *1u"1/s")
         )
         δν_indices_l = Vector{Vector{Int64}}(undef, 0)
         mode_op = number(mode)
@@ -451,8 +452,8 @@ function _setup_global_B_hamiltonian(T, timescale)
     global_B_scales = Vector{Float64}(undef, 0)
     δB = T.δB
     τ = timescale
-    bfunc = FunctionWrapper{Float64, Tuple{Float64}}(t -> 2π * δB(t * τ))
-    if T._cnst_δB && δB(0) == 0
+    bfunc = FunctionWrapper{Float64, Tuple{Float64}}(t -> (1u"1/T" * 2π * δB(t * τ * 1u"1/s" |> NoUnits) |> NoUnits))
+    if T._cnst_δB && δB(0) == 0u"T"
         return global_B_indices, global_B_scales, bfunc
     end
     for n in eachindex(ions)
@@ -463,7 +464,7 @@ function _setup_global_B_hamiltonian(T, timescale)
             push!(global_B_indices, indices)
             # zeeman_shift(ions[n], sublevel, 1]) is the Zeeman shift of
             # sublevel in units of δB.
-            push!(global_B_scales, τ * zeeman_shift(ions[n], sublevel, 1))
+            push!(global_B_scales, τ * zeeman_shift(ions[n], sublevel, 1u"T"))
         end
     end
     return global_B_indices, global_B_scales, bfunc

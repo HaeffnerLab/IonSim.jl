@@ -233,7 +233,7 @@ end
             vibrational_modes = (; z = [1])
         )
         T = Trap(configuration = chain, lasers = [L], δB = 0u"T")
-        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
+        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1u"s")
 
         # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays
         @test length(global_B_indices) == 0 && length(global_B_scales) == 0
@@ -241,10 +241,10 @@ end
         @test sum(bfunc.(0:1e4)) == 0
 
         # now let's test nontrivial T.δB
-        T.δB = sin
+        T.δB = x -> 1u"T"*sin(x)
         t = 0:0.1:10
         T.configuration.vibrational_modes.z[1].N = 3
-        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
+        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1u"s")
         # make sure bfunc is correct
         @test bfunc.(t) == 2π .* sin.(t)
         # make sure all energy levels are being recorded
@@ -264,13 +264,13 @@ end
         )
         T = Trap(configuration = chain, lasers = [L], δB = 0u"T")
         # should return empty arrays if δν=0
-        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1u"s")
         @test length(δν_indices) == 0 && length(δν_functions) == 0
 
         # test output for simple case
         T.configuration.vibrational_modes.z[1].N = 3
         T.configuration.vibrational_modes.z[1].δν = 1
-        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1u"s")
         indxs = [[8j + i for i in 1:8] for j in 1:3]
         @test δν_indices[1] == indxs
 
@@ -284,14 +284,14 @@ end
         T.configuration.vibrational_modes.y[1].N = 3
         T.configuration.vibrational_modes.z[1].N = 3
         T.configuration.vibrational_modes.z[1].δν = 1
-        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1u"s")
         indxs1 = [[8 * 4 * j + i for i in 1:(8 * 4)] for j in 1:3]
         @test δν_indices[1] == indxs1
 
         # test output when both modes have nonzero δν
         T.configuration.vibrational_modes.z[1].δν = 1
         T.configuration.vibrational_modes.y[1].δν = 1
-        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1u"s")
         indxs = [[8 * j + i for i in 1:(8 * 8)] for j in 1:3]
         @test δν_indices[1][1] ==
               [vcat([[8 * (4(j - 1) + 1) + i for i in 1:8] for j in 1:4]...);]
@@ -302,7 +302,7 @@ end
         # finally, make sure δν_functions are being constructed appropriately
         T.configuration.vibrational_modes.y[1].δν = cos
         T.configuration.vibrational_modes.z[1].δν = sin
-        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
+        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1u"s")
         t = 0:0.1:10
         @test δν_functions[1].(t) == 2π .* cos.(t)
         @test δν_functions[2].(t) == 2π .* sin.(t)
@@ -311,10 +311,10 @@ end
         T = Trap(configuration = chain, lasers = [L], δB = 1u"T")
         T.configuration.vibrational_modes.y[1].δν = cos
         T.configuration.vibrational_modes.z[1].δν = sin
-        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
-        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
+        δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1u"s")
+        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1u"s")
         all_unique_indices, gbi, gbs, bfunc1, δνi, δνfuncs =
-            IonSim._setup_fluctuation_hamiltonian(T, 1)
+            IonSim._setup_fluctuation_hamiltonian(T, 1u"s")
         # make sure information from _setup_global_B_hamiltonian and _setup_δν_hamiltonian
         # is propagated appropriately
         @test any(gbi .== global_B_indices)
@@ -333,30 +333,30 @@ end
             com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, B = 4e-4, Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
+        T = Trap(configuration = chain, B = 4e-4u"T", Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
         mode = T.configuration.vibrational_modes.z[1]
         mode.N = rand(1:8)
         N = mode.N + 1
-        Efield_from_rabi_frequency!(1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(1e6u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
         ## first just shine light on 1st ion
         L.pointing = [(1, 1.0)]
         ridxs, cidxs = get_indices(1, [N], false)
-        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6u"s", 100, Inf, "analytic", true)
         @test length(unique([ridxs; r])) == (N^2 + N) / 2 == length(ridxs)
         @test length(unique([cidxs; c])) - 1 == (N^2 - N) / 2 == length(cidxs)
 
         ## now just shine light on second ion
         L.pointing = [(2, 1.0)]
         ridxs, cidxs = get_indices(2, [N], false)
-        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6u"s", 100, Inf, "analytic", true)
         @test length(unique([ridxs; r])) == (N^2 + N) / 2 == length(ridxs)
         @test length(unique([cidxs; c])) - 1 == (N^2 - N) / 2 == length(cidxs)
 
         ## now shine light on both ions
         L.pointing = [(1, 1.0), (2, 1.0)]
         ridxs, cidxs = get_indices(12, [N], false)
-        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6u"s", 100, Inf, "analytic", true)
         @test length(unique([ridxs; r])) == (N^2 + N) == length(ridxs)
         @test length(unique([cidxs; c])) - 1 == (N^2 - N) == length(cidxs)
 
@@ -371,7 +371,7 @@ end
         )
         T1 = Trap(
             configuration = chain1,
-            B = 4e-4,
+            B = 4e-4u"T",
             Bhat = (x̂ + ŷ + ẑ) / √3,
             lasers = [L1]
         )
@@ -381,10 +381,10 @@ end
         mode2.N = rand(1:8)
         M = mode2.N + 1
         NM = N * M
-        Efield_from_rabi_frequency!(1e6, T1, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(1e6u"1/s", T1, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
         ridxs, cidxs = get_indices(12, [N, M], true)
-        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
+        _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6u"s", 100, Inf, "analytic", true)
         @test length(unique([ridxs; r])) == (NM^2 + NM) == length(ridxs)
         @test length(unique([cidxs; c])) - 1 == (NM^2 - NM) == length(cidxs)
 
@@ -393,7 +393,7 @@ end
         ridxs, cidxs = get_indices(12, [N, M], true, cutoff = reverse(lamb_dicke_order))
         _, r, c = IonSim._setup_base_hamiltonian(
             T1,
-            1e-6,
+            1e-6u"s",
             lamb_dicke_order,
             Inf,
             "analytic",
@@ -406,7 +406,7 @@ end
         ## should have the same effect
         L.λ = transitionwavelength(C1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T1)
         _, repeated_indices, conj_repeated_indices =
-            IonSim._setup_base_hamiltonian(T1, 1, 100, 1e5, "analytic", true)
+            IonSim._setup_base_hamiltonian(T1, 1u"s", 100, 1e5, "analytic", true)
         @test length(unique([ridxs; r])) == length(ridxs)
         @test length(unique([cidxs; c])) - 1 == length(cidxs)
     end

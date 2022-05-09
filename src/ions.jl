@@ -311,7 +311,7 @@ end
 stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 
 """
-    zeeman_shift(I::Ion, sublevel}, B::MAGNETIC)
+    zeeman_shift(I::Ion, sublevel, B::MAGNETIC)
 Returns the Zeeman shift at a magnetic field of `B` of `sublevel` of `I`.
 
 If `sublevel` has a custom g-factor defined, then this is used. Otherwise, `landegf` is used to compute the Landé g-factor.
