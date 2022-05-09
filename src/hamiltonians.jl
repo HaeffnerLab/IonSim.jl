@@ -563,10 +563,8 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 = 1u"m/V" * 2π * timescale * 1u"1/s" #TODO: Why do we have to multiply by Hz?
-            s * matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) /
-            2.0
-            if ustrip(Ω0) == 0
+            Ω0 = 1u"m/V" * 2π * timescale * s * matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
+            if Ω0 == 0
                 push!(v, 0)
             else
                 push!(
@@ -604,7 +602,7 @@ function _D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
         d *= D[i] * exp(1im * (n[1][i] - n[2][i]) * (2π * ν[i] * timescale * t + π / 2))
     end
     # TODO: Shouldn't we use the timescale here?
-    g = Ω * exp(-1im * t * timescale * Δ) * 1u"s"
+    g = ustrip(Ω * exp(ustrip(-1im * t * timescale * Δ)))
     return g * d, g * conj(d)
 end
 

@@ -2,6 +2,7 @@ using QuantumOptics
 using Test, IonSim
 using IonSim.analytical
 using Suppressor
+using Unitful
 
 @suppress_err begin
     @testset "Dynamics -- Rabi" begin
@@ -10,16 +11,16 @@ using Suppressor
         L = Laser()
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
+        T = Trap(configuration = chain, B = 4e-4u"T", Bhat = ẑ, δB = 0u"T", lasers = [L])
         L.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         mode = T.configuration.vibrational_modes.z[1]
         L.k = (x̂ + ẑ) / √2
         L.ϵ = (x̂ - ẑ) / √2 # I have no idea how this worked before; previously this was set to ŷ which gives zero coupling strength to Δm=0
         Ω = (rand() + 0.1) * 1e6
-        Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
         h = hamiltonian(T)
         tspan = 0:1e-3:4
@@ -34,7 +35,7 @@ using Suppressor
 
         # add detuning
         Δ = (rand() + 0.5) * 10e5
-        L.Δ = Δ
+        L.Δ = Δ*1u"1/s"
         h = hamiltonian(T)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -49,9 +50,9 @@ using Suppressor
         )
 
         # add detuning using ion's stark_shift field
-        L.Δ = 0
-        C.stark_shift[("S1/2", -1 / 2)] = -Δ / 2
-        C.stark_shift[("D5/2", -1 / 2)] = Δ / 2
+        L.Δ = 0u"1/s"
+        C.stark_shift[("S1/2", -1 / 2)] = -Δ*1u"1/s" / 2
+        C.stark_shift[("D5/2", -1 / 2)] = Δ*1u"1/s" / 2
         h = hamiltonian(T)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -66,7 +67,7 @@ using Suppressor
         )
 
         # hot carrier
-        zero_stark_shift(C)
+        zero_stark_shift!(C)
         mode.N = 100
         ψi_ion = C[("S1/2", -1 / 2)] ⊗ C[("S1/2", -1 / 2)]'
         n̄ = rand(1:20)
@@ -81,7 +82,7 @@ using Suppressor
 
         # sideband transitions
 
-        ## under an RWA, RSB transitions, when starting in motional ground state, 
+        ## under an RWA, RSB transitions, when starting in motional ground state,
         ## should be suppressed
         L.Δ = -mode.ν
         h = hamiltonian(T, rwa_cutoff = 1e5)
@@ -124,10 +125,10 @@ using Suppressor
         L = Laser()
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
+        T = Trap(configuration = chain, B = 4e-4u"T", Bhat = ẑ, δB = 0u"T", lasers = [L])
         L.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         mode = T.configuration.vibrational_modes.z[1]
         L.k = (x̂ + ẑ) / √2
@@ -137,7 +138,7 @@ using Suppressor
             transitionfrequency(1, ("S1/2", "D5/2"), T)
         L.ϕ = t -> Δf * t
         Ω = (rand() + 0.1) * 1e6
-        Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
         h = hamiltonian(T)
         tspan = 0:1e-3:4
@@ -151,10 +152,10 @@ using Suppressor
         @test isapprox(real.(ex), @.(sin(2π * Ω / 2 * tout)^2), rtol = 1e-6)
 
         # set Ω(t) to a step function
-        L.Δ = 0
+        L.Δ = 0u"1/s"
         L.ϕ = 0
         E = Efield_from_pi_time(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
-        L.E = t -> t < 1 ? 0 : E
+        L.E = t -> t < 1 ? 0u"V/m" : E
         h = hamiltonian(T)
         tspan = 0:1e-3:3
         tout, sol = timeevolution.schroedinger_dynamic(
@@ -197,10 +198,10 @@ using Suppressor
         L2 = Laser()
         chain = LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, B = 4e-4, Bhat = (x̂ + ẑ) / √2, lasers = [L1, L2])
+        T = Trap(configuration = chain, B = 4e-4u"T", Bhat = (x̂ + ẑ) / √2, lasers = [L1, L2])
         L1.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         L2.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         mode = T.configuration.vibrational_modes.z[1]
@@ -219,8 +220,8 @@ using Suppressor
         η = abs(get_η(mode, L1, C))
         Ω = √(1e3 * ϵ) / η  # This will give a 1kHz MS strength, since coupling goes like (ηΩ)^2/ϵ
 
-        Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
-        Efield_from_rabi_frequency!(Ω, T, 2, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(Ω*1u"1/s", T, 2, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
         ψi = ionstate(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)) ⊗ mode[0]  # initial state
         h = hamiltonian(T, rwa_cutoff = 5e5)
         tspan = 0:0.25:1000
