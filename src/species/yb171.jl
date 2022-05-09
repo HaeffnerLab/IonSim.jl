@@ -185,10 +185,10 @@ mutable struct Yb171 <: Ion
 end
 
 function Base.print(I::Yb171)
-    println("171Yb\n")
+    println("¹⁷¹Yb\n")
     for (k, v) in I.selected_sublevel_structure
         println(k, ": ", v)
     end
 end
 
-Base.show(io::IO, I::Yb171) = println(io, "171Yb")  # suppress long output
+Base.show(io::IO, I::Yb171) = println(io, "¹⁷¹Yb")  # suppress long output
