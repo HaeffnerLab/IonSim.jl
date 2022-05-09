@@ -29,10 +29,10 @@ using Unitful
         t = 0:1:100
         ones = [1 for _ in t]
         T.δB = 1u"T"
-        @test T.δB.(t) == 1u"T"*ones
+        @test T.δB.(t) == 1u"T" * ones
         @test T._cnst_δB
-        T.δB = x -> 1u"T"*sin.(x) #TODO: do I need to have time be marked?
-        @test T.δB.(t) == 1u"T"*sin.(t)
+        T.δB = x -> 1u"T" * sin.(x) #TODO: do I need to have time be marked?
+        @test T.δB.(t) == 1u"T" * sin.(t)
         @test !T._cnst_δB
 
         # test for warning when lasers=[L, L, L, ...] where L point to the same thing

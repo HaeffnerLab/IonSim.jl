@@ -1,5 +1,5 @@
 using QuantumOptics: tensor, CompositeBasis
-using .PhysicalConstants: ħ, c, MAGNETIC,INVERSE_TIME,ELECTRIC
+using .PhysicalConstants: ħ, c, MAGNETIC, INVERSE_TIME, ELECTRIC
 using Unitful
 
 export Trap,
@@ -214,11 +214,11 @@ function Efield_from_pi_time(
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
     s = p[s_indx[1]][2]
     Ω = s * matrix_element(ion, transition, 1u"V/m", laser.k, laser.ϵ, Bhat) / 1u"V/m"
-    if Ω < 1e-15/1u"s*V/m"
+    if Ω < 1e-15 / 1u"s*V/m"
         # even when coupling strength is zero, numerical error causes it to be finite
         # (on order 1e-16), this is a band-aid to prevent users from unknowingly setting
         # the E-field to something absurd (like 1e20 V/m)
-        return Inf*1u"V/m"
+        return Inf * 1u"V/m"
     end
     return 1 / (2Ω * pi_time)
 end
@@ -428,7 +428,12 @@ Sets the Bfield gradient in place to achieve a detuning `f` between the `transit
 ions, which are assumed to be of the same species. `ion_indxs` refer to the
 ordering of the ions in the chain.
 """
-function set_gradient!(T::Trap, ion_indxs::Tuple{Int, Int}, transition::Tuple, f::INVERSE_TIME)
+function set_gradient!(
+    T::Trap,
+    ion_indxs::Tuple{Int, Int},
+    transition::Tuple,
+    f::INVERSE_TIME
+)
     ionA = T.configuration.ions[ion_indxs[1]]
     ionB = T.configuration.ions[ion_indxs[2]]
     separation = abs(ionposition(ionA) - ionposition(ionB))
@@ -441,8 +446,8 @@ function set_gradient!(T::Trap, ion_indxs::Tuple{Int, Int}, transition::Tuple, f
     m1 = quantumnumbers(ionA, SL1).m
     m2 = quantumnumbers(ionA, SL2).m
     # Calculate Zeeman shifts with a unit B-field using a method of zeeman_shift that ensures a nonlinear term is not used
-    E1 = zeeman_shift(1.0u"T", g1, m1)/1u"T"
-    E2 = zeeman_shift(1.0u"T", g2, m2)/1u"T"
+    E1 = zeeman_shift(1.0u"T", g1, m1) / 1u"T"
+    E2 = zeeman_shift(1.0u"T", g2, m2) / 1u"T"
     return T.∇B = f / (abs(E2 - E1) * separation)
 end
 

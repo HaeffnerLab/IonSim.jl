@@ -187,7 +187,7 @@ function _setup_base_hamiltonian(
     displacement,
     time_dependent_eta
 )
-    rwa_cutoff *= timescale*1u"1/s"
+    rwa_cutoff *= timescale * 1u"1/s"
     modes = reverse(get_vibrational_modes(T.configuration))
     L = length(modes)
     νlist = Tuple([mode.ν for mode in modes])
@@ -423,7 +423,9 @@ function _setup_δν_hamiltonian(T, timescale)
         (mode._cnst_δν && δν(0) == 0) && continue
         push!(
             δν_functions,
-            FunctionWrapper{Float64, Tuple{Float64}}(t -> @fastmath 2π * δν(t) * τ *1u"1/s")
+            FunctionWrapper{Float64, Tuple{Float64}}(
+                t -> @fastmath 2π * δν(t) * τ * 1u"1/s"
+            )
         )
         δν_indices_l = Vector{Vector{Int64}}(undef, 0)
         mode_op = number(mode)
@@ -452,7 +454,9 @@ function _setup_global_B_hamiltonian(T, timescale)
     global_B_scales = Vector{Float64}(undef, 0)
     δB = T.δB
     τ = timescale
-    bfunc = FunctionWrapper{Float64, Tuple{Float64}}(t -> (1u"1/T" * 2π * δB(t * τ * 1u"1/s" |> NoUnits) |> NoUnits))
+    bfunc = FunctionWrapper{Float64, Tuple{Float64}}(
+        t -> (1u"1/T" * 2π * δB(t * τ * 1u"1/s" |> NoUnits) |> NoUnits)
+    )
     if T._cnst_δB && δB(0) == 0u"T"
         return global_B_indices, global_B_scales, bfunc
     end
@@ -509,7 +513,7 @@ function _ηmatrix(T)
             ηnml[n, m, L - l + 1] = 0
         else
             ηnml[n, m, L - l + 1] =
-                FunctionWrapper{Float64, Tuple{Float64}}(t -> eta / √(ν*1u"s" + δν(t))) #TODO: why do I need to do
+                FunctionWrapper{Float64, Tuple{Float64}}(t -> eta / √(ν * 1u"s" + δν(t))) #TODO: why do I need to do
         end
     end
     return ηnml
@@ -559,16 +563,17 @@ function _Ωmatrix(T, timescale)
         end
         v = []
         for t in transitions
-            Ω0 = 1u"m/V" * 2π *
-                timescale * 1u"1/s" #TODO: Why do we have to multiply by Hz?
-                s *
-                matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
+            Ω0 = 1u"m/V" * 2π * timescale * 1u"1/s" #TODO: Why do we have to multiply by Hz?
+            s * matrix_element(ions[n], t, 1.0u"V/m", lasers[m].k, lasers[m].ϵ, T.Bhat) /
+            2.0
             if ustrip(Ω0) == 0
                 push!(v, 0)
             else
                 push!(
                     v, #TODO: FunctionWrapper doesn't play nice with Unitful.
-                    FunctionWrapper{ComplexF64, Tuple{Float64}}(t -> (Ω0 * E(t) * exp(-im * phase(t))) |> NoUnits )
+                    FunctionWrapper{ComplexF64, Tuple{Float64}}(
+                        t -> (Ω0 * E(t) * exp(-im * phase(t))) |> NoUnits
+                    )
                 )
             end
         end

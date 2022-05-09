@@ -480,7 +480,7 @@ function lifetime(I::Ion, level::String)
         end
     end
     if totaltransitionrate == 0.0u"1/s"
-        return Inf*1u"s"
+        return Inf * 1u"s"
     else
         return (1.0 / totaltransitionrate) |> u"s"
     end

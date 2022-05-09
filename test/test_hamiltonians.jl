@@ -146,7 +146,7 @@ end
         @test [2exp(-2im) * resolve(i, t) for i in Ωnmkj[2, 1]] == [resolve(i, t) for i in Ωnmkj[2, 2]]
 
         # make sure time-dep L.E and L.ϕ propagate appropriately
-        L1.E = x -> 1u"V/m"*cos(x)
+        L1.E = x -> 1u"V/m" * cos(x)
         L1.ϕ = t -> t^2
         Ωnmkj = IonSim._Ωmatrix(T, 1u"s")
         t = 0:1e-3:100
@@ -233,7 +233,8 @@ end
             vibrational_modes = (; z = [1])
         )
         T = Trap(configuration = chain, lasers = [L], δB = 0u"T")
-        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1u"s")
+        global_B_indices, global_B_scales, bfunc =
+            IonSim._setup_global_B_hamiltonian(T, 1u"s")
 
         # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays
         @test length(global_B_indices) == 0 && length(global_B_scales) == 0
@@ -241,10 +242,11 @@ end
         @test sum(bfunc.(0:1e4)) == 0
 
         # now let's test nontrivial T.δB
-        T.δB = x -> 1u"T"*sin(x)
+        T.δB = x -> 1u"T" * sin(x)
         t = 0:0.1:10
         T.configuration.vibrational_modes.z[1].N = 3
-        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1u"s")
+        global_B_indices, global_B_scales, bfunc =
+            IonSim._setup_global_B_hamiltonian(T, 1u"s")
         # make sure bfunc is correct
         @test bfunc.(t) == 2π .* sin.(t)
         # make sure all energy levels are being recorded
@@ -312,7 +314,8 @@ end
         T.configuration.vibrational_modes.y[1].δν = cos
         T.configuration.vibrational_modes.z[1].δν = sin
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1u"s")
-        global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1u"s")
+        global_B_indices, global_B_scales, bfunc =
+            IonSim._setup_global_B_hamiltonian(T, 1u"s")
         all_unique_indices, gbi, gbs, bfunc1, δνi, δνfuncs =
             IonSim._setup_fluctuation_hamiltonian(T, 1u"s")
         # make sure information from _setup_global_B_hamiltonian and _setup_δν_hamiltonian
@@ -333,11 +336,22 @@ end
             com_frequencies = (x = 3e6u"1/s", y = 3e6u"1/s", z = 1e6u"1/s"),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, B = 4e-4u"T", Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
+        T = Trap(
+            configuration = chain,
+            B = 4e-4u"T",
+            Bhat = (x̂ + ŷ + ẑ) / √3,
+            lasers = [L]
+        )
         mode = T.configuration.vibrational_modes.z[1]
         mode.N = rand(1:8)
         N = mode.N + 1
-        Efield_from_rabi_frequency!(1e6u"1/s", T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(
+            1e6u"1/s",
+            T,
+            1,
+            1,
+            (("S1/2", -1 / 2), ("D5/2", -1 / 2))
+        )
 
         ## first just shine light on 1st ion
         L.pointing = [(1, 1.0)]
@@ -381,7 +395,13 @@ end
         mode2.N = rand(1:8)
         M = mode2.N + 1
         NM = N * M
-        Efield_from_rabi_frequency!(1e6u"1/s", T1, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Efield_from_rabi_frequency!(
+            1e6u"1/s",
+            T1,
+            1,
+            1,
+            (("S1/2", -1 / 2), ("D5/2", -1 / 2))
+        )
 
         ridxs, cidxs = get_indices(12, [N, M], true)
         _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6u"s", 100, Inf, "analytic", true)

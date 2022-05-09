@@ -3,7 +3,20 @@ using Unitful
 
 import Base.sqrt
 
-export μB, ħ, c, e, ϵ₀, α, eye3, c_rank1, c_rank2, INVERSE_TIME, MAGNETIC, MAGNETIC_PER_LENGTH, ELECTRIC, INVERSE_MAGNETIC
+export μB,
+    ħ,
+    c,
+    e,
+    ϵ₀,
+    α,
+    eye3,
+    c_rank1,
+    c_rank2,
+    INVERSE_TIME,
+    MAGNETIC,
+    MAGNETIC_PER_LENGTH,
+    ELECTRIC,
+    INVERSE_MAGNETIC
 
 #############################################################################################
 # Physical constants (everything in SI units)

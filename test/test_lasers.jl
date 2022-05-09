@@ -19,10 +19,10 @@ using Unitful
     L = Laser(E = 1u"V/m", ϕ = 1)
     ones = [1 for _ in t]
     # should be able to set L.E, L.ϕ to a function of time
-    @test L.E.(t) == ones*1u"V/m"
+    @test L.E.(t) == ones * 1u"V/m"
     @test L.ϕ.(t) == ones
-    L = Laser(E = x -> 1u"V/m"*sin(x), ϕ = sin)
-    @test L.E.(t) == sin.(t)*1u"V/m"
+    L = Laser(E = x -> 1u"V/m" * sin(x), ϕ = sin)
+    @test L.E.(t) == sin.(t) * 1u"V/m"
     @test L.ϕ.(t) == sin.(t)
 
     # test that normalization is enforced for altered L.ϵ/L.k
