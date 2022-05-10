@@ -3,6 +3,7 @@ using Test, IonSim
 using IonSim.PhysicalConstants
 using Suppressor
 using Unitful
+using InteractiveUtils
 
 @suppress_err begin
     @testset "ions -- general" begin
@@ -65,6 +66,15 @@ using Unitful
         @test energy(C, "S1/2") == energy(C, "S")
         @test energy(C, "S1/2") != energy(C, "S", B = 1e-4u"T")
         @test transitionwavelength(C, ("S", "D")) ≈ 729.147u"nm" |> u"m"
+    end
+
+    @testset "ions -- species" begin
+        # attempt to instantiate all Ion subtypes (use default sublevel selection)
+        species = subtypes(Ion)
+        for s in species
+            ion = s()
+            @test typeof(ion) <: Ion
+        end
     end
 
     @testset "ions -- Ca40" begin
