@@ -1,21 +1,20 @@
 import QuantumOptics.timeevolution
 import QuantumOptics.stochastic
 using QuantumOptics: Basis, Operator, CompositeBasis, Ket, StateVector
-using QuantumOptics.timeevolution: DecayRates
 
 #############################################################################################
 # Wrap QuantumOptics solvers in order to implement our form of basis check
 #############################################################################################
 
 # function timeevolution.master_dynamic(tspan, rho0::T, f::Function;
-#             rates::DecayRates=nothing, fout::Union{Function,Nothing}=nothing, kwargs...
+#             rates=nothing, fout::Union{Function,Nothing}=nothing, kwargs...
 #         ) where {B<:Basis,T<:Operator{B,B}}
 #     check_bases(f(0., 0.).basis_l, rho0.basis_l)
 #     timeevolution.master_dynamic(tspan, rho0, f; rates=rates, fout=fout, kwargs...)
 # end
 
 # function timeevolution.mcwf_dynamic(tspan, psi0::T, f::Function;
-#     seed=rand(UInt), rates::DecayRates=nothing,
+#     seed=rand(UInt), rates=nothing,
 #     fout=nothing, display_beforeevent=false, display_afterevent=false,
 #     kwargs...) where {T<:Ket}
 #     check_bases(f(0., 0.).basis_l, psi0.basis)
@@ -37,7 +36,7 @@ using QuantumOptics.timeevolution: DecayRates
 # end
 
 # function stochastic.master_dynamic(tspan, rho0::T, fdeterm::Function, fstoch::Function;
-#             rates::DecayRates=nothing, fout::Union{Function,Nothing}=nothing,
+#             rates=nothing, fout::Union{Function,Nothing}=nothing,
 #             noise_processes::Int=0, kwargs...
 #         ) where {B<:Basis,T<:Operator{B,B}}
 #         check_bases()
