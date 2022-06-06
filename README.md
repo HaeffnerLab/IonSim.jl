@@ -89,6 +89,11 @@ To go back to the version in the registry, use
 pkg> free IonSim
 ```
 
+In order to update the IonSim.jl version that lives in the Julia general registry, change the version number in the Project.toml file, commit the changes and then add a comment to the commit that reads:
+```
+@JuliaRegistrator register
+```
+
 If you have any questions, please make a GitHub issue.
 
 [license-url]: https://github.com/HaeffnerLab/IonSim.jl/blob/master/LICENSE.md
