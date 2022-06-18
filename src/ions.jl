@@ -421,7 +421,7 @@ function leveltransitions(I::Ion)
 end
 
 """
-    leveltransitions(I::Ion)
+    subleveltransitions(I::Ion)
 Returns all allowed transitions between sublevels of `I` as a vector of `Tuple{S,S}` where `S=Tuple{String,Real}`.
 """
 function subleveltransitions(I::Ion)
@@ -562,7 +562,7 @@ function matrix_element(
             units_factor = abs(e * Efield / (2ħ) * sqrt(15 * A12 / (α * c * k^3)))
         end
     else
-        @error "calculation of atomic transition matrix element for transition type $type not currently supported"
+        @error "calculation of atomic transition matrix element for transition type $multipole not currently supported"
     end
     return units_factor * hyperfine_factor * geometric_factor / 2π |> u"s^-1"
 end
