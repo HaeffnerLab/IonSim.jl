@@ -67,7 +67,7 @@ end
 """
     characteristic_length_scale(M::Unitful.Mass, ν::INVERSE_TIME)
 Returns the characteristic length scale for a linear chain of identical ions of mass `M`
-and with axial trap frequency 2π × ν. #TODO: Is this in hertz?
+and with axial trap frequency 2π × ν.
 """
 characteristic_length_scale(M::Unitful.Mass, ν::INVERSE_TIME) =
     (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 // 3) |> u"m"

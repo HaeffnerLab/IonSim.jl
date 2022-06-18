@@ -16,7 +16,6 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
 `h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
 
 **args**
-#TODO: migration to timescale may or may not work
 * `timescale`: e.g. a value of 1e-6u"s" will take time to be in ``\\mu s``
 * `lamb_dicke_order`: Only consider terms that change the phonon number by up to this value.
     If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,

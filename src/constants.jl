@@ -35,7 +35,7 @@ const ϵ₀ = u"ϵ0"
 """`α` = e²/4πϵ₀ħc``"""
 const α = u"q" * u"q" / 4 / pi / u"ϵ0" / u"ħ" / u"c0" |> NoUnits
 
-const INVERSE_TIME = Union{typeof(1u"s^-1"), typeof(1.0u"s^-1")} #TODO: check if this works for Hz too
+const INVERSE_TIME = Union{typeof(1u"s^-1"), typeof(1.0u"s^-1")}
 const ELECTRIC = Union{typeof(1u"V*m^-1"), typeof(1.0u"V*m^-1")}
 const MAGNETIC = Union{typeof(1u"T"), typeof(1.0u"T")}
 const INVERSE_MAGNETIC = Union{typeof(1u"T^-1"), typeof(1.0u"T^-1")}
