@@ -78,7 +78,7 @@ Computes the normal modes and corresponding trap frequencies along a particular 
 collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first
 element the frequency of the normal mode and 2nd element the corresponding eigenvector.
 
-`com` should be a `NamedTuple` of COM frequences for the different axes:
+`com` should be a `NamedTuple` of COM frequencies for the different axes:
 `(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of
 the crystal.
 """
