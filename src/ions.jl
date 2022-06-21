@@ -791,7 +791,7 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 * `ionnumber`: When the ion is added to an `IonConfiguration`, this value keeps track of its order in the chain
 * `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its physical position in meters
 """
-mutable struct IonInstance{Species <: Any}
+mutable struct IonInstance{Species <: Any} <: Ion
     # fields
     species_properties::IonProperties
     sublevels::Vector{Tuple{String, Real}}
