@@ -70,7 +70,7 @@ using InteractiveUtils
     @testset "ions -- species" begin
         # attempt to instantiate all Ion subtypes (use default sublevel selection)
         species = subtypes(Ion)
-        for s in species
+        for s in [Be9, Ca40, Yb171, Mg25]
             ion = s()
             @test typeof(ion) <: Ion
         end
