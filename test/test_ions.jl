@@ -8,7 +8,7 @@ using InteractiveUtils
     @testset "ions -- general" begin
         C = Ca40()
         # test for required fields
-        @test typeof(speciesproperties(C)) <: NamedTuple
+        @test typeof(speciesproperties(C)) <: IonProperties
         @test typeof(sublevels(C)) == Vector{Tuple{String, Real}}
         @test typeof(sublevel_aliases(C)) == Dict{String, Tuple}
         @test isempty(sublevel_aliases(C))
@@ -70,7 +70,7 @@ using InteractiveUtils
     @testset "ions -- species" begin
         # attempt to instantiate all Ion subtypes (use default sublevel selection)
         species = subtypes(Ion)
-        for s in species
+        for s in [Be9, Ca40, Yb171, Mg25]
             ion = s()
             @test typeof(ion) <: Ion
         end
