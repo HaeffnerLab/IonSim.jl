@@ -1,3 +1,5 @@
+using Unitful
+using .PhysicalConstants: INVERSE_TIME
 export Mg25
 
 """
@@ -22,30 +24,30 @@ export Mg25
    * `value::Function(B::Real)`: Nonlinear term(s) of Zeeman shift. Full Zeeman shift will be calculated as the sum of the usual linear term and this function
 """
 const properties_mg25 = (
-    mass = 4.1489954812e-26,
-    charge = 1,
+    mass = 4.1489954812e-26u"kg",
+    charge = 1u"q",
     nuclearspin = 5 // 2,
     full_level_structure = OrderedDict(
-        "S1/2f=2" => (n = 3, l = 0, j = 1 // 2, f = 2, E = 1.043445158e9),
-        "S1/2f=3" => (n = 3, l = 0, j = 1 // 2, f = 3, E = -0.745317970e9),
-        "P1/2f=2" => (n = 3, l = 1, j = 1 // 2, f = 2, E = 1069.3408690519877e12),
-        "P1/2f=3" => (n = 3, l = 1, j = 1 // 2, f = 3, E = 1069.3405639519879e12),
-        "P3/2f=1" => (n = 3, l = 1, j = 3 // 2, f = 1, E = 1072.0853411194748e12),
-        "P3/2f=2" => (n = 3, l = 1, j = 3 // 2, f = 2, E = 1072.0853033394746e12),
-        "P3/2f=3" => (n = 3, l = 1, j = 3 // 2, f = 3, E = 1072.0852466694748e12),
-        "P3/2f=4" => (n = 3, l = 1, j = 3 // 2, f = 4, E = 1072.0851711094747e12),
+        "S1/2f=2" => (n = 3, l = 0, j = 1 // 2, f = 2, E = 1.043445158e9u"1/s"),
+        "S1/2f=3" => (n = 3, l = 0, j = 1 // 2, f = 3, E = -0.745317970e9u"1/s"),
+        "P1/2f=2" => (n = 3, l = 1, j = 1 // 2, f = 2, E = 1069.3408690519877e12u"1/s"),
+        "P1/2f=3" => (n = 3, l = 1, j = 1 // 2, f = 3, E = 1069.3405639519879e12u"1/s"),
+        "P3/2f=1" => (n = 3, l = 1, j = 3 // 2, f = 1, E = 1072.0853411194748e12u"1/s"),
+        "P3/2f=2" => (n = 3, l = 1, j = 3 // 2, f = 2, E = 1072.0853033394746e12u"1/s"),
+        "P3/2f=3" => (n = 3, l = 1, j = 3 // 2, f = 3, E = 1072.0852466694748e12u"1/s"),
+        "P3/2f=4" => (n = 3, l = 1, j = 3 // 2, f = 4, E = 1072.0851711094747e12u"1/s"),
     ),
     full_transitions = Dict(
-        ("S1/2f=2", "P1/2f=2") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=2", "P1/2f=3") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=3", "P1/2f=2") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=3", "P1/2f=3") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=2", "P3/2f=1") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=2", "P3/2f=2") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=2", "P3/2f=3") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=3", "P1/2f=2") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=3", "P1/2f=3") => (multipole = "E1", einsteinA = 41.3e6),
-        ("S1/2f=3", "P1/2f=4") => (multipole = "E1", einsteinA = 41.3e6),
+        ("S1/2f=2", "P1/2f=2") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=2", "P1/2f=3") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=3", "P1/2f=2") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=3", "P1/2f=3") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=2", "P3/2f=1") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=2", "P3/2f=2") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=2", "P3/2f=3") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=3", "P1/2f=2") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=3", "P1/2f=3") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
+        ("S1/2f=3", "P1/2f=4") => (multipole = "E1", einsteinA = 41.3e6u"1/s"),
     ),
     # Optional fields
     default_sublevel_selection = [
@@ -91,7 +93,7 @@ mutable struct Mg25 <: Ion
     sublevels::Vector{Tuple{String, Real}}
     sublevel_aliases::Dict{String, Tuple}
     shape::Vector{Int}
-    stark_shift::OrderedDict{Tuple, Real}
+    stark_shift::OrderedDict{Tuple, INVERSE_TIME}
     ionnumber::Union{Int, Missing}
     position::Union{Real, Missing}
     function Mg25(
