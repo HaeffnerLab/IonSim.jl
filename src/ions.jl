@@ -293,7 +293,7 @@ landegf(qnums::NamedTuple) = landegf(qnums.l, qnums.j, qnums.f, qnums.i, qnums.s
 """
 function landegf(I::Ion, level::String)
     properties = speciesproperties(I)
-    if haskey(properties, :gfactors) && haskey(properties.gfactors, level)
+    if !ismissing(properties.gfactors) && haskey(properties.gfactors, level)
         return properties.gfactors[level]
     else
         return landegf(quantumnumbers(I, level))
@@ -321,7 +321,7 @@ Zeeman shift calculated as ``ΔE = (μ_B/ħ) ⋅ g_f ⋅ B ⋅ m / 2π``
 function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::Real)
     validatesublevel(I, sublevel)
     properties = speciesproperties(I)
-    if haskey(properties, :nonlinear_zeeman) &&
+    if !ismissing(properties.nonlinear_zeeman) &&
        haskey(properties.nonlinear_zeeman, sublevel)
         nonlinear = properties.nonlinear_zeeman[sublevel](B)
     else

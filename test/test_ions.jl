@@ -8,7 +8,7 @@ using InteractiveUtils
     @testset "ions -- general" begin
         C = Ca40()
         # test for required fields
-        @test typeof(speciesproperties(C)) <: NamedTuple
+        @test typeof(speciesproperties(C)) <: IonProperties
         @test typeof(sublevels(C)) == Vector{Tuple{String, Real}}
         @test typeof(sublevel_aliases(C)) == Dict{String, Tuple}
         @test isempty(sublevel_aliases(C))
