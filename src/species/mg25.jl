@@ -95,7 +95,7 @@ mutable struct Mg25 <: Ion
     shape::Vector{Int}
     stark_shift::OrderedDict{Tuple, INVERSE_TIME}
     ionnumber::Union{Int, Missing}
-    position::Union{Real, Missing}
+    position::Union{Unitful.Length, Missing}
     function Mg25(
         selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing;
         starkshift = Dict()
