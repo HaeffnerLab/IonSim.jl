@@ -4,7 +4,7 @@ using LinearAlgebra: cross
 using IonSim.PhysicalConstants
 
 export Ion,
-IonProperties,
+    IonProperties,
     speciesproperties,
     sublevels,
     sublevel_aliases,
@@ -707,9 +707,6 @@ function Base.:(==)(b1::T, b2::T) where {T <: Ion}
     )
 end
 
-
-
-
 """
 IonProperties type.
 **Required keywords**
@@ -734,15 +731,39 @@ struct IonProperties
     mass::Number
     charge::Number
     nuclearspin::Number
-    full_level_structure::OrderedDict{String, NamedTuple{(:n, :l, :j, :f, :E), T} where T<:Tuple}
-    full_transitions::Dict{Tuple{String, String}, NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}}
-    default_sublevel_selection::Union{Vector{Tuple{String, String}},Missing}
-    gfactors::Union{Dict{String, Number},Missing}
-    nonlinear_zeeman::Union{Dict{Tuple{String,Real},Function}, Missing}
+    full_level_structure::OrderedDict{
+        String,
+        NamedTuple{(:n, :l, :j, :f, :E), T} where T <: Tuple
+    }
+    full_transitions::Dict{
+        Tuple{String, String},
+        NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}
+    }
+    default_sublevel_selection::Union{Vector{Tuple{String, String}}, Missing}
+    gfactors::Union{Dict{String, Number}, Missing}
+    nonlinear_zeeman::Union{Dict{Tuple{String, Real}, Function}, Missing}
 end
-IonProperties(;shortname, mass, charge, nuclearspin, full_level_structure, full_transitions, default_sublevel_selection=missing, gfactors=missing, nonlinear_zeeman=missing) =
-IonProperties(shortname, mass, charge, nuclearspin, full_level_structure, full_transitions, default_sublevel_selection, gfactors, nonlinear_zeeman)
-
+IonProperties(;
+    shortname,
+    mass,
+    charge,
+    nuclearspin,
+    full_level_structure,
+    full_transitions,
+    default_sublevel_selection = missing,
+    gfactors = missing,
+    nonlinear_zeeman = missing
+) = IonProperties(
+    shortname,
+    mass,
+    charge,
+    nuclearspin,
+    full_level_structure,
+    full_transitions,
+    default_sublevel_selection,
+    gfactors,
+    nonlinear_zeeman
+)
 
 """
 IonInstance(selected_sublevels::Vector{Tuple}[, starkshift::Dict])
@@ -770,41 +791,36 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 * `ionnumber`: When the ion is added to an `IonConfiguration`, this value keeps track of its order in the chain
 * `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its physical position in meters
 """
-mutable struct IonInstance{Species<:Any}
-# fields
-species_properties::IonProperties
-sublevels::Vector{Tuple{String, Real}}
-sublevel_aliases::Dict{String, Tuple}
-shape::Vector{Int}
-stark_shift::OrderedDict{Tuple, Real}
-ionnumber::Union{Int, Missing}
-position::Union{Real, Missing}
+mutable struct IonInstance{Species <: Any}
+    # fields
+    species_properties::IonProperties
+    sublevels::Vector{Tuple{String, Real}}
+    sublevel_aliases::Dict{String, Tuple}
+    shape::Vector{Int}
+    stark_shift::OrderedDict{Tuple, Real}
+    ionnumber::Union{Int, Missing}
+    position::Union{Real, Missing}
 
-# constructors (overrides default)
-function IonInstance{Species}(
-    properties,
-    selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
-    starkshift = Dict()
-) where {Species<:Any}
-    sublevels = _construct_sublevels(selected_sublevels, properties)
-    shape = [length(sublevels)]
-    starkshift_full = _construct_starkshift(starkshift, sublevels)
-    return new{Species}(properties, sublevels, Dict(), shape, starkshift_full, missing, missing)
-end
-function IonInstance{Species}(
-    species_properties,
-    sublevels,
-    sublevel_aliases,
-    shape,
-    stark_shift,
-    ionnumber,
-    position
-) where {Species<:Any}
-    sublevels = deepcopy(sublevels)
-    sublevel_aliases = deepcopy(sublevel_aliases)
-    shape = copy(shape)
-    stark_shift = deepcopy(stark_shift)
-    return new{Species}(
+    # constructors (overrides default)
+    function IonInstance{Species}(
+        properties,
+        selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
+        starkshift = Dict()
+    ) where {Species <: Any}
+        sublevels = _construct_sublevels(selected_sublevels, properties)
+        shape = [length(sublevels)]
+        starkshift_full = _construct_starkshift(starkshift, sublevels)
+        return new{Species}(
+            properties,
+            sublevels,
+            Dict(),
+            shape,
+            starkshift_full,
+            missing,
+            missing
+        )
+    end
+    function IonInstance{Species}(
         species_properties,
         sublevels,
         sublevel_aliases,
@@ -812,16 +828,28 @@ function IonInstance{Species}(
         stark_shift,
         ionnumber,
         position
-    )
-end
+    ) where {Species <: Any}
+        sublevels = deepcopy(sublevels)
+        sublevel_aliases = deepcopy(sublevel_aliases)
+        shape = copy(shape)
+        stark_shift = deepcopy(stark_shift)
+        return new{Species}(
+            species_properties,
+            sublevels,
+            sublevel_aliases,
+            shape,
+            stark_shift,
+            ionnumber,
+            position
+        )
+    end
 end
 
 function Base.print(I::IonInstance)
-println(I.species_properties.shortname + "\n")
-for (k, v) in I.selected_sublevel_structure
-    println(k, ": ", v)
-end
+    println(I.species_properties.shortname + "\n")
+    for (k, v) in I.selected_sublevel_structure
+        println(k, ": ", v)
+    end
 end
 
 Base.show(io::IO, I::IonInstance) = println(io, I.species_properties.shortname)  # suppress long output
-

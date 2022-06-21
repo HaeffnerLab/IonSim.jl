@@ -25,7 +25,7 @@ const properties_ca40 = IonProperties(;
 
     # Optional fields
     default_sublevel_selection = [("S1/2", "all"), ("D5/2", "all"),],
-    gfactors = Dict("S1/2" => 2.00225664, "D5/2" => 1.2003340),
+    gfactors = Dict("S1/2" => 2.00225664, "D5/2" => 1.2003340)
 
     #nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
     #                        ("D5/2", -5//2) => B->4.5e-4*B^2)  # Syntax example, not numerically accurate
