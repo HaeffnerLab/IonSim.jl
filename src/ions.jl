@@ -136,13 +136,15 @@ end
 """
     set_stark_shift!(I::Ion, sublevel, shift::INVERSE_TIME)
 Applies a stark shift `shift` to the chosen `sublevel` of `I` (overwriting any previously assigned stark shift).
+Accepts either the full sublevel `Tuple{String,Real}` or its alias `String`.
 """
 function set_stark_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::INVERSE_TIME)
     validatesublevel(I, sublevel)
     return I.stark_shift[(sublevel[1], Rational(sublevel[2]))] = shift
 end
-set_stark_shift!(I::Ion, alias::String, shift::INVERSE_TIME) =
-    set_stark_shift!(I, alias2sublevel(I, alias), shift)
+function set_stark_shift!(I::Ion, alias::String, shift::INVERSE_TIME)
+    return set_stark_shift!(I, alias2sublevel(I, alias), shift)
+end
 """
     set_stark_shift!(I::Ion, stark_shift_dict::Dict)
 Applies `set_stark_shift(I, sublevel, shift)` to all pairs `sublevel => shift` of the Dict `stark_shift_dict`.
