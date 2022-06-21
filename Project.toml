@@ -28,7 +28,6 @@ DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [targets]
-test = ["Test", "Suppressor", "InteractiveUtils"]
+test = ["Test", "Suppressor"]

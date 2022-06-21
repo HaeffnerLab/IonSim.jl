@@ -2,7 +2,6 @@ using QuantumOptics: NLevelBasis, nlevelstate
 using Test, IonSim
 using IonSim.PhysicalConstants
 using Suppressor
-using InteractiveUtils
 
 @suppress_err begin
     @testset "ions -- general" begin
@@ -69,8 +68,7 @@ using InteractiveUtils
 
     @testset "ions -- species" begin
         # attempt to instantiate all Ion subtypes (use default sublevel selection)
-        species = subtypes(Ion)
-        for s in [Be9, Ca40, Yb171, Mg25]
+        for s in [Be9, Ca40, Mg25, Yb171]
             ion = s()
             @test typeof(ion) <: Ion
         end

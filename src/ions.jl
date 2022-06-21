@@ -72,7 +72,7 @@ nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
 #############################################################################################
 
 validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
-    @assert sublevel in sublevels(I) "ion does not contain sublevel $sublevel"
+    @assert sublevel in sublevels(I) "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of available sublevels."
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
 
 """
@@ -196,7 +196,7 @@ Returns the sublevel corresponding to the given alias `alias` of `I`. Inverse fu
 """
 function alias2sublevel(I::Ion, alias::String)
     all_aliases = I.sublevel_aliases
-    @assert alias in keys(all_aliases) "no sublevel with alias $alias"
+    @assert alias in keys(all_aliases) "Ion does not contain any sublevel with the alias $alias. Use sublevel_aliases(Ion) to see available aliases."
     return all_aliases[alias]
 end
 
@@ -536,6 +536,7 @@ function matrix_element(
                 (transpose(c_rank1[q + 2, :]) * ϵhat_rotated)
             )
             units_factor = abs(e * Efield / (2ħ) * sqrt(3 * A12 / (α * c * k^3)))
+            return units_factor * hyperfine_factor * geometric_factor / 2π
         end
     elseif multipole == "E2"
         if abs(q) > 2
@@ -549,11 +550,11 @@ function matrix_element(
                 (transpose(khat_rotated) * c_rank2[:, :, q + 3] * ϵhat_rotated)
             )
             units_factor = abs(e * Efield / (2ħ) * sqrt(15 * A12 / (α * c * k^3)))
+            return units_factor * hyperfine_factor * geometric_factor / 2π
         end
     else
         @error "calculation of atomic transition matrix element for transition type $multipole not currently supported"
     end
-    return units_factor * hyperfine_factor * geometric_factor / 2π
 end
 function matrix_element(
     I::Ion,

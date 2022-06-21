@@ -61,7 +61,7 @@ using Suppressor
         @test_throws AssertionError coherentthermalstate(modes[1], 0, N + 1)
         @test_throws AssertionError coherentstate(modes[1], N + 1)
         @test_throws AssertionError thermalstate(modes[1], N + 1)
-        @test_throws AssertionError displace(modes[1], N + 1)
+        # @test_throws AssertionError displace(modes[1], N + 1)
     end
 
     @testset "operators -- Ion operators" begin
