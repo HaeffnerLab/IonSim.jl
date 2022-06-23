@@ -1,18 +1,16 @@
-export matrix_element, lifetime, einsteinA, transitionmultipole
 using LinearAlgebra: cross
 using WignerSymbols: wigner3j, wigner6j
 
 export leveltransitions,
-    subleveltransitions
+    subleveltransitions,
     transitionfrequency,
-    transitionmultipole,
     transitionwavelength,
+    transitionmultipole,
     einsteinA,
     matrix_element,
     lifetime
 
-
-    """
+"""
     leveltransitions(I::Ion)
 Returns all allowed transitions between levels of `I` as a vector of `Tuple{String,String}`.
 """
@@ -98,19 +96,18 @@ function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_starkshif
 end
 """
     transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
-Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
-
-One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
+Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
+One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
-    transitionfrequency(
+transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
+    transitionwavelength(
         ion,
         transition;
         B = Bfield(T, ion),
         ignore_starkshift = ignore_starkshift
     )
-transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
-    transitionfrequency(
+transitionwavelength(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
+    transitionwavelength(
         T.configuration.ions[ion_index],
         transition,
         T;
