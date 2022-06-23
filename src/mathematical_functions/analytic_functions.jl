@@ -1,4 +1,4 @@
-using IonSim: _alaguerre
+using IonSim: _laguerre, _alaguerre, _Pn
 export two_ion_ms, rabi_flop
 
 """

@@ -31,7 +31,6 @@ Base.:(≤)(x1::PhysicalConstant, x2::PhysicalConstant) = Base.:(≤)(x1.x, x2.x
 
 sqrt(x1::PhysicalConstant) = sqrt(x1.x)
 
-
 #############################################################################################
 # Physical constants (everything in SI units)
 #############################################################################################

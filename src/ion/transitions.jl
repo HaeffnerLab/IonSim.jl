@@ -106,13 +106,17 @@ transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = f
         B = Bfield(T, ion),
         ignore_starkshift = ignore_starkshift
     )
-transitionwavelength(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
-    transitionwavelength(
-        T.configuration.ions[ion_index],
-        transition,
-        T;
-        ignore_starkshift = ignore_starkshift
-    )
+transitionwavelength(
+    ion_index::Int,
+    transition::Tuple,
+    T::Trap;
+    ignore_starkshift = false
+) = transitionwavelength(
+    T.configuration.ions[ion_index],
+    transition,
+    T;
+    ignore_starkshift = ignore_starkshift
+)
 
 """
     einsteinA(I::Ion, Lpair::Tuple)
