@@ -68,16 +68,3 @@ function rabi_flop(tspan, Ω::Real, η::Real, n̄::Real; s::Int = 0)
     end
     return p
 end
-
-function _laguerre(x, n)
-    L = 1.0, -x + 1
-    if n < 2
-        return L[n + 1]
-    end
-    for i in 2:n
-        L = L[2], ((2i - 1 - x) * L[2] - (i - 1) * L[1]) / i
-    end
-    return L[2]
-end
-
-_Pn(n̄::Real, n::Int) = (n̄ / (n̄ + 1))^n / (n̄ + 1)

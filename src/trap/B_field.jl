@@ -10,6 +10,7 @@ function Bfield(T::Trap, ion::Ion)
 end
 
 #TODO: change this function name to set_B_field_gradient!, or something similarily clear, and update unit testing
+#TODO: allow for choosing sign of gradient? e.g. by ordering of ion indices (currently always returns a positive value)
 """
     set_gradient!(
             T::Trap, ion_indxs::Tuple{Int,Int}, transition::Tuple, f::Real

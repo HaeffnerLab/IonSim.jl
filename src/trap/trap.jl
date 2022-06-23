@@ -1,7 +1,7 @@
 using QuantumOptics: tensor, CompositeBasis
 using .PhysicalConstants: ħ, c
 
-export Trap, get_basis
+export Trap, get_basis, ionintrap
 
 """
     Trap(;

@@ -2,10 +2,7 @@ export Efield_from_pi_time,
     Efield_from_pi_time!,
     Efield_from_rabi_frequency,
     Efield_from_rabi_frequency!,
-    transitionfrequency,
-    transitionwavelength,
-    matrix_element,
-    zeeman_shift
+    global_beam!
 
 """
 Efield_from_pi_time(
@@ -167,71 +164,11 @@ function Efield_from_rabi_frequency!(
 end
 
 """
-    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
-Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
-
-One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
+    global_beam!(T::Trap, laser::Laser)
+Set `laser` to shine with full intensity on all ions in `Trap`.
 """
-transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
-    transitionfrequency(
-        ion,
-        transition;
-        B = Bfield(T, ion),
-        ignore_starkshift = ignore_starkshift
-    )
-transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
-    transitionfrequency(
-        T.configuration.ions[ion_index],
-        transition,
-        T;
-        ignore_starkshift = ignore_starkshift
-    )
-
-"""
-    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
-Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
-
-One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
-"""
-transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
-    transitionwavelength(
-        ion,
-        transition;
-        B = Bfield(T, ion),
-        ignore_starkshift = ignore_starkshift
-    )
-transitionwavelength(
-    ion_index::Int,
-    transition::Tuple,
-    T::Trap;
-    ignore_starkshift = false
-) = transitionwavelength(
-    T.configuration.ions[ion_index],
-    transition,
-    T;
-    ignore_starkshift = ignore_starkshift
-)
-
-#FIXME: This doc string is self-referential. 
-"""
-    matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real)
-Calls `matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))`
-with `Efield`, `khat`, and `ϵhat` evaluated for `laser` at time `time`, and `Bhat` evaluated for `T`.
-
-One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
-"""
-matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) =
-    matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
-matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::Real) =
-    matrix_element(T.configuration.ions[ion_index], transition, T, laser, time)
-
-"""
-    zeeman_shift(I::Ion, sublevel, T::Trap)
-Calls `zeeman_shift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` in `T`.
-
-One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
-"""
-zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
-    zeeman_shift(I, sublevel, Bfield(T, I))
-zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
-    zeeman_shift(T.configuration.ions[ion_index], sublevel, T)
+function global_beam!(T::Trap, laser::Laser)
+    for n in eachindex(T.configuration.ions)
+        push!(laser.pointing, (n, 1.0))
+    end
+end

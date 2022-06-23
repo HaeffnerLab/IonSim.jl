@@ -66,3 +66,13 @@ zeeman_shift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 /
 zeeman_shift(B::Real, qnums::NamedTuple) =
     zeeman_shift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
 zeeman_shift(I::Ion, alias::String, B::Real) = zeeman_shift(I, alias2sublevel(I, alias), B)
+"""
+    zeeman_shift(I::Ion, sublevel, T::Trap)
+Calls `zeeman_shift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` in `T`.
+
+One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
+"""
+zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
+    zeeman_shift(I, sublevel, Bfield(T, I))
+zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
+    zeeman_shift(T.configuration.ions[ion_index], sublevel, T)

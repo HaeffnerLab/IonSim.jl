@@ -2,46 +2,54 @@ export matrix_element, lifetime, einsteinA, transitionmultipole
 using LinearAlgebra: cross
 using WignerSymbols: wigner3j, wigner6j
 
-export energy,
+export leveltransitions,
+    subleveltransitions
     transitionfrequency,
     transitionmultipole,
     transitionwavelength,
     einsteinA,
-    lifetime,
-    matrix_element
+    matrix_element,
+    lifetime
 
-# This function is written to be able to accept either a level or sublevel in the second argument
-# Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
+
+    """
+    leveltransitions(I::Ion)
+Returns all allowed transitions between levels of `I` as a vector of `Tuple{String,String}`.
 """
-    energy(I::Ion, sublevel; B=0, ignore_starkshift=false)
-Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting the value of the magnetic field `B`. The Stark shift may be omitted by setting `ignore_starkshift=true`.
-"""
-function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_starkshift = false)
-    validatesublevel(I, sublevel)
-    E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
-    zeeman = zeeman_shift(I, sublevel, B)
-    stark = (ignore_starkshift ? 0.0 : stark_shift(I, sublevel))
-    return E0 + zeeman + stark
+function leveltransitions(I::Ion)
+    list = []
+    lvls = levels(I)
+    for levelpair in keys(speciesproperties(I).full_transitions)
+        if levelpair[1] in lvls && levelpair[2] in lvls
+            push!(list, levelpair)
+        end
+    end
+    return list
 end
 
 """
-    energy(I::Ion, level::trSing)
-Returns the energy of `level` of `I`.
+    subleveltransitions(I::Ion)
+Returns all allowed transitions between sublevels of `I` as a vector of `Tuple{S,S}` where `S=Tuple{String,Real}`.
 """
-function energy(I::Ion, level_or_alias::String; B = 0, ignore_starkshift = false)
-    # If the second argument is a String, it could be either a level name or the alias of a sublevel
-    if level_or_alias in levels(I)
-        # Second argument is a level name. Return the bare energy of that level.
-        return speciesproperties(I).full_level_structure[level_or_alias].E
-    else
-        # Second argument is a sublevel alias.
-        return energy(
-            I,
-            alias2sublevel(I, level_or_alias),
-            B = B,
-            ignore_starkshift = ignore_starkshift
-        )
+function subleveltransitions(I::Ion)
+    list = []
+    for transition in leveltransitions(I)
+        (L1, L2) = transition
+        multipole = transitionmultipole(I, L1, L2)
+        sublevels1 = [sublevel for sublevel in sublevels(I) if sublevel[1] == L1]
+        sublevels2 = [sublevel for sublevel in sublevels(I) if sublevel[1] == L2]
+        for sl1 in sublevels1
+            for sl2 in sublevels2
+                m1 = sl1[2]
+                m2 = sl2[2]
+                if abs(m2 - m1) <= parse(Int, multipole[2])
+                    # Only add to list of sublevel transitions if Δm is not larger than the transition multipole allows (1 for E1, 2 for E2, etc)
+                    push!(list, (sl1, sl2))
+                end
+            end
+        end
     end
+    return list
 end
 
 """
@@ -59,6 +67,26 @@ function transitionfrequency(I::Ion, transition::Tuple; B = 0, ignore_starkshift
         energy(I, transition[2], B = B, ignore_starkshift = ignore_starkshift)
     )
 end
+"""
+    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
+
+One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
+"""
+transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
+    transitionfrequency(
+        ion,
+        transition;
+        B = Bfield(T, ion),
+        ignore_starkshift = ignore_starkshift
+    )
+transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
+    transitionfrequency(
+        T.configuration.ions[ion_index],
+        transition,
+        T;
+        ignore_starkshift = ignore_starkshift
+    )
 
 """
     transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
@@ -68,6 +96,26 @@ function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_starkshif
     return c /
            transitionfrequency(I, transition, B = B, ignore_starkshift = ignore_starkshift)
 end
+"""
+    transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
+
+One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
+"""
+transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
+    transitionfrequency(
+        ion,
+        transition;
+        B = Bfield(T, ion),
+        ignore_starkshift = ignore_starkshift
+    )
+transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
+    transitionfrequency(
+        T.configuration.ions[ion_index],
+        transition,
+        T;
+        ignore_starkshift = ignore_starkshift
+    )
 
 """
     einsteinA(I::Ion, Lpair::Tuple)
@@ -88,27 +136,6 @@ function transitionmultipole(I::Ion, L1::String, L2::String)
     return speciesproperties(I).full_transitions[(L1, L2)].multipole
 end
 transitionmultipole(I::Ion, Lpair::Tuple) = transitionmultipole(I, Lpair[1], Lpair[2])
-
-"""
-    lifetime(I::Ion, level::String)
-Computes lifetime of `level` by summing the transition rates out of `level`.
-
-The sum is taken over all levels that the species may have, rather than the levels present in the instance `I`.
-"""
-function lifetime(I::Ion, level::String)
-    @assert level in keys(speciesproperties(I).full_level_structure) "Ion species $(typeof(I)) does not contain level $level"
-    totaltransitionrate = 0.0
-    for (transition, info) in speciesproperties(I).full_transitions
-        if transition[2] == level
-            totaltransitionrate += info.einsteinA
-        end
-    end
-    if totaltransitionrate == 0.0
-        return Inf
-    else
-        return 1.0 / totaltransitionrate
-    end
-end
 
 """
     matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
@@ -228,4 +255,37 @@ function matrix_element(
         ϵhat,
         Bhat
     )
+end
+#FIXME: This doc string is self-referential. 
+"""
+    matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real)
+Calls `matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))`
+with `Efield`, `khat`, and `ϵhat` evaluated for `laser` at time `time`, and `Bhat` evaluated for `T`.
+
+One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
+"""
+matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) =
+    matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
+matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::Real) =
+    matrix_element(T.configuration.ions[ion_index], transition, T, laser, time)
+
+"""
+    lifetime(I::Ion, level::String)
+Computes lifetime of `level` by summing the transition rates out of `level`.
+
+The sum is taken over all levels that the species may have, rather than the levels present in the instance `I`.
+"""
+function lifetime(I::Ion, level::String)
+    @assert level in keys(speciesproperties(I).full_level_structure) "Ion species $(typeof(I)) does not contain level $level"
+    totaltransitionrate = 0.0
+    for (transition, info) in speciesproperties(I).full_transitions
+        if transition[2] == level
+            totaltransitionrate += info.einsteinA
+        end
+    end
+    if totaltransitionrate == 0.0
+        return Inf
+    else
+        return 1.0 / totaltransitionrate
+    end
 end
