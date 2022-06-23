@@ -372,7 +372,7 @@ transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshif
     )
 
 """
-    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+    transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
 Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
