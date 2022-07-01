@@ -4,7 +4,7 @@ export Laser
 
 """
     Laser(;λ=nothing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
-        
+
 The physical parameters defining laser light.
 **args**
 * `λ::Union{Real,Nothing}`: the wavelength of the laser in meters
@@ -12,7 +12,7 @@ The physical parameters defining laser light.
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
 * `k::NamedTuple`: (k.x, k.y, k.z), propagation direction, requires norm of 1
-* `ϕ::Union{Function,Real}`: time-dependent phase. of course, this can also be used to model a 
+* `ϕ::Union{Function,Real}`: time-dependent phase. of course, this can also be used to model a
     time-dependent detuning. Units are in radians. Note: if this is set to a function of time,
     then when constructing a Hamiltonian with the `hamiltonian` function, the units of time
     will be as specified by the `timescale` keyword argument.
@@ -20,6 +20,7 @@ The physical parameters defining laser light.
     (first element of the tuple is the index for an ion and the second element is the scaling
     factor for the laser's Efield which must be between 0 and 1).
 """
+
 mutable struct Laser
     λ::Union{Real, Nothing}
     E::Function
@@ -50,8 +51,25 @@ mutable struct Laser
         for s in scaling
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
-        TE <: Number ? Et(t) = E : Et = E
-        Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
+        # TE <: Number ? Et(t) = E : Et = E
+        # Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
+        # added support for vector input
+        if TE <: Number
+            Et(t) = E
+        elseif TE <: NTuple{2,Vector}
+            Et(t) = NoiseVector(E[1],E[2])
+        else#function
+            Et = E
+        end
+
+        if Tϕ <: Number
+            ϕt(t) = ϕ
+        elseif TE <: NTuple{2,Vector}
+            ϕt(t) = NoiseVector(ϕ[1],ϕ[2])
+        else #function
+            ϕt = ϕ
+        end
+
         return new(λ, Et, Δ, ϵ, k, ϕt, pointing)
     end
     # for copying
@@ -82,12 +100,12 @@ function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
         @assert isapprox(norm(v), 1, rtol = rtol) "!(|ϵ| = 1)"
         # if ! isapprox(ndot(L.k, v), 0, rtol=rtol)
         #     @warn "!(ϵ ⟂ k)"
-        # end 
+        # end
     elseif s == :k
         @assert isapprox(norm(v), 1, rtol = rtol) "!(|k| = 1)"
         # if ! isapprox(ndot(v, L.ϵ), 0, rtol=rtol)
         #     @warn "!(ϵ ⟂ k)"
-        # end 
+        # end
     elseif s == :pointing
         b = Tv <: Vector{Tuple{Int64, Float64}} || Tv <: Vector{Tuple{Int64, Int64}}
         @assert b "type != Vector{Tuple{Int,Real}}"

@@ -1,213 +1,154 @@
-using FFTW
-using DiffEqNoiseProcess
-using LinearAlgebra: dot
-using Random
-using PyCall
-so = pyimport("scipy.optimize")
+# == Helper Functions == #
 
-@inline wiener_randn(rng::AbstractRNG,::Type{T}) where T = randn(rng,T)
+# @inline carma_randn(rng::AbstractRNG,::Type{T}) where T = randn(rng,T) + 1im * randn(rng,T)
 
-# == ARMAProcess: Generates ARMA Coefficients and Sinc-interpolated NoiseProcess == #
-
-arma_psd(arma, f, T) = arma.sigma^2 / abs.( 1 - dot(arma.phi, exp.(-1im * (2pi * f * T) .* (1:1:length(arma.phi))))).^2
-
-@inline function cont_autocorr(τ,α,κ)
-  α = α[1:length(α)÷2] .+ 1im.*α[length(α)÷2+1:end]
-  res = (α * transpose(α)) # d[i] * d[j] (row = i, column = j)
-  res ./= (κ .+  transpose(κ)) # κ[i] + κ[j]
-  res = -exp.(τ * transpose(κ)) * res
-  return sum(res, dims=2)[:]
+@inline function carma_step!(x::T, mean::T, std::T, rng::AbstractRNG, Trng) where {T}
+  rndm = randn(rng,Trng) #carma_randn(rng, Trng)
+  @simd for i in eachindex(x)
+    @inbounds x[i] = mean[i] + rndm * std[i]
+  end
+  return real(sum(x))
 end
 
-@inline function jac_autocorr(τ,α,κ,σ)
-  α = α[1:length(α)÷2] .+ 1im.*α[length(α)÷2+1:end]
-
-  Γik = α ./ (transpose(κ) .+ κ)
-  exp_λτ = exp.(transpose(κ) .* τ)
-
-  dγdc1 = exp_λτ .* sum(Γik,dims=1)
-  dγdc1 .+= exp_λτ * Γik
-
-  dγdc2 = 1im .* dγdc1
-
-  dγdc1 = [real.(dγdc1); imag.(dγdc1)]
-  dγdc2 = [real.(dγdc2); imag.(dγdc2)]
-  
-  return -σ^2 .* hcat(dγdc1,dγdc2)
-end
-
-# @inline function cont_autocorr(τ,d,κ)
-#   d = d[1:length(d)÷2] .+ 1im.*d[length(d)÷2+1:end]
-#   res = (d' .* d) # d[i] * d[j] (row = i, column = j)
-#   res ./= (κ' .+  κ) # κ[i] + κ[j]
-#   res = -exp.(τ * transpose(κ)) * res
-#   return sum(res, dims=2)[:]
-# end
-
-function ReImCoeffSolver(x, α, κ, σ)
-  t = x[1:length(x)÷2]
-
-  # == Re and Im solution == #
-  res = @fastmath(cont_autocorr(t, α, κ))
-  
-  return σ^2 .* [real.(res); imag.(res)]
-end
-
-struct CARMA
-  κ::Vector
-  α::Vector
-  acf::Vector
-end
-
-struct CARMAProcess
-  psd_model::Function
-  dt::Real
-  Hfreq::Function
-  Htime::Function
-  normalize_sigma::Bool
-  carma::CARMA
-  arma::ARMA
-  ARMAProcess::ARMAProcess
-  window_length::Int
-  timescale::Real
-
-  @inline function CARMAProcess(psd::Function, dt::Real; mean::Real=0.0, normalize_sigma::Bool=true, Hfreq::Union{Function,Nothing}=nothing, Htime::Union{Function,Nothing}=nothing, 
-    window_length::Integer=2^10, coeff_length::Union{Integer,Nothing}=2^6, impulse_length::Union{Integer,Nothing}=nothing, timescale::Real=1.0,
-    kwargs...)
-    
-    discrete = ARMAProcess(psd, dt; mean, normalize_sigma, Hfreq, Htime, 
-      window_length, coeff_length, impulse_length, timescale,
-      kwargs...)
-
-    if all(isapprox.(1.0 .+ discrete.arma.phi, 1.0))
-      carma_κ = carma_α = carma_acf = []
-    else
-      # == continous model poles == #
-      arma_ρ = abs.(discrete.arma.ar_roots)
-      arma_θ = atan.(imag.(discrete.arma.ar_roots) ./ real.(discrete.arma.ar_roots))
-      carma_κ = -(log.(arma_ρ) .+ 1im .* arma_θ)
-        
-      # == Fit Model == #
-      ts = 0:1:(2*length(discrete.arma.phi)-1)
-      ys = discrete.arma.acf[ts .+ 1]
-
-      # acf_iir = discrete.arma.sigma^2 .* [dot(discrete.arma.psi[1:end-i], discrete.arma.psi[1+i:end]) for i in 0:(length(discrete.arma.psi)-1)]
-      # ys = discrete.arma.ma_acf[ts .+ 1]
-      carma_α, _ = so.curve_fit((x,d...)->ReImCoeffSolver(x,collect(d),carma_κ, discrete.arma.sigma), [ts;ts], [ys;zeros(length(ys))], 
-                    ones(Float64, 2*length(discrete.arma.phi)), jac=(x,d...)->jac_autocorr(x[1:length(x)÷2],collect(d),carma_κ,discrete.arma.sigma));
-      #! add error statement if doesn't fit good
-      ts = 0:(length(discrete.arma.acf)-1)
-      carma_acf = ReImCoeffSolver(ts, carma_α, carma_κ, discrete.arma.sigma)
-      carma_α = carma_α[1:length(discrete.arma.phi)] .+ 1im .* carma_α[length(discrete.arma.phi)+1:end]
-    end
-
-    # == Return ARMAProcess structure == #
-    new(discrete.psd, discrete.dt, discrete.Hfreq, discrete.Htime, discrete.normalize_sigma, CARMA(carma_κ, carma_α, carma_acf), discrete.arma, discrete, discrete.window_length, discrete.timescale)
-
+function carma_step!(x::T, mean::T, std::T) where {T}
+  @simd for i in eachindex(x)
+    @inbounds x[i] = mean[i] + randn() * std[i]
   end
 end
 
-# == Generators of Discrete AR/MA time series == #
-struct CARMA_Process{T1,T2,T3,T4,T5,T6,T7,T8}
-  κ::T1
-  α::T2
-  sigma::T3
-  mean::T4
-  dt::T5
-  Xpast::T6
-  p::T7
-  filter::T8
+@inline function step_n_filter!(x::T, filter::Function, mean::T, std::T, rng::AbstractRNG, Trng) where {T}
+  Wf = carma_step!(x, mean, std, rng, Trng)
+  while filter(Wf)
+    Wf = carma_step!(x, mean, std, rng, Trng)
+  end
+  return Wf
 end
 
-# == Helper functions == #
-# et(rng,T) = wiener_randn(rng, T) + 1im * wiener_randn(rng, T)
-@inline step(mean, std, rng, T) = mean .+ std .* (wiener_randn(rng, T) + 1im * wiener_randn(rng, T))
+@inline function carma_meanstd!(mean, std, x, sigma, λ, dt)
+  @simd for i in eachindex(x)
+    @inbounds mean[i] = x[i] * exp(λ[i]*dt)
+    @inbounds std[i] = sigma[i] * sqrt(1.0 - exp(λ[i]*2.0dt)) # X.α[i] / sqrt(-2.0 * X.λ[i])
+  end
+end
+
+@inline function carma_bridge_meanstd!(mean,std,Wi,Wh,sigma,λ,q,h)
+  tmp = @. (sinh(λ * (1-q)*h), sinh(λ * q*h), sinh(λ * h))
+  @simd for i in eachindex(mean)
+      @inbounds mean[i] = (Wi[i] * tmp[1][i] + Wh[i] * tmp[2][i]) / tmp[3][i]
+      @inbounds std[i] = sigma[i] * sqrt(-2.0 * tmp[2][i] * tmp[1][i] / tmp[3][i])
+      # correct for redef of sigma in GaussianProcess
+      # sigma = X.arma.sigma *  X.carma.α / sqrt(2.0 *  X.carma.λ)
+  end
+end
+
+# == CARMA Stepping Process == #
+mutable struct CARMA_Process{T1<:SArray,T2<:AbstractFloat,T3<:AbstractArray,T4<:Bool,T5<:Function}
+  λ::T1
+  sigma::T1
+  μ::T2
+  t::T2
+  Xpast::T3
+  mean::T3
+  std::T3
+  filter::T5
+
+  function CARMA_Process(α, λ, μ, σ, t, filter)
+    N = length(λ); Tel = eltype(λ)
+    λ = SVector{N}(λ)
+    sigma = SVector{N}(σ)
+    tmp =zeros(Tel,N)
+    return new{typeof(λ),typeof(μ),typeof(tmp),Bool,typeof(filter)}(λ,sigma,μ,t,tmp,zero(tmp),zero(tmp),filter)
+  end
+end
 
 @inline function (X::CARMA_Process)(dW,W,dt,u,p,t,rng)
-  
-  # == calculate step == #
   T = (typeof(dW) <: AbstractArray) ? dW : typeof(dW) #? Still necessary?
 
-  mean = @fastmath X.Xpast .* exp.(X.κ * dt)
-  std = @fastmath X.sigma .* sqrt.(1.0 .- exp.(2.0 .* X.κ .* dt))
-  # std = X.sigma .* X.α .* sqrt.((1.0 .- exp.(2.0 .* X.κ .* dt)) ./ (-2.0 .* X.κ))
-  # std = X.sigma .* sqrt(dt / X.dt) .* sqrt.(1.0 .- exp.(2.0 .* X.κ .* X.dt))
+  # == calculate step == #
+  # https://julialang.org/blog/2013/09/fast-numeric/
+  X.t = t+dt
+  carma_meanstd!(X.mean,X.std,X.Xpast,X.sigma,X.λ,dt)
+  return step_n_filter!(X.Xpast,X.filter,X.mean,X.std,rng,T) * dt
 
-  Wr = step(mean, std, rng, T)
-  Wf = sum(real.(Wr))
-  while X.filter(Wf)
-    Wr = step(mean, std, rng, T)
-    Wf = sum(real.(Wr))
-  end
-  # setproperty!(X,:Xpast, Wr)
-  # Wf = sum(real.(Wr .- X.Xpast))
-  X.Xpast .= Wr
-
-  return Wf * dt
-  # return Wf * dt - W[end]
-  # return Wf * dt
-  # return sum(real.(X.κ .* Wr)) * dt
+  # == past memory problem == #
+  # X.Xpast[t+dt] = Wf[1] # past dictionary expensive (?)
 end
 
-# @inline function (X::CARMA_Process)(dW,W,dt,u,p,t,rng)
-  
-#   # == calculate step == #
-#   T = (typeof(dW) <: AbstractArray) ? dW : typeof(dW) #? Still necessary?
+# == CARMA Bridge == #
+@inline function CARMABridge(X,dW,W,W0,Wh,q,h,u,p,t,rng)
+  # see https://arxiv.org/pdf/1011.0548.pdf
+  # pg 20 (space-time transform)
+  # t ∈ [0, T]
 
-#   mean = @fastmath X.Xpast .* exp.(X.κ * dt)
-#   std = @fastmath X.sigma .* sqrt.(1.0 .- exp.(2.0 .* X.κ .* dt))
-#   # std = X.sigma .* X.α .* sqrt.((1.0 .- exp.(2.0 .* X.κ .* dt)) ./ (-2.0 .* X.κ))
-#   # std = X.sigma .* sqrt(dt / X.dt) .* sqrt.(1.0 .- exp.(2.0 .* X.κ .* X.dt))
-
-#   Wr = step(mean, std, rng, T)
-#   Wf = sum(real.(Wr))
-#   while X.filter(Wf)
-#     Wr = step(mean, std, rng, T)
-#     Wf = sum(real.(Wr))
-#   end
-#   # setproperty!(X,:Xpast, Wr)
-#   X.Xpast .= Wr
-
-#   # return Wf - W[end]
-#   return Wf * dt - W[end]
-#   # return Wf * dt
-# end
-
-# @inline function (X::CARMA_Process)(dW,W,dt,u,p,t,rng)
-  
-#   # == calculate step == #
-#   T = (typeof(dW) <: AbstractArray) ? dW : typeof(dW) #? Still necessary?
-
-#   mean = @fastmath X.Xpast .* (exp.(X.κ * dt) .- 1.0)
-#   std = @fastmath X.sigma .* sqrt.(1.0 .- exp.(2.0 .* X.κ .* dt))
-
-#   dWr = step(mean, std, rng, T)
-#   dWf = sum(real.(dWr))
-#   while X.filter(dWf)
-#     dWr = step(mean, std, rng, T)
-#     dWf = sum(real.(dWr))
-#   end
-#   X.Xpast .+= dWr
-
-#   return dWf
-# end
-
-function (X::CARMAProcess)(t0::T, W0::T, Z0=nothing; method="CARMA", kwargs...) where {T<:Real}
-
-  if method == "CARMA"
-    if !isempty(X.carma.κ)
-      # == Precalculate values == #
-      sigma = X.arma.sigma .*  X.carma.α ./ sqrt.(-2.0 .*  X.carma.κ)
-
-      # == Noise Process == #
-      dist = CARMA_Process(X.carma.κ, X.carma.α, sigma, X.arma.mean, X.dt,zeros(ComplexF64,length(X.arma.phi)),length(X.arma.phi),X.Htime)
-      return NoiseProcess{false}(float(t0),float(W0),Z0,dist,nothing; kwargs...)
-    else
-      return RealWienerProcess(float(t0),float(W0), Z0)
-    end
-
-  elseif method == "ARMA"
-    return X.ARMAProcess(float(t0),float(W0), Z0)
+  # == setup_next_carma_step!/reject_carma_step! correction == #
+  if isapprox(W0,W.curW) || isa(W0,Int) #line 97 / 283
+    # W0 = 0.0
+    # solves dtmin crashing problem
+    return 0.0
+  else
+    # == Bridging values == #
+    t -= q * h
+    q = q * h / (X.t - t)
+    h = (X.t - t)
   end
 
+  Wi = X.mean; fill!(Wi,0.0)
+  Wf = X.Xpast
+  # t = (t > eps()) ? searchkeys(reject_step ? t : t - q * h, X.Xpast) : 0.0
+  # Wi = X.mean
+  # Wi .= reject_step ? zeros(ComplexF64, length(X.λ)) : X.Xpast[t0]
+  # Wh = X.std
+  # Wh .= X.Xpast[searchkeys(t0 + h, X.Xpast)]  t0 = (t > eps()) ? (reject_step ? t : t - q * h) : 0.0
+
+  # == Calculate Mean and STD of Bridge == #
+  carma_bridge_meanstd!(X.mean,X.std,Wi,Wf,X.sigma,X.λ,q,h)
+
+  # == Step Process == #
+  T = (typeof(dW) <: AbstractArray) ? dW : typeof(dW) #? Still necessary?
+  Wbridge = step_n_filter!(Wf,X.filter,X.mean,X.std,rng,T)
+
+  # == add Bridge values to history == #
+  # X.Xpast[t0 + (q * h)] = Wbridge[1]
+
+  # == Bridge fix: correction to Brownian Bridge mean flow == #
+  return (Wbridge * q * h) + q * W0 #- (1 - q) * W0 # line 445 (link above)
 end
+
+# # == reject_carma_step! fix == #
+# #see https://github.com/SciML/DiffEqNoiseProcess.jl/blob/master/src/noise_interfaces/noise_process_interface.jl
+# @inline function CARMABridge(X,dW,W,W0::Int,Wh,q,h,u,p,t,rng)
+#   T = (typeof(dW) <: AbstractArray) ? dW : typeof(dW) #? Still necessary?
+
+#   # line 203 correction
+#   # q = dtnew / W.dt -> h = W.dt (not dtnew)
+#   if isempty(W.S₂) && isapprox(h, q*W.dt) # if h=dtnew
+#     h = W.dt
+#   end
+
+#   # == Bridging values == #
+#   q = q * h / (X.t - t)
+#   h = (X.t - t)
+#   Wi = X.mean; fill!(Wi,0.0)
+#   Wh = X.Xpast
+
+#   # == Calculate Mean and STD of Bridge == #
+#   carma_bridge_meanstd!(X.mean,X.std,Wi,Wh,X.sigma,X.λ,q,h)
+
+#   # == Step Process == #
+#   X.t = t + q*h
+#   Wbridge = step_n_filter!(Wh,X.filter,X.mean,X.std,rng,T)
+
+#   return  Wbridge * q * h
+# end
+
+# @inline function searchkeys(t, dict)
+#   if haskey(dict, t)
+#     return t
+#   else
+#     klist = collect(keys(dict))
+#     return klist[findmin(abs, klist .- t)[2]]
+#     # key = sort(collect(keys(dict)))
+#     # index = searchsortedlast(key, t + (t isa Union{Rational,Integer} ? 0 : atol))
+#     # return key[index]
+#   end
+# end

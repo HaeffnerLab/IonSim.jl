@@ -36,6 +36,7 @@ export IonSimBasis
 include("constants.jl")
 include("ions.jl")
 include("vibrational_modes.jl")
+include("noise/noisevector.jl")
 include("lasers.jl")
 include("ion_configurations.jl")
 include("traps.jl")
@@ -44,15 +45,25 @@ include("hamiltonians.jl")
 include("time_evolution.jl")
 include("species/_include_species.jl")
 
-module GaussianNoiseProcess
 
-include("noise/ARMA_Structure.jl")
+module noise
+using FFTW
+using LinearAlgebra: dot
+using IterativeSolvers: lsqr, lsqr!
+using Random
+using StaticArrays
+using PyCall
+np = pyimport("numpy")
+so = pyimport("scipy.optimize")
+
 include("noise/ARMA_NoiseProcess.jl")
+include("noise/ARMA_Structure.jl")
 include("noise/CARMA_NoiseProcess.jl")
-include("noise/ARMA_StepInterface.jl")
-export ARMA, ARMAProcess, CARMAProcess
-export calculate_step!, accept_step!, calculate_noise!
-
+include("noise/CARMA_Structure.jl")
+include("noise/Gaussian_types.jl")
+include("noise/Gaussian_interface.jl")
+export GaussianProcess, CARMAProcess, ARMAProcess, ARMA, calculate_noise!
+# export calculate_step!, accept_step!, calculate_noise!
 end
 
 module analytical
