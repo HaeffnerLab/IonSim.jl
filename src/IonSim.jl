@@ -5,11 +5,27 @@ import OrderedCollections: OrderedDict
 
 export OrderedDict, analytical
 # Export some commonly used QuantumOptics.jl functions
-export embed, ⊗, tensor, ⊕, dagger, normalize, normalize!, expect, tr, ptrace, tracenorm, 
-       tracedistance, entropy_vn, fidelity, diagonaljumps, dm, exp, norm
+export embed,
+    ⊗,
+    tensor,
+    ⊕,
+    dagger,
+    normalize,
+    normalize!,
+    expect,
+    tr,
+    ptrace,
+    tracenorm,
+    tracedistance,
+    entropy_vn,
+    fidelity,
+    diagonaljumps,
+    dm,
+    exp,
+    norm
 
 # used for copying composite types
-Base.copy(x::T) where T = T([getfield(x, k) for k ∈ fieldnames(T)]...)
+Base.copy(x::T) where {T} = T([getfield(x, k) for k in fieldnames(T)]...)
 """
     IonSimBasis
 An abstract type for specialized bases, which are unique to IonSim.
@@ -23,10 +39,10 @@ include("vibrational_modes.jl")
 include("lasers.jl")
 include("ion_configurations.jl")
 include("traps.jl")
-include("operators.jl")                           
+include("operators.jl")
 include("hamiltonians.jl")
 include("time_evolution.jl")
-include("species/include_species.jl")
+include("species/_include_species.jl")
 
 module GaussianNoiseProcess
 
@@ -40,7 +56,7 @@ export calculate_step!, accept_step!, calculate_noise!
 end
 
 module analytical
-    include("analytic_functions.jl")
+include("analytic_functions.jl")
 end
 
 end  # main module

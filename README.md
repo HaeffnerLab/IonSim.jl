@@ -5,7 +5,6 @@
 [![test status](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml/badge.svg)](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml)
 [![codecov][codecov-badge]][codecov-url]
 [![License: MIT][license-badge]][license-url]
-[![Twitter][twitter-badge]][twitter-url]
 
 A simple tool, built on top of [QuantumOptics.jl](https://qojulia.org/), for simulating the dynamics of a configuration of
 trapped ions interacting with laser light.
@@ -83,9 +82,16 @@ You can run tests with
 pkg> test IonSim
 ```
 
+Don't forget to format the code! `./scripts/format.sh`
+
 To go back to the version in the registry, use
 ```julia
 pkg> free IonSim
+```
+
+In order to update the IonSim.jl version that lives in the Julia general registry, change the version number in the Project.toml file, commit the changes and then add a comment to the commit that reads:
+```
+@JuliaRegistrator register
 ```
 
 If you have any questions, please make a GitHub issue.

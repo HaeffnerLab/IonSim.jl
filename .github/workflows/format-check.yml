@@ -1,0 +1,45 @@
+name: format-check
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        julia-version: ['1']
+        julia-arch: [x64]
+        os: [ubuntu-latest]
+    steps:
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.julia-version }}
+          arch: ${{ matrix.julia-arch }}
+
+      - uses: actions/checkout@v2
+      - name: Install JuliaFormatter and format
+        run: |
+          julia  -e 'using Pkg; Pkg.add(PackageSpec(name="JuliaFormatter"))'
+          julia  -e 'using JuliaFormatter; format(".")'
+      - name: 'Check that running `format` is a no-op.'
+        run: |
+          julia -e '
+          out = Cmd(`git diff --name-only`) |> read |> String
+          if out == ""
+              exit(0)
+          else
+              @error "Some files did not meet the formatting guidelines. Run ./scripts/format.sh to fix."
+              write(stdout, "\nFiles not meeting formatting guidelines:\n")
+              write(stdout, out)
+              write(stdout, "\nRun ./scripts/format.sh to fix.")
+              exit(1)
+          end'

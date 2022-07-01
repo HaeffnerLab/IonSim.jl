@@ -1,8 +1,6 @@
 using QuantumOptics: basisstate
 
-
 export VibrationalMode
-
 
 """
     VibrationalMode(
@@ -31,9 +29,15 @@ mutable struct VibrationalMode <: IonSimBasis
     δν::Function
     N::Int
     shape::Vector{Int}
-    axis::NamedTuple{(:x,:y,:z)}
+    axis::NamedTuple{(:x, :y, :z)}
     _cnst_δν::Bool
-    function VibrationalMode(ν, mode_structure; δν::Tδν=0., N=10, axis=ẑ) where {Tδν}
+    function VibrationalMode(
+        ν,
+        mode_structure;
+        δν::Tδν = 0.0,
+        N = 10,
+        axis = ẑ
+    ) where {Tδν}
         if Tδν <: Number
             _cnst_δν = true
             δνt(t) = δν
@@ -41,23 +45,25 @@ mutable struct VibrationalMode <: IonSimBasis
             _cnst_δν = false
             δνt = δν
         end
-        new(ν, mode_structure, δνt, N, [N+1], axis, _cnst_δν)
+        return new(ν, mode_structure, δνt, N, [N + 1], axis, _cnst_δν)
     end
 end
 
-function Base.:(==)(b1::T, b2::T) where {T<:VibrationalMode}
-    (
+function Base.:(==)(b1::T, b2::T) where {T <: VibrationalMode}
+    return (
         b1.ν == b2.ν &&
         b1.mode_structure == b2.mode_structure &&
         b1.N == b2.N &&
         b1.shape == b2.shape &&
-        b1.axis == b2.axis 
+        b1.axis == b2.axis
     )
 end
 
 # suppress long output
-Base.show(io::IO, V::VibrationalMode) = print(io, 
-    "VibrationalMode(ν=$(round(V.ν,sigdigits=4)), axis=$(_print_axis(V.axis)), N=$(V.N))")
+Base.show(io::IO, V::VibrationalMode) = print(
+    io,
+    "VibrationalMode(ν=$(round(V.ν,sigdigits=4)), axis=$(_print_axis(V.axis)), N=$(V.N))"
+)
 
 function Base.setproperty!(V::VibrationalMode, s::Symbol, v::Tv) where {Tv}
     if s == :mode_structure || s == :axis || s == :_cnst_δν
@@ -67,7 +73,7 @@ function Base.setproperty!(V::VibrationalMode, s::Symbol, v::Tv) where {Tv}
         @assert Tv <: Int "N must be a positive integer"
         @assert v >= 0 "N must be a nonnegative integer"
         Core.setproperty!(V, :N, v)
-        Core.setproperty!(V, :shape, Int[v+1])
+        Core.setproperty!(V, :shape, Int[v + 1])
     elseif s == :shape
         return
     elseif s == :δν
@@ -82,13 +88,10 @@ function Base.setproperty!(V::VibrationalMode, s::Symbol, v::Tv) where {Tv}
         Core.setproperty!(V, :_cnst_δν, _cnst_δν)
         return
     end
-    Core.setproperty!(V, s, v)
+    return Core.setproperty!(V, s, v)
 end
 
 function Base.getindex(V::VibrationalMode, n::Int)
     @assert 0 <= n <= V.N "n ∉ [0, $(V.N+1)]"
-    basisstate(V, n+1)
+    return basisstate(V, n + 1)
 end
-
-
-
