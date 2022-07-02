@@ -8,7 +8,7 @@ export Laser
 The physical parameters defining laser light.
 **args**
 * `λ::Union{Real,Nothing}`: the wavelength of the laser in meters
-* `E::Union{Function,Real}`: magnitude of the E-field in V/m
+* `E::Union{Function,Real, NoiseVector}`: magnitude of the E-field in V/m
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
 * `k::NamedTuple`: (k.x, k.y, k.z), propagation direction, requires norm of 1
@@ -37,7 +37,10 @@ mutable struct Laser
         k = ẑ,
         ϕ::Tϕ = 0,
         pointing = Array{Tuple{Int, <:Real}}(undef, 0)
-    ) where {TE, Tϕ}
+    ) where {
+        TE <: Union{NoiseVector, Real, Function},
+        Tϕ <: Union{NoiseVector, Real, Function}
+    }
         rtol = 1e-6
         @assert isapprox(norm(ϵ), 1, rtol = rtol) "!(|ϵ| = 1)"
         @assert isapprox(norm(k), 1, rtol = rtol) "!(|k| = 1)"
@@ -51,9 +54,6 @@ mutable struct Laser
         for s in scaling
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
-        # TE <: Number ? Et(t) = E : 6Et = E
-        # Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
-        # added support for vector input
         if TE <: Number
             Et = t -> E
         elseif TE <: NTuple{2, Vector}
