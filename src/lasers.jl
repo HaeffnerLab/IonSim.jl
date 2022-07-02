@@ -51,21 +51,21 @@ mutable struct Laser
         for s in scaling
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
-        # TE <: Number ? Et(t) = E : Et = E
+        # TE <: Number ? Et(t) = E : 6Et = E
         # Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
         # added support for vector input
         if TE <: Number
-            Et(t) = E
-        elseif TE <: NTuple{2,Vector}
-            Et(t) = NoiseVector(E[1],E[2])
+            Et = t -> E
+        elseif TE <: NTuple{2, Vector}
+            Et = t -> NoiseVector(E[1], E[2])
         else#function
             Et = E
         end
 
         if Tϕ <: Number
-            ϕt(t) = ϕ
-        elseif TE <: NTuple{2,Vector}
-            ϕt(t) = NoiseVector(ϕ[1],ϕ[2])
+            ϕt = t -> ϕ
+        elseif TE <: NTuple{2, Vector}
+            ϕt = t -> NoiseVector(ϕ[1], ϕ[2])
         else #function
             ϕt = ϕ
         end
@@ -117,7 +117,13 @@ function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
     elseif s == :E || s == :ϕ
-        Tv <: Number ? vt(t) = v : vt = v
+        if Tv <: Number
+            vt = t -> v
+        elseif Tv <: NTuple{2, Vector}
+            vt = t -> NoiseVector(v[1], v[2])
+        else #function
+            vt = v
+        end
         Core.setproperty!(L, s, vt)
         return
     end
