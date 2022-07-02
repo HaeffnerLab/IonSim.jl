@@ -3,7 +3,6 @@ using PyCall
 using Plots
 using QuantumOptics
 using StochasticDiffEq
-np = pyimport("numpy")
 include("GaussianNoiseProcess.jl")
 
 # == Desired PSD Function == #
@@ -42,7 +41,7 @@ psd_arma = map(
 )
 
 psd_arma = sum(hcat(psd_arma...), dims = 2)[:] # averaging over power spectrum
-freq = fftfreq(N, 1 / ((tspan[2] - tspan[1]) * tscale))
+freq = fftfreq(N, 1 / ((tspan[2] - tspan[1]) * tscale));
 
 # == Plotting PSD == #
 plot(freq[2:end], psd_arma[2:end], label = "Ensemble Avg")
@@ -97,14 +96,14 @@ J_ν(Γ) = [√(Γ) * one(sb) ⊗ number(vb)]
 tspan = 0:0.01:2.0
 Δt = tspan[2] - tspan[1]
 
-# notice that I chose a timescale for the noise and the frequencies
-params = (J = 1.3, Δ = -1.2, κ = 0.229, ν = 1.8) #kHz
-Γ = 1.0 # arb.
-
 Ntrials = 256 # minimum number to get to ~10-20% error
 alg = StochasticDiffEq.RKMil() # found to be faster and more accurate
 adaptive = false # should be the default
 dt = 1e-4 # tested to be the minimum step needed to get accurate results out to 2ms
+
+# notice that I chose a timescale for the noise and the frequencies
+params = (J = 1.3, Δ = -1.2, κ = 0.229, ν = 1.8) #kHz
+Γ = 10.0 # arb.
 
 # Quantum trajectories average
 sol =
@@ -112,8 +111,8 @@ sol =
         trial -> stochastic.schroedinger(
             tspan,
             ψi,
-            H(params.J, params.Δ, params.κ, ν),
-            J_Δ(Γ);
+            H(params.J, params.Δ, params.κ, params.ν),
+            J_Δ(0);
             fout = fout,
             noise = PinkNoise(0, 0),
             dt = dt,
@@ -127,3 +126,24 @@ sol =
     ) |> vec -> hcat(vec...) |> mat -> sum(mat, dims = 2) ./ Ntrials
 
 plot(tspan, sol)
+
+sol =
+    map(
+        trial -> stochastic.schroedinger(
+            tspan,
+            ψi,
+            H(params.J, params.Δ, params.κ, params.ν),
+            J_Δ(Γ);
+            fout = fout,
+            noise = PinkNoise(0, 0),
+            dt = dt,
+            adaptive = adaptive,
+            alg = alg,
+            reltol = 1e-8,
+            abstol = 1e-8,
+            normalize_state = true
+        )[2],
+        1:Ntrials
+    ) |> vec -> hcat(vec...) |> mat -> sum(mat, dims = 2) ./ Ntrials
+
+plot!(tspan, sol)

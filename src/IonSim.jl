@@ -1,3 +1,4 @@
+__precompile__() # this module is safe to precompile
 module IonSim
 
 using QuantumOptics
@@ -52,8 +53,14 @@ using IterativeSolvers: lsqr, lsqr!
 using Random
 using StaticArrays
 using PyCall
-np = pyimport("numpy")
-so = pyimport("scipy.optimize")
+
+const so = PyNULL()
+const np = PyNULL()
+
+function __init__()
+    copy!(so, pyimport_conda("scipy.optimize", "scipy"))
+    return copy!(np, pyimport_conda("numpy", "numpy"))
+end
 
 include("noise/ARMA_NoiseProcess.jl")
 include("noise/ARMA_Structure.jl")

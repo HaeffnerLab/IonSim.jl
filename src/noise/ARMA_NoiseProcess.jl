@@ -2,7 +2,6 @@ using DiffEqNoiseProcess
 using LinearAlgebra: dot
 using Random
 using PyCall
-np = pyimport("numpy")
 
 @inline wiener_randn(rng::AbstractRNG, ::Type{T}) where {T} = randn(rng, T)
 function arma_step!(x, mean, sigma, rng, T)
