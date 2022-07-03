@@ -62,5 +62,5 @@ using StochasticDiffEq
         real.(ifft(arma_power))[1:length(time)],
         rtol = 1e-10
     )
-    @test isapprox(est_avg, exact_avg, rtol = 0.05)
+    @test isapprox(est_avg, exact_avg, rtol = 0.1)
 end
