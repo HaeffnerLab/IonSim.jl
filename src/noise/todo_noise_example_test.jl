@@ -3,7 +3,6 @@ using PyCall
 using Plots
 using QuantumOptics
 using StochasticDiffEq
-include("GaussianNoiseProcess.jl")
 
 # == Desired PSD Function == #
 function color_spectrum(f, f0, α, dt)

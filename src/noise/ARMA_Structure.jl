@@ -316,30 +316,6 @@ end
     )
 end
 
-# function generate_AR_coefficients(acf::Vector, coeff_length)
-
-#   if !(coeff_length <= length(acf) - 1)
-#     @assert false "coeff_length must be <= (length(acf) - 1) in Yule-Walker equation"
-#   end
-
-#   # == AR Coefficients Solver == #
-#   ρ = acf[1:coeff_length+1] / acf[1]
-#   n = length(ρ) - 1
-#   Rmat = zeros(n,coeff_length)
-#   for j in 1:n
-#     Rmat[j,:] .= ρ[abs.(j .- (1:coeff_length)) .+ 1]
-#   end
-#   phi = IterativeSolvers.lsqr(Rmat,ρ[2:end])
-
-#   charpoly = [-reverse(phi);1.0]
-#   roots = np.roots(charpoly) # roots of |z|
-#   if any(abs.(roots) .<= 1.0) # |z| > 1 s.t. |w| < 1 to be stationary
-#     @warn "AR(p) process is not stationary, must satisfy characteristic equation with |z| > 1. Consider trying different coefficient length."
-#   end
-
-#   return phi, roots
-# end
-
 # # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=1171974&tag=1
 # # solve for residual power spectrum
 # q = length(arma.phi) - 1

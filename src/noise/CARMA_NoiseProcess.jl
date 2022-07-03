@@ -1,7 +1,5 @@
 # == Helper Functions == #
 
-# @inline carma_randn(rng::AbstractRNG,::Type{T}) where T = randn(rng,T) + 1im * randn(rng,T)
-
 @inline function carma_step!(x::T, mean::T, std::T, rng::AbstractRNG, Trng) where {T}
     rndm = randn(rng, Trng) #carma_randn(rng, Trng)
     @simd for i in eachindex(x)
@@ -43,8 +41,6 @@ end
     @simd for i in eachindex(mean)
         @inbounds mean[i] = (Wi[i] * tmp[1][i] + Wh[i] * tmp[2][i]) / tmp[3][i]
         @inbounds std[i] = sigma[i] * sqrt(-2.0 * tmp[2][i] * tmp[1][i] / tmp[3][i])
-        # correct for redef of sigma in GaussianProcess
-        # sigma = X.arma.sigma *  X.carma.α / sqrt(2.0 *  X.carma.λ)
     end
 end
 
@@ -92,9 +88,6 @@ end
     X.t = t + dt
     carma_meanstd!(X.mean, X.std, X.Xpast, X.sigma, X.λ, dt)
     return step_n_filter!(X.Xpast, X.filter, X.mean, X.std, rng, T) * dt
-
-    # == past memory problem == #
-    # X.Xpast[t+dt] = Wf[1] # past dictionary expensive (?)
 end
 
 # == CARMA Bridge == #
@@ -118,11 +111,6 @@ end
     Wi = X.mean
     fill!(Wi, 0.0)
     Wf = X.Xpast
-    # t = (t > eps()) ? searchkeys(reject_step ? t : t - q * h, X.Xpast) : 0.0
-    # Wi = X.mean
-    # Wi .= reject_step ? zeros(ComplexF64, length(X.λ)) : X.Xpast[t0]
-    # Wh = X.std
-    # Wh .= X.Xpast[searchkeys(t0 + h, X.Xpast)]  t0 = (t > eps()) ? (reject_step ? t : t - q * h) : 0.0
 
     # == Calculate Mean and STD of Bridge == #
     carma_bridge_meanstd!(X.mean, X.std, Wi, Wf, X.sigma, X.λ, q, h)
@@ -131,48 +119,6 @@ end
     T = (typeof(dW) <: AbstractArray) ? dW : typeof(dW) #? Still necessary?
     Wbridge = step_n_filter!(Wf, X.filter, X.mean, X.std, rng, T)
 
-    # == add Bridge values to history == #
-    # X.Xpast[t0 + (q * h)] = Wbridge[1]
-
     # == Bridge fix: correction to Brownian Bridge mean flow == #
     return (Wbridge * q * h) + q * W0 #- (1 - q) * W0 # line 445 (link above)
 end
-
-# # == reject_carma_step! fix == #
-# #see https://github.com/SciML/DiffEqNoiseProcess.jl/blob/master/src/noise_interfaces/noise_process_interface.jl
-# @inline function CARMABridge(X,dW,W,W0::Int,Wh,q,h,u,p,t,rng)
-#   T = (typeof(dW) <: AbstractArray) ? dW : typeof(dW) #? Still necessary?
-
-#   # line 203 correction
-#   # q = dtnew / W.dt -> h = W.dt (not dtnew)
-#   if isempty(W.S₂) && isapprox(h, q*W.dt) # if h=dtnew
-#     h = W.dt
-#   end
-
-#   # == Bridging values == #
-#   q = q * h / (X.t - t)
-#   h = (X.t - t)
-#   Wi = X.mean; fill!(Wi,0.0)
-#   Wh = X.Xpast
-
-#   # == Calculate Mean and STD of Bridge == #
-#   carma_bridge_meanstd!(X.mean,X.std,Wi,Wh,X.sigma,X.λ,q,h)
-
-#   # == Step Process == #
-#   X.t = t + q*h
-#   Wbridge = step_n_filter!(Wh,X.filter,X.mean,X.std,rng,T)
-
-#   return  Wbridge * q * h
-# end
-
-# @inline function searchkeys(t, dict)
-#   if haskey(dict, t)
-#     return t
-#   else
-#     klist = collect(keys(dict))
-#     return klist[findmin(abs, klist .- t)[2]]
-#     # key = sort(collect(keys(dict)))
-#     # index = searchsortedlast(key, t + (t isa Union{Rational,Integer} ? 0 : atol))
-#     # return key[index]
-#   end
-# end

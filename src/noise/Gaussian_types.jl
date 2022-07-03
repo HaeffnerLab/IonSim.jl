@@ -1,7 +1,7 @@
 
 # == ARMAProcess: Generates ARMA Coefficients == #
 """
-bar(x[, y])
+    bar(x[, y])
 
 Compute the Bar index between `x` and `y`.
 
@@ -144,7 +144,7 @@ end
 
 # == CARMAProcess struct & function == #
 """
-bar(x[, y])
+    bar(x[, y])
 
 Compute the Bar index between `x` and `y`.
 
@@ -245,7 +245,7 @@ end
 
 # == GaussianProcess struct & function == #
 """
-bar(x[, y])
+    bar(x[, y])
 
 Compute the Bar index between `x` and `y`.
 

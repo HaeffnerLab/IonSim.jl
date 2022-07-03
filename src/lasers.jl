@@ -1,5 +1,5 @@
 using .PhysicalConstants: c
-
+using .noise: NoiseVector
 export Laser
 
 """
@@ -58,7 +58,7 @@ mutable struct Laser
             Et = t -> E
         elseif TE <: NTuple{2, Vector}
             Et = t -> NoiseVector(E[1], E[2])
-        else#function
+        else
             Et = E
         end
 
@@ -66,7 +66,7 @@ mutable struct Laser
             ϕt = t -> ϕ
         elseif TE <: NTuple{2, Vector}
             ϕt = t -> NoiseVector(ϕ[1], ϕ[2])
-        else #function
+        else
             ϕt = ϕ
         end
 
@@ -121,7 +121,7 @@ function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
             vt = t -> v
         elseif Tv <: NTuple{2, Vector}
             vt = t -> NoiseVector(v[1], v[2])
-        else #function
+        else
             vt = v
         end
         Core.setproperty!(L, s, vt)
