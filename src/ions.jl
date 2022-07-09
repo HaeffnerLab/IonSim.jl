@@ -768,6 +768,21 @@ IonProperties(;
     nonlinear_zeeman
 )
 
+function Base.:(==)(p1::IonProperties, p2::IonProperties)
+    for fn in fieldnames(IonProperties)
+        p1fn = getfield(p1, fn)
+        p2fn = getfield(p2, fn)
+        if ismissing(p1fn) && ismissing(p2fn)
+            continue
+        elseif p1fn == p2fn
+            continue
+        else
+            return false
+        end
+    end
+    return true
+end
+
 """
 IonInstance(selected_sublevels::Vector{Tuple}[, starkshift::Dict])
 Ion instance of some species
