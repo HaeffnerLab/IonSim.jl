@@ -1,7 +1,7 @@
 name = "IonSim"
 uuid = "511e77fe-ab93-41f7-8f07-8f89809c6435"
 authors = ["Joseph Broz <jbroz@berkeley.edu>"]
-version = "0.4.0"
+version = "0.4.1"
 
 [deps]
 FunctionWrappers = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
