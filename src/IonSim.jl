@@ -1,7 +1,19 @@
 module IonSim
 
 using QuantumOptics
+using QuantumOpticsBase: BASES_CHECK
 import OrderedCollections: OrderedDict
+
+#=
+This is a band-aid for https://github.com/HaeffnerLab/IonSim.jl/issues/90
+For now, we just turn of bases checks. This means that if users feed an initial state and 
+Hamiltonian (and/or collapse operators) to the solvers that have incompatbile bases an opaque
+exception will be thrown. This will be especially annoying when e.g. vibrational modes are
+misordered in a tensor product, since the correct order is implicilty enforced atm by the 
+way hamiltonian is constructed.
+TODO: wrap QO solvers with an IonSim function that handles things like bases checks.
+=#
+BASES_CHECK.x = false
 
 export OrderedDict, analytical
 # Export some commonly used QuantumOptics.jl functions

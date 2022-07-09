@@ -35,7 +35,8 @@ export Ion,
     einsteinA,
     transitionmultipole,
     lifetime,
-    matrix_element
+    matrix_element,
+    IonInstance
 
 #############################################################################################
 # Ion - the physical parameters defining an ion's structure
