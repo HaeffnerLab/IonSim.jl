@@ -63,6 +63,7 @@ ionposition(I::Ion)::Union{Real, Missing} = I.position
 # General properties of species
 #############################################################################################
 
+mass(x) = print(x)
 mass(I::Ion)::Real = speciesproperties(I).mass
 charge(I::Ion)::Real = speciesproperties(I).charge * e
 nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
