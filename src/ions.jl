@@ -76,7 +76,7 @@ nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
 
 validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
     @assert sublevel in sublevels(I) (
-        "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of "
+        "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of " * 
         "available sublevels."
     )
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
@@ -219,7 +219,7 @@ function alias2sublevel(I::Ion, alias::String)
     all_aliases = I.sublevel_aliases
     @assert alias in keys(all_aliases) (
         "Ion does not contain any sublevel with the alias $alias. Use sublevel_aliases(Ion) "
-        "to see available aliases."
+        * "to see available aliases."
     )
     return all_aliases[alias]
 end
