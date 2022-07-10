@@ -12,42 +12,53 @@ export IonConfiguration,
 
 """
     IonConfiguration
-Physical configuration of ions. Stores a collection of ions and  information about the 
+Physical configuration of ions. Stores a collection of ions and information about the 
 interactions of their center of mass motion.
 """
 abstract type IonConfiguration end
 
 # required functions
 ions(I::IonConfiguration)::Vector{Ion} = I.ions
-
+                                                                                             
 #############################################################################################
 # LinearChain - a linear Coulomb crystal
 #############################################################################################
 
 """
-    linear_equilibrium_positions(N::Int)
-Returns the scaled equilibrium positions of `N` ions in a harmonic potential, assuming that
-all ions have the same mass. 
+    linear_equilibrium_positions(N::Int, M::Vector{<:Real}; withJacobian=false)
+
+Returns the scaled equilibrium positions of `N` ions with masses `M` in a harmonic potential.
+To return actual spacings in meters, multiply results by:
+```math 
+l = e² / 4πϵ₀Mν²
+```
+where ``M`` equals the maximum of `M` and ν is the frequency defining the harmonic potential.
 [ref](https://doi.org/10.1007/s003400050373)
 """
-function linear_equilibrium_positions(N::Int)
-    function f!(F, x, N)
+function linear_equilibrium_positions(N::Int, M::Vector{<:Real}; withJacobian=false)
+    function f!(F, x, N, M)
+        MaxM = maximum(M)
         for i in 1:N
             F[i] = (
-                x[i] - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
+                x[i] - 
+                (MaxM / M[N]) * (sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) - 
+                                 sum([1 / (x[i] - x[j])^2 for j in (i + 1):N]))
             )
         end
     end
 
-    function j!(J, x, N)
+    function j!(J, x, N, M)
+        MaxM = maximum(M)
         for i in 1:N, j in 1:N
             if i ≡ j
                 J[i, j] = (
-                    1 + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    1 + 2 * (MaxM / M[N]) * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 
+                                             2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
                 )
             else
                 J[i, j] = (
-                    -2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) + 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    -2 * (MaxM / M[N]) * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 
+                                          2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
                 )
             end
         end
@@ -59,19 +70,34 @@ function linear_equilibrium_positions(N::Int)
         initial_x =
             [(2.018 / N^0.559) * i for i in filter(x -> x ≠ 0, collect((-N ÷ 2):(N ÷ 2)))]
     end
-    sol = nlsolve((F, x) -> f!(F, x, N), (J, x) -> j!(J, x, N), initial_x, method = :newton)
-    return sol.zero
+    if withJacobian
+        sol = nlsolve(
+            (F, x) -> f!(F, x, N, M), 
+            (J, x) -> j!(J, x, N, M), 
+            initial_x, 
+            method = :newton
+        )
+    else
+        sol = nlsolve((F, x) -> f!(F, x, N, M), initial_x, method = :newton)
+    end
+    if sol.f_converged
+        return sol
+    else
+        error("failed to find equilibrium positions for linear chain")
+    end
 end
 
 """
     characteristic_length_scale(M::Real, ν::Real)
+
 Returns the characteristic length scale for a linear chain of identical ions of mass `M`
-and with axial trap frequency 2π × ν.
+and with axial trap frequency ``2π × ν``.
 """
 characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
 
 """
     Anm(N::Real, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
+
 Computes the normal modes and corresponding trap frequencies along a particular `axis` for a 
 collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first 
 element the frequency of the normal mode and 2nd element the corresponding eigenvector.
@@ -118,9 +144,9 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 
 """
     LinearChain(;
-            ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
-            vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
-        )
+        ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
+        vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
+    )
 
 Contains all of the information necessary to describe a collection of ions trapped in a 3D
 harmonic potential and forming a linear coulomb crystal.
@@ -129,8 +155,9 @@ harmonic potential and forming a linear coulomb crystal.
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
         Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
-        parallel to the crystal's symmetry axis.
-* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
+        parallel to the crystal's symmetry axis and we assume (but don't directly enforce) 
+        that ``z > x,y``.
+* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  eg. `(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
     mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
@@ -150,10 +177,12 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         vibrational_modes = _construct_vibrational_modes(vibrational_modes)
         warn = nothing
         for i in 1:length(ions), j in (i + 1):length(ions)
-            @assert typeof(ions[i]) == typeof(ions[j]) "multispecies chains not yet supported; all ions in chain must be of same species"
+            @assert typeof(ions[i]) == typeof(ions[j]) ("multispecies chains not yet " * 
+            "supported; all ions in chain must be of same species")
             if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
                 if isnothing(warn)
+                    # only output warning once
                     warn = "Some ions point to the same thing. Making copies."
                     @warn warn
                 end
@@ -175,7 +204,10 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
             push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i]))
         end
         l = linear_equilibrium_positions(length(ions))
-        l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z) # Needs to be changed when allowing for multi-species chains. Current workaround takes the mass of only the first ion to define the characteristic length scale.
+        #= Needs to be changed when allowing for multi-species chains. Current workaround 
+           takes the mass of only the first ion to define the characteristic length scale.
+        =#
+        l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z)
         for (i, ion) in enumerate(ions)
             Core.setproperty!(ion, :ionnumber, i)
             Core.setproperty!(ion, :position, l[i] * l0)
@@ -186,6 +218,7 @@ end
 
 """
     get_vibrational_modes(lc::LinearChain)
+
 Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
 The order is `[lc.x..., lc.y..., lc.z...]`.
 """
@@ -207,7 +240,8 @@ end
 function _construct_vibrational_modes(x)
     k = collect(keys(x))
     xyz = [:x, :y, :z]
-    @assert isnothing(findfirst(x -> x ∉ xyz, k)) "keys of `vibrational_modes` must be `:x`, `:y` or `:z`"
+    @assert isnothing(findfirst(x -> x ∉ xyz, k)) ("keys of `vibrational_modes` must be " *
+    "`:x`, `:y` or `:z`")
     indxs = findall(x -> x ∉ k, xyz)
     values = []
     for i in 1:3
