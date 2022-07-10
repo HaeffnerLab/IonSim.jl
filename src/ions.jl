@@ -44,6 +44,7 @@ export Ion,
 
 """
     Ion
+
 The physical parameters defining an isolated ion's internal structure.
 """
 abstract type Ion <: IonSimBasis end
@@ -74,12 +75,17 @@ nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
 #############################################################################################
 
 validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
-    @assert sublevel in sublevels(I) "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of available sublevels."
+    @assert sublevel in sublevels(I) (
+        "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of "
+        "available sublevels."
+    )
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
 
 """
     set_sublevel_alias!(I::Ion, sublevel::Tuple{String,Real}, alias::String)
-Assigns an alias `alias` to `sublevel` of `I`. This then allows one to pass `alias` in place of `sublevel` (for `I` only) into any function which accepts a sublevel as an argument.
+
+Assigns an alias `alias` to `sublevel` of `I`. This then allows one to pass `alias` in place 
+of `sublevel` (for `I` only) into any function which accepts a sublevel as an argument.
 """
 function set_sublevel_alias!(I::Ion, sublevel::Tuple{String, Real}, alias::String)
     validatesublevel(I, sublevel)
@@ -89,8 +95,11 @@ function set_sublevel_alias!(I::Ion, sublevel::Tuple{String, Real}, alias::Strin
 end
 """
     set_sublevel_alias!(I::Ion, aliasassignments)
-`aliasassignments` specifies which aliases should be assigned to which sublevels. There are two options to do this:
-* `aliasassignments` is a Vector of Tuples, with the first element of each being the sublevel (`sublevel::Tuple{String,Real}`) and the second being its assigned alias (`alias::String`)
+
+`aliasassignments` specifies which aliases should be assigned to which sublevels. There are 
+two options to do this:
+* `aliasassignments` is a Vector of Tuples, with the first element of each being the sublevel 
+(`sublevel::Tuple{String,Real}`) and the second being its assigned alias (`alias::String`)
 * `aliasassignments` is a Dict with the format `alias::String => sublevel::Tuple{String,Real}`
 Calls `set_sublevel_alias!(I, sublevel, alias)` for each pair `sublevel, alias`.
 """
@@ -113,8 +122,10 @@ end
 
 """
     clear_sublevel_alias!(I::Ion, sublevel)
-Erases the assignment of an alias to `sublevel` of Ion `I`. Accepts either the full sublevel `Tuple{String,Real}` or its alias `String`.
-Also accepts a vector of sublevels to clear multiple alias assignments in a single call.
+
+Erases the assignment of an alias to `sublevel` of Ion `I`. Accepts either the full sublevel 
+`Tuple{String,Real}` or its alias `String`. Also accepts a vector of sublevels to clear
+multiple alias assignments in a single call.
 """
 function clear_sublevel_alias!(I::Ion, sublevel::Tuple{String, Real})
     alias = sublevelalias(I, sublevel)
@@ -129,6 +140,7 @@ end
 
 """
     clear_all_sublevel_aliases!(I::Ion)
+
 Applies `clear_sublevel_alias!` to all sublevels of `I`.
 """
 function clear_all_sublevel_aliases!(I::Ion)
@@ -137,7 +149,9 @@ end
 
 """
     set_stark_shift!(I::Ion, sublevel, shift::Real)
-Applies a stark shift `shift` to the chosen `sublevel` of `I` (overwriting any previously assigned stark shift).
+
+Applies a stark shift `shift` to the chosen `sublevel` of `I` (overwriting any previously 
+assigned stark shift).
 """
 function set_stark_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
     validatesublevel(I, sublevel)
@@ -157,6 +171,7 @@ end
 
 """
     zero_stark_shift!(I::Ion)
+
 Sets the stark shift of all sublevels of `I` to zero.
 """
 function zero_stark_shift!(I::Ion)
@@ -171,12 +186,14 @@ end
 
 """
     levels(I::Ion)
+
 Returns array of all energy levels of `I`.
 """
 levels(I::Ion) = unique([sublevel[1] for sublevel in sublevels(I)])
 
 """
     sublevelalias(I::Ion, sublevel::Tuple{String,Real})
+
 Returns the alias assined to `sublevel` of `I`. If no alias is assigned, returns `nothing`.
 """
 function sublevelalias(I::Ion, sublevel::Tuple{String, Real})
@@ -194,16 +211,22 @@ end
 
 """
     alias2sublevel(I::Ion, alias::String)
-Returns the sublevel corresponding to the given alias `alias` of `I`. Inverse function of `sublevelalias`.
+
+Returns the sublevel corresponding to the given alias `alias` of `I`. Inverse function of 
+`sublevelalias`.
 """
 function alias2sublevel(I::Ion, alias::String)
     all_aliases = I.sublevel_aliases
-    @assert alias in keys(all_aliases) "Ion does not contain any sublevel with the alias $alias. Use sublevel_aliases(Ion) to see available aliases."
+    @assert alias in keys(all_aliases) (
+        "Ion does not contain any sublevel with the alias $alias. Use sublevel_aliases(Ion) "
+        "to see available aliases."
+    )
     return all_aliases[alias]
 end
 
 """
     sublevel2level(I::Ion, sublevel)
+
 Retuns the energy level of `I` corresponding to `sublevel`.
 """
 function sublevel2level(I::Ion, sublevel::Tuple{String, Real})
@@ -216,15 +239,17 @@ function sublevel2level(I::Ion, alias::String)
     return sublevel[1]
 end
 
-# quantumnumbers is written to be able to accept either a level or sublevel in the second argument
-# Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
+#= 
+quantumnumbers is written to be able to accept either a level or sublevel in the second 
+argument. Since both levels and aliases are strings, multidispatach can't tell the difference, 
+so the second method distinguishes these cases with an if statement.
+=#
 """
     quantumnumbers(I::Ion, level::String)
     quantumnumbers(I::Ion, sublevel)
+
 Returns the quantum numbers of an energy level or sublevel of `I` as a `NamedTuple`.
-
 If second argument is a level, returns `(:n, :i, :s, :l, :j, :f)`
-
 If second argument is a sublevel, returns `(:n, :i, :s, :l, :j, :f, :m)`
 """
 function quantumnumbers(I::Ion, sublevel::Tuple{String, Real})
@@ -243,7 +268,7 @@ function quantumnumbers(I::Ion, sublevel::Tuple{String, Real})
     return NamedTuple{names}(values)
 end
 function quantumnumbers(I::Ion, level_or_alias::String)
-    # If the second argument is a String, it could be either a level name or the alias of a sublevel
+    # If the second argument is a String, it's either a level name or the alias of a sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Leave out the m quantum number
         levelstruct = speciesproperties(I).full_level_structure[level_or_alias]
@@ -265,6 +290,7 @@ end
 
 """
     landegj(l::Real, j::Real, s::Real=1//2)
+
 Landé g-factor of fine structure energy level
 
 **args**
@@ -277,6 +303,7 @@ landegj(l::Real, j::Real, s::Real = 1 // 2) =
 
 """
     landegf(l::Real, j::Real, f::Real, i::Real, s::Real=1//2)
+
 Landé g-factor of hyperfine energy level
 
 **args**
@@ -291,6 +318,7 @@ landegf(l::Real, j::Real, f::Real, i::Real, s::Real = 1 // 2) =
 landegf(qnums::NamedTuple) = landegf(qnums.l, qnums.j, qnums.f, qnums.i, qnums.s)
 """
     landegf(I::Ion, level::String)
+
 `landegf` for the quantum numbers of `level` in `I`.
 """
 function landegf(I::Ion, level::String)
@@ -304,6 +332,7 @@ end
 
 """
     stark_shift(I::Ion, sublevel)
+
 Returns the assigned stark shift of `sublevel` of Ion `I`.
 """
 function stark_shift(I::Ion, sublevel::Tuple{String, Real})
@@ -314,10 +343,10 @@ stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
 
 """
     zeeman_shift(I::Ion, sublevel, B::Real)
+
 Returns the Zeeman shift at a magnetic field of `B` of `sublevel` of `I`.
-
-If `sublevel` has a custom g-factor defined, then this is used. Otherwise, `landegf` is used to compute the Landé g-factor.
-
+If `sublevel` has a custom g-factor defined, then this is used. Otherwise, `landegf` is used 
+to compute the Landé g-factor.
 Zeeman shift calculated as ``ΔE = (μ_B/ħ) ⋅ g_f ⋅ B ⋅ m / 2π``
 """
 function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::Real)
@@ -338,11 +367,16 @@ zeeman_shift(B::Real, qnums::NamedTuple) =
     zeeman_shift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
 zeeman_shift(I::Ion, alias::String, B::Real) = zeeman_shift(I, alias2sublevel(I, alias), B)
 
-# This function is written to be able to accept either a level or sublevel in the second argument
-# Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
+#= 
+This function is written to be able to accept either a level or sublevel in the second 
+argument. Since both levels and aliases are strings, multidispatach can't tell the difference, 
+so the second method distinguishes these cases with an if statement.
+=#
 """
     energy(I::Ion, sublevel; B=0, ignore_starkshift=false)
-Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting the value of the magnetic field `B`. The Stark shift may be omitted by setting `ignore_starkshift=true`.
+
+Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting the value of 
+the magnetic field `B`. The Stark shift may be omitted by setting `ignore_starkshift=true`.
 """
 function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_starkshift = false)
     validatesublevel(I, sublevel)
@@ -353,10 +387,11 @@ function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_starkshift 
 end
 """
     energy(I::Ion, level::String)
+
 Returns the energy of `level` of `I`.
 """
 function energy(I::Ion, level_or_alias::String; B = 0, ignore_starkshift = false)
-    # If the second argument is a String, it could be either a level name or the alias of a sublevel
+    # If the second argument is a String, it's either a level name or the alias of a sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Return the bare energy of that level.
         return speciesproperties(I).full_level_structure[level_or_alias].E
@@ -373,14 +408,19 @@ end
 
 """
     transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
+
 `transition` is a Tuple of two sublevels or levels.
-
-Computes the absolute values of the difference in energies between `transition[1]` and `transition[2]`.
-
-If between sublevels, then the Zeeman shift may be included by setting the value of the magnetic field `B`, and Stark shifts may be omitted by setting `ignore_starkshift=true`.
+Computes the absolute values of the difference in energies between `transition[1]` and 
+`transition[2]`. If between sublevels, then the Zeeman shift may be included by setting the 
+value of the magnetic field `B`, and Stark shifts may be omitted by setting 
+`ignore_starkshift=true`.
 """
 function transitionfrequency(I::Ion, transition::Tuple; B = 0, ignore_starkshift = false)
-    # Multidispatch of the function energy should make this work regardless of whether the transition is between levels or sublevels, and regardless of whether or not aliases are used
+    #= 
+    Multidispatch of the function energy should make this work regardless of whether the 
+    transition is between levels or sublevels, and regardless of whether or not aliases are 
+    used
+    =#
     return abs(
         energy(I, transition[1], B = B, ignore_starkshift = ignore_starkshift) -
         energy(I, transition[2], B = B, ignore_starkshift = ignore_starkshift)
@@ -389,7 +429,9 @@ end
 
 """
     transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
-Returns the wavelength corresponding to `transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)`.
+
+Returns the wavelength corresponding to 
+`transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)`.
 """
 function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_starkshift = false)
     return c /
@@ -398,6 +440,7 @@ end
 
 """
     leveltransitions(I::Ion)
+
 Returns all allowed transitions between levels of `I` as a vector of `Tuple{String,String}`.
 """
 function leveltransitions(I::Ion)
@@ -413,7 +456,9 @@ end
 
 """
     subleveltransitions(I::Ion)
-Returns all allowed transitions between sublevels of `I` as a vector of `Tuple{S,S}` where `S=Tuple{String,Real}`.
+
+Returns all allowed transitions between sublevels of `I` as a vector of `Tuple{S,S}` where 
+`S=Tuple{String,Real}`.
 """
 function subleveltransitions(I::Ion)
     list = []
@@ -427,7 +472,9 @@ function subleveltransitions(I::Ion)
                 m1 = sl1[2]
                 m2 = sl2[2]
                 if abs(m2 - m1) <= parse(Int, multipole[2])
-                    # Only add to list of sublevel transitions if Δm is not larger than the transition multipole allows (1 for E1, 2 for E2, etc)
+                    #= Only add to list of sublevel transitions if Δm is not larger than the 
+                       transition multipole allows (1 for E1, 2 for E2, etc)
+                    =#
                     push!(list, (sl1, sl2))
                 end
             end
@@ -438,7 +485,9 @@ end
 
 """
     einsteinA(I::Ion, Lpair::Tuple)
-Returns Einstein A coefficient corresponding to the transition `Lpair[1] -> Lpair[2]`. The first level must be the lower level and the second must be the upper level.
+
+Returns Einstein A coefficient corresponding to the transition `Lpair[1] -> Lpair[2]`. The 
+first level must be the lower level and the second must be the upper level.
 """
 function einsteinA(I::Ion, L1::String, L2::String)
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
@@ -448,7 +497,10 @@ einsteinA(I::Ion, Lpair::Tuple) = einsteinA(I, Lpair[1], Lpair[2])
 
 """
     transitionmultipole(I::Ion, Lpair::Tuple)
-Returns the transition multiple (`'E1'`, `'E2'`, etc.) corresponding to the transition `Lpair[1] -> Lpair[2]`. The first level must be the lower level and the second must be the upper level.
+
+Returns the transition multiple (`'E1'`, `'E2'`, etc.) corresponding to the transition 
+`Lpair[1] -> Lpair[2]`. The first level must be the lower level and the second must be the 
+upper level.
 """
 function transitionmultipole(I::Ion, L1::String, L2::String)
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
@@ -458,12 +510,14 @@ transitionmultipole(I::Ion, Lpair::Tuple) = transitionmultipole(I, Lpair[1], Lpa
 
 """
     lifetime(I::Ion, level::String)
-Computes lifetime of `level` by summing the transition rates out of `level`.
 
-The sum is taken over all levels that the species may have, rather than the levels present in the instance `I`.
+Computes lifetime of `level` by summing the transition rates out of `level`. The sum is taken 
+ over all levels that the species may have, rather than the levels present in the instance `I`.
 """
 function lifetime(I::Ion, level::String)
-    @assert level in keys(speciesproperties(I).full_level_structure) "Ion species $(typeof(I)) does not contain level $level"
+    @assert level in keys(speciesproperties(I).full_level_structure) (
+        "Ion species $(typeof(I)) does not contain level $level"
+    )
     totaltransitionrate = 0.0
     for (transition, info) in speciesproperties(I).full_transitions
         if transition[2] == level
@@ -478,11 +532,15 @@ function lifetime(I::Ion, level::String)
 end
 
 """
-    matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    matrix_element(
+        I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple,
+        Bhat::NamedTuple=(;z=1)
+    )
 Computes the matrix elements (units of Hz) between two energy sublevels
 **args**
 * `I`: Ion undergoing transition
-* `transition`: Tuple of sublevels (full names or aliases) between which the transition is being calculated. Must be formatted such that `energy(transition[2]) > energy(transition[1])`
+* `transition`: Tuple of sublevels (full names or aliases) between which the transition is 
+   being calculated. Must be formatted such that `energy(transition[2]) > energy(transition[1])`
 * `Efield`: Amplitude of driving electric field
 * `khat`: Unit vector of light wavevector
 * `ϵhat`: Unit vector of light polarization
@@ -521,7 +579,8 @@ function matrix_element(
         a = cross(Bhat_array, [0, 0, 1]) / norm(cross(Bhat_array, [0, 0, 1]))
         theta = acos(Bhat_array[3])
         amatrix = [0 -a[3] a[2]; a[3] 0 -a[1]; -a[2] a[1] 0]
-        R = eye3 + sin(theta) * amatrix + (1 - cos(theta)) * amatrix^2    # Rotation matrix in axis-angle representation (axis=a, angle=theta)
+        # Rotation matrix in axis-angle representation (axis=a, angle=theta)
+        R = eye3 + sin(theta) * amatrix + (1 - cos(theta)) * amatrix^2    
     end
     ϵhat_rotated = R * ϵhat_array
     khat_rotated = R * khat_array
@@ -555,7 +614,10 @@ function matrix_element(
             return units_factor * hyperfine_factor * geometric_factor / 2π
         end
     else
-        @error "calculation of atomic transition matrix element for transition type $multipole not currently supported"
+        @error (
+            "calculation of atomic transition matrix element for transition type $multipole "
+            "not currently supported"
+        )
     end
 end
 function matrix_element(
@@ -609,7 +671,10 @@ function _construct_sublevels(selected_sublevels, properties)
         if !ismissing(properties.default_sublevel_selection)
             selected_sublevels = properties.default_sublevel_selection
         else
-            @error "no level structure specified in constructor, and no default level structure specified for this ion species"
+            @error (
+                "no level structure specified in constructor, and no default level structure "
+                "specified for this ion species"
+            )
         end
     elseif selected_sublevels == "all"
         selected_sublevels = [(sublevel, "all") for sublevel in keys(full_level_structure)]
@@ -621,7 +686,9 @@ function _construct_sublevels(selected_sublevels, properties)
         # Ensure that the string is a valid level
         level = manifold[1]
         @assert level in keys(full_level_structure) "invalid level $level"
-        @assert level ∉ [k[1] for k in keys(sublevels)] "multiple instances of level $level in ion constructor call"
+        @assert level ∉ [k[1] for k in keys(sublevels)] (
+            "multiple instances of level $level in ion constructor call"
+        )
         level_structure = full_level_structure[level]
 
         # Add chosen sublevels
@@ -636,7 +703,9 @@ function _construct_sublevels(selected_sublevels, properties)
         end
         for m in selectedms
             m = Rational(m)
-            @assert m in m_allowed "Zeeman sublevel m = $m not allowed for state $level with f = $f"
+            @assert m in m_allowed (
+                "Zeeman sublevel m = $m not allowed for state $level with f = $f"
+            )
             @assert (level, m) ∉ sublevels "repeated instance of sublevel $m in state $level"
             push!(sublevels, (level, m))
         end
@@ -675,7 +744,10 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
         return
     elseif s == :sublevels
         Core.setproperty!(I, :sublevels, _construct_sublevels(v, speciesproperties(I)))
-        # Also update the stark shift dict as necessary; keep old stark shift values and assign zero stark shift to new sublevels
+        #= 
+        Also update the stark shift dict as necessary; keep old stark shift values and assign 
+        zero stark shift to new sublevels
+        =#
         starkshift_full_old = stark_shift(I)
         starkshift_full_new = OrderedDict{Tuple, Real}()
         for sublevel in sublevels(I)
@@ -691,7 +763,8 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
         end
         Core.setproperty!(I, :sublevel_aliases, v)
     elseif s == :stark_shift
-        starkshift_full_new = stark_shift(I) # New stark shift dict is initially identical to the old one
+        # New stark shift dict is initially identical to the old one
+        starkshift_full_new = stark_shift(I) 
         for (sublevel, shift) in v
             validatesublevel(I, sublevel)
             starkshift_full_new[sublevel] = shift # Change the shifts as necessary
@@ -701,8 +774,11 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
 end
 
 function Base.:(==)(b1::T, b2::T) where {T <: Ion}
-    # Takes two ions to be equal if they are the same species, contain the same sublevels, and have the same stark shifts
-    # Does not care about sublevel aliases or the ordering of sublevels
+    #= 
+    Takes two ions to be equal if they are the same species, contain the same sublevels, and 
+    have the same stark shifts. Does not care about sublevel aliases or the ordering of 
+    sublevels.
+    =#
     return (
         b1.species_properties == b2.species_properties &&
         sort(b1.sublevels) == sort(b2.sublevels) &&
@@ -712,22 +788,30 @@ end
 
 """
 IonProperties type.
+
 **Required keywords**
 * `mass`: Mass of ion in kg
 * `charge`: Charge of ion in units of elementary charge
 * `full_level_structure`: OrderedDict describing properties of each energy level
   * `key::String`: Name of energy level. Spectroscopic notation encouraged, e.g. `"S1/2,f=1"`
-  * `value::NamedTuple(:n, :l, :j, :f, :E)`: Quantum numbers `n`, `l`, `j`, `f`, and energy `E` (in Hz)
+  * `value::NamedTuple(:n, :l, :j, :f, :E)`: Quantum numbers `n`, `l`, `j`, `f`, and energy 
+    `E` (in Hz)
 * `full_transitions`: Dict of all allowed transitions between energy levels
   * `key::Tuple{String,String}` Pair of levels, ordered (lower, upper) in energy
-  * `value::NamedTuple(:multipole, :einsteinA)`: Leading-order multipole of the transition (e.g. `"E1"`, `"E2"`) and Einstein A coefficient (between fine structure levels only; hyperfine factors are calculated when needed)
+  * `value::NamedTuple(:multipole, :einsteinA)`: Leading-order multipole of the transition 
+     (e.g. `"E1"`, `"E2"`) and Einstein A coefficient (between fine structure levels only; 
+     hyperfine factors are calculated when needed)
 
  **Optional keywords**
- * `default_sublevel_selection`: Default value of `selected_sublevels` argument in Ion constructor
- * `gfactors`: `Dict(level::String => g::Real)` Custom Landé g-factors, if contributions from higher-than-first-order perturbations are desired
- * `nonlinear_zeeman`: `Dict` describing nonlinear contributions to Zeeman shift of certain sublevels
+ * `default_sublevel_selection`: Default value of `selected_sublevels` argument in Ion 
+    constructor
+ * `gfactors`: `Dict(level::String => g::Real)` Custom Landé g-factors, if contributions from 
+    higher-than-first-order perturbations are desired
+ * `nonlinear_zeeman`: `Dict` describing nonlinear contributions to Zeeman shift of certain 
+    sublevels
    * `key::Tuple{String,Real}`: sublevel name
-   * `value::Function(B::Real)`: Nonlinear term(s) of Zeeman shift. Full Zeeman shift will be calculated as the sum of the usual linear term and this function
+   * `value::Function(B::Real)`: Nonlinear term(s) of Zeeman shift. Full Zeeman shift will be 
+      calculated as the sum of the usual linear term and this function
 """
 struct IonProperties
     shortname::String
@@ -785,12 +869,17 @@ end
 
 """
 IonInstance(selected_sublevels::Vector{Tuple}[, starkshift::Dict])
+
 Ion instance of some species
 
-`selected_sublevels` specifies which energy sublevels will be present in the Hilbert space of this Ion instance, as a subset of all possible sublevels.
+`selected_sublevels` specifies which energy sublevels will be present in the Hilbert space of 
+this Ion instance, as a subset of all possible sublevels.
 
-Each element of `selected_sublevels` is a 2-element Tuple (level, sublevels), with the first element being the name of a level and the second specifying which sublevels should be included.
-Allowed sublevels are those whose magnetic quantum number `m` is in the set {`-f`, `-f+1`, `-f+2`, ... `f-1`, `f`}, where `f` is the total angular momentum quantum number of `level`.
+Each element of `selected_sublevels` is a 2-element Tuple (level, sublevels), with the first 
+element being the name of a level and the second specifying which sublevels should be included.
+Allowed sublevels are those whose magnetic quantum number `m` is in the set 
+{`-f`, `-f+1`, `-f+2`, ... `f-1`, `f`}, where `f` is the total angular momentum quantum 
+number of `level`.
 For each `level` specified there are three allowed options to specify the set of `sublevels` to include:
 * `sublevels::Real`: Includes only one `m = sublevels`
 * `sublevels::Vector{Real}`: Includes all sublevels whose magnetic quantum number `m` is in `sublevels`
@@ -801,13 +890,19 @@ If instead `selected_sublevels = "all"`, then all sublevels of all levels are in
 Omission of a level in `selected_sublevels` will exclude all sublevels.
 
 **Fields**
-* `species_properties::NamedTuple`: Contains constants specifying parameters specific to species
+* `species_properties::NamedTuple`: Contains constants specifying parameters specific to 
+   species
 * `sublevels`::Vector{Tuple{String,Real}}: List of all sublevels present in the Hilbert space
-* `sublevel_aliases::Dict{String,Tuple}`: Dict specifying aliases assigned to sublevels, in the format `alias => sublevel`
+* `sublevel_aliases::Dict{String,Tuple}`: Dict specifying aliases assigned to sublevels, in 
+  the format `alias => sublevel`
 * `shape`::Vector{Int}: Dimension of the Hilbert space
-* `stark_shift::OrderedDict`: A dictionary with keys denoting the selected levels and values, a real number for describing a shift of the level's energy. This is just a convenient way to add Stark shifts to the simulation without additional resources
-* `ionnumber`: When the ion is added to an `IonConfiguration`, this value keeps track of its order in the chain
-* `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its physical position in meters
+* `stark_shift::OrderedDict`: A dictionary with keys denoting the selected levels and values, 
+   a real number for describing a shift of the level's energy. This is just a convenient way 
+   to add Stark shifts to the simulation without additional resources
+* `ionnumber`: When the ion is added to an `IonConfiguration`, this value keeps track of its 
+   order in the chain
+* `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its 
+   physical position in meters
 """
 mutable struct IonInstance{Species <: Any} <: Ion
     # fields
