@@ -83,6 +83,8 @@ using Suppressor
         # this is bad behavior and our approach does not account for it.
         # we should probably make this not happen.
         out = linear_equilibrium_positions(11, (1, 20))
+        @test sort(out) == out
+        out = linear_equilibrium_positions(11, (1, 25))
         @test sort(out) != out
     end
 end  # end suppress
