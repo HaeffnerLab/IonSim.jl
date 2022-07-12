@@ -34,13 +34,18 @@ If the mass list is shorter than the number of ions, it is assumed to repeat;
 i.e. (M_a, M_b) corresponds to (M_a, M_b, M_a, M_b, ...).
 [ref](https://doi.org/10.1007/s003400050373)
 """
-function linear_equilibrium_positions(N::Int, masslist::NTuple{num, Real} = (1.0,)) where {num}
-    relativemasslist = masslist./masslist[1]
+function linear_equilibrium_positions(
+    N::Int,
+    masslist::NTuple{num, Real} = (1.0,)
+) where {num}
+    relativemasslist = masslist ./ masslist[1]
     masslistlength = length(relativemasslist)
     function f!(F, x, N, masses, masseslength)
         for i in 1:N
             F[i] = (
-                masses[(i-1) % masseslength + 1] * x[i] - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
+                masses[(i - 1) % masseslength + 1] * x[i] -
+                sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) +
+                sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
             )
         end
     end
@@ -49,7 +54,9 @@ function linear_equilibrium_positions(N::Int, masslist::NTuple{num, Real} = (1.0
         for i in 1:N, j in 1:N
             if i ≡ j
                 J[i, j] = (
-                    masses[(i-1) % masseslength + 1] + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    masses[(i - 1) % masseslength + 1] +
+                    2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) -
+                    2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
                 )
             else
                 J[i, j] = (
@@ -65,9 +72,12 @@ function linear_equilibrium_positions(N::Int, masslist::NTuple{num, Real} = (1.0
         initial_x =
             [(2.018 / N^0.559) * i for i in filter(x -> x ≠ 0, collect((-N ÷ 2):(N ÷ 2)))]
     end
-    sol = nlsolve((F, x) -> f!(F, x, N, relativemasslist, masslistlength),
-                  (J, x) -> j!(J, x, N, relativemasslist, masslistlength),
-                   initial_x, method = :newton)
+    sol = nlsolve(
+        (F, x) -> f!(F, x, N, relativemasslist, masslistlength),
+        (J, x) -> j!(J, x, N, relativemasslist, masslistlength),
+        initial_x,
+        method = :newton
+    )
     return sol.zero
 end
 
