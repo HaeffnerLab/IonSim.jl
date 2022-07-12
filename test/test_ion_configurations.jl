@@ -72,4 +72,17 @@ using Suppressor
         IonSim._sparsify!(x, 2e-6)
         @test any(x .== [0, 1e-5])
     end
+
+    @testset "ion_configurations -- heterogeneous" begin
+        # this isn't verified data, I just tried the code out
+        posL = [-2.5296, -1.6704, -1.1011, -0.5298]
+        pos = [posL; 0; -1 .* reverse(posL)]
+        @test any(isapprox.(linear_equilibrium_positions(11, (1, 2)), pos, rtol = 1e-4))
+
+        # sometimes, too big a difference in the ions cause the solution to "flip".
+        # this is bad behavior and our approach does not account for it.
+        # we should probably make this not happen.
+        out = linear_equilibrium_positions(11, (1, 20))
+        @test sort(test) != test
+    end
 end  # end suppress
