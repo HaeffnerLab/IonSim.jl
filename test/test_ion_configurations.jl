@@ -77,12 +77,12 @@ using Suppressor
         # this isn't verified data, I just tried the code out
         posL = [-2.5296, -1.6704, -1.1011, -0.5298]
         pos = [posL; 0; -1 .* reverse(posL)]
-        @test any(isapprox.(linear_equilibrium_positions(11, (1, 2)), pos, rtol = 1e-4))
+        @test any(isapprox.(linear_equilibrium_positions(9, (1, 2)), pos, rtol = 1e-4))
 
         # sometimes, too big a difference in the ions cause the solution to "flip".
         # this is bad behavior and our approach does not account for it.
         # we should probably make this not happen.
         out = linear_equilibrium_positions(11, (1, 20))
-        @test sort(test) != test
+        @test sort(out) != out
     end
 end  # end suppress
