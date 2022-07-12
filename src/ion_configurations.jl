@@ -183,7 +183,7 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         for (i, modes) in enumerate(vibrational_modes), mode in modes
             push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i]))
         end
-        l = linear_equilibrium_positions(length(ions), mass.(ions))
+        l = linear_equilibrium_positions(length(ions), Tuple(mass.(ions)))
         # Use the mass of only the first ion to define the characteristic length scale.
         l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z)
         for (i, ion) in enumerate(ions)
