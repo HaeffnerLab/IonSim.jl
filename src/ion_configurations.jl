@@ -12,7 +12,7 @@ export IonConfiguration,
 
 """
     IonConfiguration
-Physical configuration of ions. Stores a collection of ions and  information about the 
+Physical configuration of ions. Stores a collection of ions and  information about the
 interactions of their center of mass motion.
 """
 abstract type IonConfiguration end
@@ -26,24 +26,30 @@ ions(I::IonConfiguration)::Vector{Ion} = I.ions
 
 """
     linear_equilibrium_positions(N::Int)
-Returns the scaled equilibrium positions of `N` ions in a harmonic potential, assuming that
-all ions have the same mass. 
+Returns the scaled equilibrium positions of `N` ions in a harmonic potential.
+If ions don't all have the same mass,
+specify a list of masses (or relative masses) for each ion.
+
+If the mass list is shorter than the number of ions, it is assumed to repeat;
+i.e. (M_a, M_b) corresponds to (M_a, M_b, M_a, M_b, ...).
 [ref](https://doi.org/10.1007/s003400050373)
 """
-function linear_equilibrium_positions(N::Int)
-    function f!(F, x, N)
+function linear_equilibrium_positions(N::Int, masslist::NTuple{num, Real} = (1.0,)) where {num}
+    relativemasslist = masslist./masslist[1]
+    masslistlength = length(relativemasslist)
+    function f!(F, x, N, masses, masseslength)
         for i in 1:N
             F[i] = (
-                x[i] - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
+                masses[(i-1) % masseslength + 1] * x[i] - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
             )
         end
     end
 
-    function j!(J, x, N)
+    function j!(J, x, N, masses, masseslength)
         for i in 1:N, j in 1:N
             if i ≡ j
                 J[i, j] = (
-                    1 + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    masses[(i-1) % masseslength + 1] + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
                 )
             else
                 J[i, j] = (
@@ -59,7 +65,9 @@ function linear_equilibrium_positions(N::Int)
         initial_x =
             [(2.018 / N^0.559) * i for i in filter(x -> x ≠ 0, collect((-N ÷ 2):(N ÷ 2)))]
     end
-    sol = nlsolve((F, x) -> f!(F, x, N), (J, x) -> j!(J, x, N), initial_x, method = :newton)
+    sol = nlsolve((F, x) -> f!(F, x, N, relativemasslist, masslistlength),
+                  (J, x) -> j!(J, x, N, relativemasslist, masslistlength),
+                   initial_x, method = :newton)
     return sol.zero
 end
 
@@ -72,17 +80,18 @@ characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π 
 
 """
     Anm(N::Real, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
-Computes the normal modes and corresponding trap frequencies along a particular `axis` for a 
-collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first 
+Computes the normal modes and corresponding trap frequencies along a particular `axis` for a
+collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first
 element the frequency of the normal mode and 2nd element the corresponding eigenvector.
 
-`com` should be a `NamedTuple` of COM frequences for the different axes: 
-`(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of 
+`com` should be a `NamedTuple` of COM frequences for the different axes:
+`(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of
 the crystal.
 """
 function Anm(N::Int, com::NamedTuple{(:x, :y, :z)}, axis::NamedTuple{(:x, :y, :z)})
     @assert axis in [x̂, ŷ, ẑ] "axis can be x̂, ŷ, ẑ"
     axis == ẑ ? a = 2 : a = -1
+    # what should change here?
     l = linear_equilibrium_positions(N)
     axis_dict = Dict([(x̂, :x), (ŷ, :y), (ẑ, :z)])
     sa = axis_dict[axis]
@@ -118,7 +127,7 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 
 """
     LinearChain(;
-            ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)}, 
+            ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)},
             vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
         )
 
@@ -127,17 +136,17 @@ harmonic potential and forming a linear coulomb crystal.
 
 **user-defined fields**
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
-* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
-        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
+* `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`:
+        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be
         parallel to the crystal's symmetry axis.
-* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`. 
-    Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
-    mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
+* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`.
+    Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest
+    mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
     Note: `vibrational_modes=(x=[],y=[],z=[1])`, `vibrational_modes=(y=[],z=[1])`
     and `vibrational_modes=(;z=[1])` are all acceptable and equivalent.
 **derived fields**
-* `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an 
+* `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an
     array of tuples where the first element is a vibrational frequency [Hz] and the second
     element is a vector describing the corresponding normalized normal mode structure.
 """
@@ -174,8 +183,9 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         for (i, modes) in enumerate(vibrational_modes), mode in modes
             push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i]))
         end
-        l = linear_equilibrium_positions(length(ions))
-        l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z) # Needs to be changed when allowing for multi-species chains. Current workaround takes the mass of only the first ion to define the characteristic length scale.
+        l = linear_equilibrium_positions(length(ions), mass.(ions))
+        # Use the mass of only the first ion to define the characteristic length scale.
+        l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z)
         for (i, ion) in enumerate(ions)
             Core.setproperty!(ion, :ionnumber, i)
             Core.setproperty!(ion, :position, l[i] * l0)
