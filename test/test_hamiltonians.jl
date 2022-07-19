@@ -330,7 +330,12 @@ end
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (; z = [1])
         )
-        T = Chamber(configuration = chain, B = 4e-4, Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
+        T = Chamber(
+            configuration = chain,
+            B = 4e-4,
+            Bhat = (x̂ + ŷ + ẑ) / √3,
+            lasers = [L]
+        )
         mode = T.configuration.vibrational_modes.z[1]
         mode.N = rand(1:8)
         N = mode.N + 1
@@ -423,7 +428,12 @@ end
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (; z = [1, 2])
         )
-        T = Chamber(configuration = chain, B = 4e-4, Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
+        T = Chamber(
+            configuration = chain,
+            B = 4e-4,
+            Bhat = (x̂ + ŷ + ẑ) / √3,
+            lasers = [L]
+        )
         L.λ = transitionwavelength(C_a, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         mode1 = T.configuration.vibrational_modes.z[1]
         mode2 = T.configuration.vibrational_modes.z[2]

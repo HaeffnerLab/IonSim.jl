@@ -363,13 +363,17 @@ transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift =
         B = Bfield(T, ion),
         ignore_starkshift = ignore_starkshift
     )
-transitionfrequency(ion_index::Int, transition::Tuple, T::Chamber; ignore_starkshift = false) =
-    transitionfrequency(
-        T.configuration.ions[ion_index],
-        transition,
-        T;
-        ignore_starkshift = ignore_starkshift
-    )
+transitionfrequency(
+    ion_index::Int,
+    transition::Tuple,
+    T::Chamber;
+    ignore_starkshift = false
+) = transitionfrequency(
+    T.configuration.ions[ion_index],
+    transition,
+    T;
+    ignore_starkshift = ignore_starkshift
+)
 
 """
     transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift=false)
