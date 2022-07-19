@@ -441,11 +441,11 @@ end
         # define "QuantumOptics-style" Hamiltonian
         # ion_op specifies the evolution of the ion under the laser
         timescale = 1e-6
-        ion_op(C, t) =
+        ion_op(t) =
             Ω *
             π *
             exp(-im * (2π * Δ * t * timescale + ϕ)) *
-            (C[("D5/2", -1 / 2)] ⊗ C[("S1/2", -1 / 2)]')
+            (C_a[("D5/2", -1 / 2)] ⊗ C_a[("S1/2", -1 / 2)]')
         ηa1 = get_η(mode1, L, C_a)
         ηa2 = get_η(mode2, L, C_a)
         ηb1 = get_η(mode1, L, C_b)
@@ -457,8 +457,8 @@ end
             displace(mode2, im * η * exp(im * 2π * √3 * t), method = "truncated")
 
         Hp(t) = (
-            ion_op(C_a, t) ⊗ one(C_b) ⊗ mode_op1(t, η = ηa1) ⊗ mode_op2(t, η = ηa2) +
-            one(C_a) ⊗ ion_op(C_b, t) ⊗ mode_op1(t, η = ηb1) ⊗ mode_op2(t, η = ηb2)
+            ion_op(t) ⊗ one(C_b) ⊗ mode_op1(t, η = ηa1) ⊗ mode_op2(t, η = ηa2) +
+            one(C_a) ⊗ ion_op(t) ⊗ mode_op1(t, η = ηb1) ⊗ mode_op2(t, η = ηb2)
         )
         qoH(t) = Hp(t) + dagger(Hp(t))
         tp = abs(51randn())
@@ -490,10 +490,10 @@ end
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 2a: full hamiltonian (w/o conj_repeated_indices)
-        H = hamiltonian(T, lamb_dicke_order = 0, rwa_cutoff = 1e10)
+        H = hamiltonian(T, lamb_dicke_order = 101, rwa_cutoff = 1e10)
         H1 = hamiltonian(
             T,
-            lamb_dicke_order = 0,
+            lamb_dicke_order = 101,
             time_dependent_eta = true,
             rwa_cutoff = 1e10
         )
@@ -525,13 +525,13 @@ end
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 3: test Hamiltonian with zero Lamb-Dicke value, i.e. no vibrational modes
-        mode_op11 = DenseOperator(mode1, diagm(0 => [1 - ηa1^2 * i for i in 0:(mode1.N)]))
-        mode_op12 = DenseOperator(mode2, diagm(0 => [1 - ηa2^2 * i for i in 0:(mode2.N)]))
-        mode_op21 = DenseOperator(mode1, diagm(0 => [1 - ηb1^2 * i for i in 0:(mode1.N)]))
-        mode_op22 = DenseOperator(mode2, diagm(0 => [1 - ηb2^2 * i for i in 0:(mode2.N)]))
-        mode_op1 = mode_op11 ⊗ mode_op12
-        mode_op2 = mode_op21 ⊗ mode_op22
-        Hp(t) = ion_op(t) ⊗ one(C2) ⊗ mode_op1 + one(C1) ⊗ ion_op(t) ⊗ mode_op2
+        mode_opa1 = DenseOperator(mode1, diagm(0 => [1 - ηa1^2 * i for i in 0:(mode1.N)]))
+        mode_opa2 = DenseOperator(mode2, diagm(0 => [1 - ηa2^2 * i for i in 0:(mode2.N)]))
+        mode_opb1 = DenseOperator(mode1, diagm(0 => [1 - ηb1^2 * i for i in 0:(mode1.N)]))
+        mode_opb2 = DenseOperator(mode2, diagm(0 => [1 - ηb2^2 * i for i in 0:(mode2.N)]))
+        mode_op_a = mode_opa1 ⊗ mode_opa2
+        mode_op_b = mode_opb1 ⊗ mode_opb2
+        Hp(t) = ion_op(t) ⊗ one(C_b) ⊗ mode_op_a + one(C_a) ⊗ ion_op(t) ⊗ mode_op_b
         qoH(t) = Hp(t) + dagger(Hp(t))
 
         H = hamiltonian(T, lamb_dicke_order = 0, rwa_cutoff = Inf)
