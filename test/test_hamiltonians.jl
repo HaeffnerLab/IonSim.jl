@@ -423,7 +423,7 @@ end
                     vibrational_modes=(;z=[1,2])
                 )
         T = Trap(configuration=chain, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L])
-        L.λ = transitionwavelength(C_a, ("S1/2", "D5/2"), T)
+        L.λ = transitionwavelength(C_a, (("S1/2", -1/2), ("D5/2", -1/2)), T)
         mode1 = T.configuration.vibrational_modes.z[1]
         mode2 = T.configuration.vibrational_modes.z[2]
         Δ = round(randn(), digits=5) * 1e5  # TODO: this begins to fail at below 1 Hz!
