@@ -422,7 +422,7 @@ end
                     ions=[C_a, C_b], com_frequencies=(x=3e6,y=3e6,z=1e6),
                     vibrational_modes=(;z=[1,2])
                 )
-        T = Trap(configuration=chain, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L])
+        T = Trap(configuration = chain, B = 4e-4, Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
         L.λ = transitionwavelength(C_a, (("S1/2", -1/2), ("D5/2", -1/2)), T)
         mode1 = T.configuration.vibrational_modes.z[1]
         mode2 = T.configuration.vibrational_modes.z[2]
@@ -489,18 +489,35 @@ end
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 3: test Hamiltonian with zero Lamb-Dicke value, i.e. no vibrational modes
-        mode_op11 = DenseOperator(mode1, diagm(0 => [1 - η11^2 * i for i in 0:mode1.N]))
-        mode_op12 = DenseOperator(mode2, diagm(0 => [1 - η12^2 * i for i in 0:mode2.N]))
-        mode_op21 = DenseOperator(mode1, diagm(0 => [1 - η21^2 * i for i in 0:mode1.N]))
-        mode_op22 = DenseOperator(mode2, diagm(0 => [1 - η22^2 * i for i in 0:mode2.N]))
+        mode_op11 = DenseOperator(mode1, diagm(0 => [1 - ηa1^2 * i for i in 0:mode1.N]))
+        mode_op12 = DenseOperator(mode2, diagm(0 => [1 - ηa2^2 * i for i in 0:mode2.N]))
+        mode_op21 = DenseOperator(mode1, diagm(0 => [1 - ηb1^2 * i for i in 0:mode1.N]))
+        mode_op22 = DenseOperator(mode2, diagm(0 => [1 - ηb2^2 * i for i in 0:mode2.N]))
         mode_op1 = mode_op11 ⊗ mode_op12
         mode_op2 = mode_op21 ⊗ mode_op22
         Hp(t) = ion_op(t) ⊗ one(C2) ⊗ mode_op1 + one(C1) ⊗ ion_op(t) ⊗ mode_op2
         qoH(t) = Hp(t) + dagger(Hp(t))
-        H = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf)
-        H1 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, time_dependent_eta=true)
-        H2 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic")
-        H3 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic", time_dependent_eta=true)
+
+        H = hamiltonian(T, lamb_dicke_order = 0, rwa_cutoff = Inf)
+        H1 = hamiltonian(
+            T,
+            lamb_dicke_order = 0,
+            rwa_cutoff = Inf,
+            time_dependent_eta = true
+        )
+        H2 = hamiltonian(
+            T,
+            lamb_dicke_order = 0,
+            rwa_cutoff = Inf,
+            displacement = "analytic"
+        )
+        H3 = hamiltonian(
+            T,
+            lamb_dicke_order = 0,
+            rwa_cutoff = Inf,
+            displacement = "analytic",
+            time_dependent_eta = true
+        )
         # only considering first order corrections to carrier (propto η^2) so this won't be perfect
         @test norm((qoH(tp) - H(tp, 0)).data) < 2
         @test norm((qoH(tp) - H1(tp, 0)).data) < 2
@@ -508,10 +525,26 @@ end
         @test norm((qoH(tp) - H3(tp, 0)).data) < 2
 
         # Case 4: Try a normal example with a intermediate rwa_cutoff value
-        H = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5)
-        H1 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, time_dependent_eta=true)
-        H2 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic")
-        H3 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic", time_dependent_eta=true)
+        H = hamiltonian(T, lamb_dicke_order = 30, rwa_cutoff = 3e5)
+        H1 = hamiltonian(
+            T,
+            lamb_dicke_order = 30,
+            rwa_cutoff = 3e5,
+            time_dependent_eta = true
+        )
+        H2 = hamiltonian(
+            T,
+            lamb_dicke_order = 30,
+            rwa_cutoff = 3e5,
+            displacement = "analytic"
+        )
+        H3 = hamiltonian(
+            T,
+            lamb_dicke_order = 30,
+            rwa_cutoff = 3e5,
+            displacement = "analytic",
+            time_dependent_eta = true
+        )
         # only considering first order corrections to carrier (propto η^2) so this won't be perfect
         @test norm((qoH(tp) - H(tp, 0)).data) < 2
         @test norm((qoH(tp) - H1(tp, 0)).data) < 2
