@@ -13,7 +13,7 @@ using Suppressor
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (; z = [1])
         )
-        T = Trap(configuration = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
+        T = Chamber(configuration = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
         L.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         mode = T.configuration.vibrational_modes.z[1]
         L.k = (x̂ + ẑ) / √2
@@ -85,7 +85,7 @@ using Suppressor
 
         # sideband transitions
 
-        ## under an RWA, RSB transitions, when starting in motional ground state, 
+        ## under an RWA, RSB transitions, when starting in motional ground state,
         ## should be suppressed
         L.Δ = -mode.ν
         h = hamiltonian(T, rwa_cutoff = 1e3)
@@ -134,7 +134,7 @@ using Suppressor
     #             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
     #             vibrational_modes = (; z = [1])
     #         )
-    #         T = Trap(configuration = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
+    #         T = Chamber(configuration = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
     #         L.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
     #         mode = T.configuration.vibrational_modes.z[1]
     #         L.k = (x̂ + ẑ) / √2
@@ -207,7 +207,7 @@ using Suppressor
     #             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
     #             vibrational_modes = (; z = [1])
     #         )
-    #         T = Trap(configuration = chain, B = 4e-4, Bhat = (x̂ + ẑ) / √2, lasers = [L1, L2])
+    #         T = Chamber(configuration = chain, B = 4e-4, Bhat = (x̂ + ẑ) / √2, lasers = [L1, L2])
     #         L1.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
     #         L2.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
     #         mode = T.configuration.vibrational_modes.z[1]

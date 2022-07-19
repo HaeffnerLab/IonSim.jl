@@ -16,8 +16,8 @@ using Suppressor
         vibrational_modes = (; z = [1])
     )
 
-    @testset "traps -- Trap" begin
-        T = Trap(configuration = chain, lasers = [L1, L1])
+    @testset "chambers -- Chamber" begin
+        T = Chamber(configuration = chain, lasers = [L1, L1])
 
         # test construction of CompositeBasis
         @test T.basis.bases[1] ≡ T.configuration.ions[1]
@@ -36,14 +36,14 @@ using Suppressor
 
         # test for warning when lasers=[L, L, L, ...] where L point to the same thing
         warn = "Some lasers point to the same thing. Making copies."
-        @test_logs (:warn, warn) Trap(configuration = chain, lasers = [L1, L1, L1])
+        @test_logs (:warn, warn) Chamber(configuration = chain, lasers = [L1, L1, L1])
         # and test that, in this case, copies are made
-        T1 = Trap(configuration = chain, lasers = [L1, L1, L1, L1], δB = t -> t)
+        T1 = Chamber(configuration = chain, lasers = [L1, L1, L1, L1], δB = t -> t)
         for i in 1:4, j in (i + 1):4
             @test !(T1.lasers[i] ≡ T1.lasers[j])
         end
 
-        # test setproperty for Trap
+        # test setproperty for Chamber
         # setting T.δB to a constant
         T.δB = 100
         @test T.δB(0) == 100
@@ -67,9 +67,9 @@ using Suppressor
         show(T)
     end
 
-    @testset "traps -- general functions" begin
+    @testset "chambers -- general functions" begin
         Bhat = (x̂ + ŷ + ẑ) / √3
-        T = Trap(configuration = chain, lasers = [L1], Bhat = Bhat)
+        T = Chamber(configuration = chain, lasers = [L1], Bhat = Bhat)
 
         # get_basis
         @test T.basis == get_basis(T)
@@ -144,7 +144,7 @@ using Suppressor
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (x = [1], z = [1])
         )
-        T = Trap(configuration = chain1, lasers = [L1, L2])
+        T = Chamber(configuration = chain1, lasers = [L1, L2])
         xmode = chain1.vibrational_modes.x[1]
         zmode = chain1.vibrational_modes.z[1]
         cb = get_basis(T)

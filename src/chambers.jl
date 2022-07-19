@@ -1,7 +1,7 @@
 using QuantumOptics: tensor, CompositeBasis
 using .PhysicalConstants: ħ, c
 
-export Trap,
+export Chamber,
     get_basis,
     Efield_from_pi_time,
     Efield_from_pi_time!,
@@ -17,7 +17,7 @@ export Trap,
 #############################################################################################
 
 """
-    Trap(;
+    Chamber(;
             configuration::LinearChain, B::Real=0, Bhat::NamedTuple{(:x,:y,:z)=ẑ, ∇B::Real=0,
              δB::Union{Real,Function}=0, lasers::Vector{Laser}
     )
@@ -33,34 +33,34 @@ interacting with laser light.
 * `δB::Function`: Time-dependence of the B-field [Tesla]
 * `lasers::Array{<:Laser}`: For each laser in the array, the pointing field should contain
         an array of `Tuple{Int,Real}`. The first element specifies the index of an ion
-        in the `ions` field that the laser interacts with. The second element specifies a 
-        scaling factor for the strength of that interaction (to be used, e.g., for 
+        in the `ions` field that the laser interacts with. The second element specifies a
+        scaling factor for the strength of that interaction (to be used, e.g., for
         modeling cross-talk).
 **derived fields**
 * `_cnst_δB::Bool`: A Boolean flag signifying whether or not `δB` is a constant function.
 * `basis<:CompositeBasis`: The basis for describing the combined system, ions + vibrational
         modes. If constructing the Hamiltonian explictly (with [`hamiltonian`](@ref)), then
-        the ordering of the basis is set, by convention, as 
+        the ordering of the basis is set, by convention, as
         ``ion₁ ⊗ ion₂ ⊗ ... ⊗ ion_N ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ mode_N``, where the ion bases are
         ordered according to the order in `T.configuration.ions` and the vibrational modes
-        are ordered according to the order in 
-        `[T.configuration.vibrational_modes.x, T.configuration.vibrational_modes.y, 
-        T.configuration.vibrational_modes.z]`.       
+        are ordered according to the order in
+        `[T.configuration.vibrational_modes.x, T.configuration.vibrational_modes.y,
+        T.configuration.vibrational_modes.z]`.
     E.g. for:
 
     ```
-    chain = LinearChain(ions=[C1, C2], com_frequencies=(x=2e6,y=2e6,z=1e6), 
+    chain = LinearChain(ions=[C1, C2], com_frequencies=(x=2e6,y=2e6,z=1e6),
     selected_modes=(x=[1, 2], y=[], z=[1]))
     ```
 
     The ordering of the basis would be
 
-    `C1.basis ⊗ C2.basis ⊗ chain.vibrational_modes.x[1].basis 
+    `C1.basis ⊗ C2.basis ⊗ chain.vibrational_modes.x[1].basis
     ⊗ chain.vibrational_modes.x[2].basis ⊗ chain.vibrational_modes.z[1].basis`
-    
+
     Otherwise, the ordering is according to the form of the initial state used in the solver.
 """
-mutable struct Trap
+mutable struct Chamber
     configuration::LinearChain
     B::Real
     Bhat::NamedTuple{(:x, :y, :z)}
@@ -69,7 +69,7 @@ mutable struct Trap
     lasers::Array{<:Laser}
     basis::CompositeBasis
     _cnst_δB::Bool
-    function Trap(;
+    function Chamber(;
         configuration::LinearChain,
         B = 0,
         Bhat = ẑ,
@@ -118,7 +118,7 @@ mutable struct Trap
     end
 end
 
-function Base.setproperty!(T::Trap, s::Symbol, v::Tv) where {Tv}
+function Base.setproperty!(T::Chamber, s::Symbol, v::Tv) where {Tv}
     if s == :δB
         if Tv <: Number
             _cnst_δB = true
@@ -145,25 +145,25 @@ function Base.setproperty!(T::Trap, s::Symbol, v::Tv) where {Tv}
     end
 end
 
-Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
+Base.show(io::IO, T::Chamber) = print(io, "Chamber")  # suppress long output
 
 #############################################################################################
 # general functions
 #############################################################################################
 
 """
-    ionintrap(trap::Trap, ion::Ion)
+    ionintrap(trap::Chamber, ion::Ion)
 Returns a boolean that indicates whether `ion` is actually in `trap`. Useful for checking if an error needs to be thrown.
 """
-function ionintrap(trap::Trap, ion::Ion)
+function ionintrap(trap::Chamber, ion::Ion)
     return ion in ions(trap.configuration)
 end
 
 """
-    get_basis(T::Trap)
+    get_basis(T::Chamber)
 Returns the composite basis describing the Hilbert space for `T`.
 """
-function get_basis(T::Trap)::CompositeBasis
+function get_basis(T::Chamber)::CompositeBasis
     return tensor(
         T.configuration.ions...,
         T.configuration.vibrational_modes.x...,
@@ -173,10 +173,10 @@ function get_basis(T::Trap)::CompositeBasis
 end
 
 """
-    global_beam!(T::Trap, laser::Laser)
-Set `laser` to shine with full intensity on all ions in `Trap`.
+    global_beam!(T::Chamber, laser::Laser)
+Set `laser` to shine with full intensity on all ions in `Chamber`.
 """
-function global_beam!(T::Trap, laser::Laser)
+function global_beam!(T::Chamber, laser::Laser)
     for n in eachindex(T.configuration.ions)
         push!(laser.pointing, (n, 1.0))
     end
@@ -184,20 +184,20 @@ end
 
 """
     Efield_from_pi_time(
-        pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+        pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion,
         transition::Union{Tuple{String,String},Vector{<:String}}
     )
-Compute the E-field needed to get a certain `pi_time` with a certain `laser`-`ion` 
+Compute the E-field needed to get a certain `pi_time` with a certain `laser`-`ion`
 `transition`.
 
 Alternatively, one may use
 ```
 Efield_from_pi_time(
-            pi_time::Real, T::Trap, laser_index::Int, ion_index::Int, 
+            pi_time::Real, T::Chamber, laser_index::Int, ion_index::Int,
             transition::Union{Tuple{String,String},Vector{<:String}}
         )
 ```
-which is the same as 
+which is the same as
 `Efield_from_pi_time(pi_time, T.Bhat, T.lasers[laser_index], T.configuration.ions[ion_index],
 transition)`
 """
@@ -215,7 +215,7 @@ function Efield_from_pi_time(
     Ω = s * matrix_element(ion, transition, 1, laser.k, laser.ϵ, Bhat)
     if Ω < 1e-15
         # even when coupling strength is zero, numerical error causes it to be finite
-        # (on order 1e-16), this is a band-aid to prevent users from unknowingly setting 
+        # (on order 1e-16), this is a band-aid to prevent users from unknowingly setting
         # the E-field to something absurd (like 1e20 V/m)
         return Inf
     end
@@ -224,7 +224,7 @@ end
 
 function Efield_from_pi_time(
     pi_time::Real,
-    T::Trap,
+    T::Chamber,
     laser_index::Int,
     ion_index::Int,
     transition::Tuple
@@ -240,7 +240,7 @@ end
 
 """
     Efield_from_pi_time!(
-            pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+            pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion,
             transition::Union{Tuple{String,String},Vector{<:String}}
         )
 Same as [`Efield_from_pi_time`](@ref), but updates `laser[:E]` in-place.
@@ -258,7 +258,7 @@ end
 
 function Efield_from_pi_time!(
     pi_time::Real,
-    T::Trap,
+    T::Chamber,
     laser_index::Int,
     ion_index::Int,
     transition::Tuple
@@ -269,21 +269,21 @@ end
 
 """
     Efield_from_rabi_frequency(
-        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion,
         transition::Union{Tuple{String,String},Vector{<:String}}
     )
-Compute the Efield needed to get a certain rabi frequency `Ω` with a certain `laser`-`ion` 
+Compute the Efield needed to get a certain rabi frequency `Ω` with a certain `laser`-`ion`
 `transition`.
 
 Alternatively, one may use
 ```
 Efield_from_rabi_frequency(
-            Ω::Real, T::Trap, laser_index::Int, ion_index::Int, 
+            Ω::Real, T::Chamber, laser_index::Int, ion_index::Int,
             transition::Union{Tuple{String,String},Vector{<:String}}
         )
 ```
-which is the same as 
-`Efield_from_rabi_frequency(pi_time, T.Bhat, T.lasers[laser_index], 
+which is the same as
+`Efield_from_rabi_frequency(pi_time, T.Bhat, T.lasers[laser_index],
 T.configuration.ions[ion_index], transition)`
 """
 function Efield_from_rabi_frequency(
@@ -298,7 +298,7 @@ end
 
 function Efield_from_rabi_frequency(
     Ω::Real,
-    T::Trap,
+    T::Chamber,
     laser_index::Int,
     ion_index::Int,
     transition::Tuple
@@ -314,7 +314,7 @@ end
 
 """
     Efield_from_rabi_frequency!(
-        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
+        Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion,
         transition::Union{Tuple{String,String},Vector{<:String}}
     )
 Same as [`Efield_from_rabi_frequency`](@ref), but updates `laser[:E]` in-place.
@@ -332,7 +332,7 @@ end
 
 function Efield_from_rabi_frequency!(
     Ω::Real,
-    T::Trap,
+    T::Chamber,
     laser_index::Int,
     ion_index::Int,
     transition::Tuple
@@ -342,28 +342,28 @@ function Efield_from_rabi_frequency!(
 end
 
 """
-    Bfield(T::Trap, ion::Ion)
+    Bfield(T::Chamber, ion::Ion)
 Retuns the value of the magnetic field in `T` at the location of `ion`, including both the trap's overall B-field and its B-field gradient.
 """
-function Bfield(T::Trap, ion::Ion)
+function Bfield(T::Chamber, ion::Ion)
     @assert ionintrap(T, ion) "trap does not contain ion"
     return T.B + T.∇B * ionposition(ion)
 end
 
 """
-    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+    transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift=false)
 Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
 One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
 """
-transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
+transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift = false) =
     transitionfrequency(
         ion,
         transition;
         B = Bfield(T, ion),
         ignore_starkshift = ignore_starkshift
     )
-transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
+transitionfrequency(ion_index::Int, transition::Tuple, T::Chamber; ignore_starkshift = false) =
     transitionfrequency(
         T.configuration.ions[ion_index],
         transition,
@@ -372,12 +372,12 @@ transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshif
     )
 
 """
-    transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+    transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift=false)
 Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
+transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift = false) =
     transitionwavelength(
         ion,
         transition;
@@ -387,7 +387,7 @@ transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = f
 transitionwavelength(
     ion_index::Int,
     transition::Tuple,
-    T::Trap;
+    T::Chamber;
     ignore_starkshift = false
 ) = transitionwavelength(
     T.configuration.ions[ion_index],
@@ -397,37 +397,37 @@ transitionwavelength(
 )
 
 """
-    matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real)
+    matrix_element(I::Ion, transition::Tuple, T::Chamber, laser::Laser, time::Real)
 Calls `matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))`
 with `Efield`, `khat`, and `ϵhat` evaluated for `laser` at time `time`, and `Bhat` evaluated for `T`.
 
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) =
+matrix_element(I::Ion, transition::Tuple, T::Chamber, laser::Laser, time::Real) =
     matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
-matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::Real) =
+matrix_element(ion_index::Int, transition::Tuple, T::Chamber, laser::Laser, time::Real) =
     matrix_element(T.configuration.ions[ion_index], transition, T, laser, time)
 
 """
-    zeeman_shift(I::Ion, sublevel, T::Trap)
+    zeeman_shift(I::Ion, sublevel, T::Chamber)
 Calls `zeeman_shift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` in `T`.
 
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
+zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Chamber) =
     zeeman_shift(I, sublevel, Bfield(T, I))
-zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
+zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Chamber) =
     zeeman_shift(T.configuration.ions[ion_index], sublevel, T)
 
 """
     set_gradient!(
-            T::Trap, ion_indxs::Tuple{Int,Int}, transition::Tuple, f::Real
+            T::Chamber, ion_indxs::Tuple{Int,Int}, transition::Tuple, f::Real
         )
 Sets the Bfield gradient in place to achieve a detuning `f` between the `transition` of two
-ions, which are assumed to be of the same species. `ion_indxs` refer to the 
+ions, which are assumed to be of the same species. `ion_indxs` refer to the
 ordering of the ions in the chain.
 """
-function set_gradient!(T::Trap, ion_indxs::Tuple{Int, Int}, transition::Tuple, f::Real)
+function set_gradient!(T::Chamber, ion_indxs::Tuple{Int, Int}, transition::Tuple, f::Real)
     ionA = T.configuration.ions[ion_indxs[1]]
     ionB = T.configuration.ions[ion_indxs[2]]
     separation = abs(ionposition(ionA) - ionposition(ionB))
@@ -468,8 +468,8 @@ end
 
 """
     get_η(V::VibrationalMode, L::Laser, I::Ion)
-The Lamb-Dicke parameter: 
-``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
+The Lamb-Dicke parameter:
+``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}``
 for a given vibrational mode, ion and laser.
 """
 function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled = false)
