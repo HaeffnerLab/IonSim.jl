@@ -418,15 +418,14 @@ end
         C_b = Ca40([("S1/2", -1/2), ("D5/2", -1/2)])
         L = Laser()
         L.pointing = [(1, 1.0), (2, 1.0)]
-        L.λ = transitionwavelength(C_a, ("S1/2", "D5/2"))
         chain = LinearChain(
                     ions=[C_a, C_b], com_frequencies=(x=3e6,y=3e6,z=1e6),
                     vibrational_modes=(;z=[1,2])
                 )
         T = Trap(configuration=chain, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L])
+        L.λ = transitionwavelength(C_a, ("S1/2", "D5/2"), T)
         mode1 = T.configuration.vibrational_modes.z[1]
         mode2 = T.configuration.vibrational_modes.z[2]
-        η = IonSim._ηmatrix(T)
         Δ = round(randn(), digits=5) * 1e5  # TODO: this begins to fail at below 1 Hz!
         L.Δ =  Δ
         ϕ = randn()
@@ -449,7 +448,7 @@ end
         ηb1 = get_η(mode1, L, C_b)
         ηb2 = get_η(mode2, L, C_b)
 
-        # I dont know what these are
+        # displacement operators for COM and stretch modes
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
         mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
 
