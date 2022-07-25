@@ -1,5 +1,6 @@
 using LinearAlgebra: eigen
 using NLsolve: nlsolve
+using Optim
 using .PhysicalConstants: e, ϵ₀
 
 export IonConfiguration,
