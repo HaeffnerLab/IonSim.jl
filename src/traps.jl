@@ -153,7 +153,9 @@ Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
 
 """
     ionintrap(trap::Trap, ion::Ion)
-Returns a boolean that indicates whether `ion` is actually in `trap`. Useful for checking if an error needs to be thrown.
+
+Returns a boolean that indicates whether `ion` is actually in `trap`. Useful for checking if 
+an error needs to be thrown.
 """
 function ionintrap(trap::Trap, ion::Ion)
     return ion in ions(trap.configuration)
@@ -161,6 +163,7 @@ end
 
 """
     get_basis(T::Trap)
+
 Returns the composite basis describing the Hilbert space for `T`.
 """
 function get_basis(T::Trap)::CompositeBasis
@@ -174,6 +177,7 @@ end
 
 """
     global_beam!(T::Trap, laser::Laser)
+
 Set `laser` to shine with full intensity on all ions in `Trap`.
 """
 function global_beam!(T::Trap, laser::Laser)
@@ -187,6 +191,7 @@ end
         pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
         transition::Union{Tuple{String,String},Vector{<:String}}
     )
+
 Compute the E-field needed to get a certain `pi_time` with a certain `laser`-`ion` 
 `transition`.
 
@@ -243,6 +248,7 @@ end
             pi_time::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
             transition::Union{Tuple{String,String},Vector{<:String}}
         )
+
 Same as [`Efield_from_pi_time`](@ref), but updates `laser[:E]` in-place.
 """
 function Efield_from_pi_time!(
@@ -272,6 +278,7 @@ end
         Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
         transition::Union{Tuple{String,String},Vector{<:String}}
     )
+
 Compute the Efield needed to get a certain rabi frequency `Ω` with a certain `laser`-`ion` 
 `transition`.
 
@@ -317,6 +324,7 @@ end
         Ω::Real, Bhat::NamedTuple{(:x,:y,:z)}, laser::Laser, ion::Ion, 
         transition::Union{Tuple{String,String},Vector{<:String}}
     )
+
 Same as [`Efield_from_rabi_frequency`](@ref), but updates `laser[:E]` in-place.
 """
 function Efield_from_rabi_frequency!(
@@ -343,7 +351,9 @@ end
 
 """
     Bfield(T::Trap, ion::Ion)
-Retuns the value of the magnetic field in `T` at the location of `ion`, including both the trap's overall B-field and its B-field gradient.
+
+Retuns the value of the magnetic field in `T` at the location of `ion`, including both the 
+trap's overall B-field and its B-field gradient.
 """
 function Bfield(T::Trap, ion::Ion)
     @assert ionintrap(T, ion) "trap does not contain ion"
@@ -352,9 +362,10 @@ end
 
 """
     transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
-Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
-One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
+Retuns The frequency of the transition `transition` including the Zeeman shift experienced by 
+`ion` given its position in `T`. One may alternatively replace `ion` with `ion_index::Int`, 
+which instead specifies the index of the intended ion within `T`.
 """
 transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
     transitionfrequency(
@@ -373,9 +384,10 @@ transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshif
 
 """
     transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
-Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
-One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
+Retuns The wavelength of the transition `transition` including the Zeeman shift experienced 
+by `ion` given its position in `T`. One may alternatively replace `ion` with `ion_index`::Int, 
+which instead specifies the index of the intended ion within `T`.
 """
 transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
     transitionwavelength(
@@ -398,10 +410,13 @@ transitionwavelength(
 
 """
     matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real)
-Calls `matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))`
-with `Efield`, `khat`, and `ϵhat` evaluated for `laser` at time `time`, and `Bhat` evaluated for `T`.
 
-One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
+Calls `matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))`
+with `Efield`, `khat`, and `ϵhat` evaluated for `laser` at time `time`, and `Bhat` evaluated 
+for `T`.
+
+    One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index 
+of the intended ion within `T`.
 """
 matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) =
     matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
@@ -410,9 +425,10 @@ matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::R
 
 """
     zeeman_shift(I::Ion, sublevel, T::Trap)
-Calls `zeeman_shift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` in `T`.
 
-One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
+Calls `zeeman_shift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` in `T`. One 
+may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of 
+the intended ion within `T`.
 """
 zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
     zeeman_shift(I, sublevel, Bfield(T, I))
@@ -439,7 +455,8 @@ function set_gradient!(T::Trap, ion_indxs::Tuple{Int, Int}, transition::Tuple, f
     g2 = landegf(ionA, L2)
     m1 = quantumnumbers(ionA, SL1).m
     m2 = quantumnumbers(ionA, SL2).m
-    # Calculate Zeeman shifts with a unit B-field using a method of zeeman_shift that ensures a nonlinear term is not used
+    # Calculate Zeeman shifts with a unit B-field using a method of zeeman_shift that ensures 
+    # a nonlinear term is not used
     E1 = zeeman_shift(1.0, g1, m1)
     E2 = zeeman_shift(1.0, g2, m2)
     return T.∇B = f / (abs(E2 - E1) * separation)
@@ -468,6 +485,7 @@ end
 
 """
     get_η(V::VibrationalMode, L::Laser, I::Ion)
+
 The Lamb-Dicke parameter: 
 ``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
 for a given vibrational mode, ion and laser.
