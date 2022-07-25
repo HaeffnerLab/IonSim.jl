@@ -4,14 +4,15 @@ using .PhysicalConstants: e, ϵ₀
 
 export IonConfiguration,
     ions,
-    linear_equilibrium_positions,
-    Anm,
     LinearChain,
-    characteristic_length_scale,
-    get_vibrational_modes
+    get_vibrational_modes,
+    axial_trap_frequency,
+    radial_trap_frequency
+
 
 """
     IonConfiguration
+
 Physical configuration of ions. Stores a collection of ions and information about the 
 interactions of their center of mass motion.
 """
@@ -19,50 +20,53 @@ abstract type IonConfiguration end
 
 # required functions
 ions(I::IonConfiguration)::Vector{Ion} = I.ions
-                                                                                             
+                                                  
+
 #############################################################################################
 # LinearChain - a linear Coulomb crystal
 #############################################################################################
 
-"""
+#=
     linear_equilibrium_positions(N::Int, M::Vector{<:Real}; withJacobian=false)
 
 Returns the scaled equilibrium positions of `N` ions with masses `M` in a harmonic potential.
 To return actual spacings in meters, multiply results by:
 ```math 
-l = e² / 4πϵ₀Mν²
+l = e² / 4πε₀Mν²
 ```
 where ``M`` equals the maximum of `M` and ν is the frequency defining the harmonic potential.
-[ref](https://doi.org/10.1007/s003400050373)
-"""
-function linear_equilibrium_positions(N::Int, M::Vector{<:Real}; withJacobian=false)
-    function f!(F, x, N, M)
-        MaxM = maximum(M)
+[ref](https://doi.org/10.1007/s003400050373).
+If `withJacobian`` is true, the analytic Jacobian is used in the solver (but this doesn't 
+generally seem to be necessary).
+=#
+function linear_equilibirum_positions(N::Int; withJacobian=false)
+    function f!(F, x, N)
         for i in 1:N
             F[i] = (
-                x[i] - 
-                (MaxM / M[N]) * (sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) - 
-                                 sum([1 / (x[i] - x[j])^2 for j in (i + 1):N]))
+                  x[i] 
+                - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) 
+                + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
             )
         end
     end
 
-    function j!(J, x, N, M)
-        MaxM = maximum(M)
+    function j!(J, x, N)
         for i in 1:N, j in 1:N
             if i ≡ j
                 J[i, j] = (
-                    1 + 2 * (MaxM / M[N]) * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 
-                                             2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
+                      1 
+                    + 2 * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) 
+                    - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
                 )
             else
                 J[i, j] = (
-                    -2 * (MaxM / M[N]) * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 
-                                          2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
+                     -2 * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) 
+                    - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
                 )
             end
         end
     end
+    
     # see eq.8 in the ref to see where (2.018/N^0.559) comes from
     if isodd(N)
         initial_x = [(2.018 / N^0.559) * i for i in (-N ÷ 2):(N ÷ 2)]
@@ -72,72 +76,167 @@ function linear_equilibrium_positions(N::Int, M::Vector{<:Real}; withJacobian=fa
     end
     if withJacobian
         sol = nlsolve(
-            (F, x) -> f!(F, x, N, M), 
-            (J, x) -> j!(J, x, N, M), 
-            initial_x, 
-            method = :newton
+            (F, x) -> f!(F, x, N), (J, x) -> j!(J, x, N), initial_x, method = :newton
         )
     else
-        sol = nlsolve((F, x) -> f!(F, x, N, M), initial_x, method = :newton)
+        sol = nlsolve((F, x) -> f!(F, x, N), initial_x, method = :newton)
     end
-    if sol.f_converged
-        return sol
+    @assert sol.f_converged "Failed to find equilibrium positions for linear chain."
+    return sol.zero
+end
+
+#=
+Computes the eigenvalues/vectors for the Hessian, undoes the mass weighting and returns in 
+sorted order (Ascending in terms of eigenvalue if axial, otherwise descending. If the ions 
+are all the same mass, this ordering gives special significance to the center-of-mass modes 
+-- which are the lowest frequency in the axial direction and highest in the radial).
+
++ M: A vector of the ion masses.
+
++ com: A named tuple with entries which correspond to the com frequencies of the ion chain 
+*only* when the ions are all the same mass. Otherwise this corresponds to the lowest 
+eigenfrequency in the axial direction and the highest eigenfrequency in the radial directions.
+
++ axis: The axis along which the Hessian is computed (q = x, y or z).
+
++ ω: A vector of the ion vibrational frequencies along the relevant trap axis. This is the 
+natural frequency of vibration that the ion would experience along the relevant axis if it 
+was in the trap alone. If this is equal to nothing, then these values are set internally 
+according to psuedopotential_constant and DC_imbalance.
+
++ psuedopotential_constant =  
+
++ DC_imbalance = 
+
++ k_axial: The (mass-independent) spring constant for the axial modes.
+=#
+function linear_chain_normal_modes(
+    M::Vector{<:Real}, 
+    com::NamedTuple{(:x, :y, :z)}, 
+    axis::NamedTuple{(:x, :y, :z)};
+    ω::Union{Vector{<:Real}, Nothing}=nothing,
+    psuedopotential_constant=0, 
+    DC_imbalance=1,
+    k_axial=1
+)
+    # Constuct Hessian H (https://doi.org/10.1007/s100530170275)
+    N = length(M)
+    l = linear_equilibrium_positions(N)
+    a, β = axis == ẑ ? (2, 0) : (-1, psuedopotential_constant * maximum(M))
+    H = Array{Real}(undef, N, N)
+    for n in 1:N, j in 1:N
+        if n ≡ j
+            if isnothing(ω)
+                H[n, j] = (
+                    (-1 / 2)^(axis != ẑ) * DC_imbalance + β / M[n] + 
+                    a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
+                )
+            else
+                H[n, j] = (
+                    ω[n]^2 + 
+                    a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
+                )
+            end
+        else
+            H[n, j] = -a / abs(l[j] - l[n])^3
+        end
+        # Mass-weight the matrix elements. This means the eigenvectors 
+        # of this Hessian will need to be 'unweighted' later
+        H[n, j] /= √(M[n] * M[j])
+    end
+    h = eigen(H)
+    h1 = []
+    for (i, value) in enumerate(h.values)
+        if axis == ẑ
+            @assert i > 0 "Outside of linear chain stability regime (negative eigenvalues)"
+            push!(h1, sqrt(value))
+        else
+            push!(h1, value > 0 ? sqrt(value) : -sqrt(-value))
+        end
+    end
+    if axis == ẑ
+        # the axial spring constants are mass-independent
+        k_axial = (2π * com.z / minimum(h1))^2 # k_axial: axial spring constant
+    end
+    h1 *= √k_axial / 2π
+    h2 = h.vectors
+    for i in 1:size(h2, 2)
+        for j in 1:length(h2[:, i])
+            h2[j, i] /= √M[j]
+        end
+        h2[:, i] .= normalize(h2[:, i])
+    end
+    if axis == ẑ
+        return k_axial, sort([(h1[i], h2[:, i]) for i in 1:length(h1)])
     else
-        error("failed to find equilibrium positions for linear chain")
+        return reverse(sort([(h1[i], h2[:, i]) for i in 1:length(h1)]))
     end
 end
 
-"""
-    characteristic_length_scale(M::Real, ν::Real)
-
-Returns the characteristic length scale for a linear chain of identical ions of mass `M`
-and with axial trap frequency ``2π × ν``.
-"""
-characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
-
-"""
-    Anm(N::Real, com::NamedTuple{(:x,:y,:z)}, axis::NamedTuple{(:x,:y,:z)})
-
-Computes the normal modes and corresponding trap frequencies along a particular `axis` for a 
-collection of `N` ions in a linear Coloumb crystal and returns an array of tuples with first 
-element the frequency of the normal mode and 2nd element the corresponding eigenvector.
-
-`com` should be a `NamedTuple` of COM frequences for the different axes: 
-`(x<:Real, y<:Real, z<:Real)`, where the ``z``-axis is taken to be parallel to the axis of 
-the crystal.
-"""
-function Anm(N::Int, com::NamedTuple{(:x, :y, :z)}, axis::NamedTuple{(:x, :y, :z)})
-    @assert axis in [x̂, ŷ, ẑ] "axis can be x̂, ŷ, ẑ"
-    axis == ẑ ? a = 2 : a = -1
-    l = linear_equilibrium_positions(N)
-    axis_dict = Dict([(x̂, :x), (ŷ, :y), (ẑ, :z)])
-    sa = axis_dict[axis]
-    β = com[sa] / com.z
-    A = Array{Real}(undef, N, N)
-    for n in 1:N, j in 1:N
-        if n ≡ j
-            A[n, j] = β^2 + a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
-        else
-            A[n, j] = -a / abs(l[j] - l[n])^3
+function minimize(f, axis)
+    for i in 1:1e4
+        res = optimize(
+            x -> abs(f(x)[1][1] - com[axis]), 
+            [i * randn()], 
+            Optim.Options(g_abstol=1e-12, g_reltol=1e-12)
+        )
+        (res.iterations == 0) && continue
+        !res.g_converged && continue
+        a = f(res.minimizer)
+        for ai in a
+            if ai[1] < 0
+                error("Outside of linear chain stability regime (negative eigenvalues)")
+            end
         end
+        return res.minimizer[1]
     end
-    a = eigen(A)
-    for i in a.values
-        @assert i > 0 """
-            ($(axis_dict[axis])=$(com[sa]), z=$(com.z)) outside stability region for $N ions
-        """
-    end
-    a1 = [sqrt(i) * com.z for i in a.values]
-    a2 = a.vectors
-    for i in 1:size(a2, 2)
-        _sparsify!(view(a2, :, i), 1e-5)
-    end
-    if axis == ẑ
-        return [(a1[i], a2[:, i]) for i in 1:length(a1)]
+    return false
+end
+
+function minimize_psuedopotential_constant(M, com, k_axial)
+    if all(y -> y == M[1], M)
+        res = nothing
     else
-        a = reverse([(a1[i], a2[:, i]) for i in 1:length(a1)])
-        return a
+        res = minimize(
+            x -> linear_chain_normal_modes(
+                    M, com, x̂, k_axial=k_axial, 
+                    psuedopotential_constant=first(x), DC_imbalance=1
+                ),
+            :x
+        )
     end
+    if isnothing(res)
+        dci = -2 * (com.x / com.z)^2
+        res = 0
+    else
+        dci = 1
+    end
+    a = linear_chain_normal_modes(
+            M, com, x̂, k_axial=k_axial, psuedopotential_constant=res, DC_imbalance=dci
+        )
+    return res, a
+end
+
+function minimize_DC_imbalance(M, com, k_axial, pc)
+    if all(y -> y == M[1], M)
+        res = nothing
+    else
+        res = minimize(
+            x -> linear_chain_normal_modes(
+                    M, com, ŷ, k_axial=k_axial, 
+                    psuedopotential_constant=pc, DC_imbalance=first(x)
+                ),
+            :y
+        )
+    end
+    if isnothing(res)
+        res = -2 * (com.y / com.z)^2
+        pc = 0
+    end
+    a = linear_chain_normal_modes(
+                M, com, ŷ, k_axial=k_axial, psuedopotential_constant=pc, DC_imbalance=res
+            )
+    return res, a
 end
 
 _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
@@ -156,7 +255,7 @@ harmonic potential and forming a linear coulomb crystal.
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
         Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
         parallel to the crystal's symmetry axis and we assume (but don't directly enforce) 
-        that ``z > x,y``.
+        that ``ν\_z/ν\_{x,y} > 0.73N^{0.86}`` [ref](https://doi.org/10.1007/s003400050225) 
 * `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  eg. `(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
     mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
@@ -189,11 +288,14 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
             end
         end
         N = length(ions)
-        A = (
-            x = Anm(N, com_frequencies, x̂),
-            y = Anm(N, com_frequencies, ŷ),
-            z = Anm(N, com_frequencies, ẑ)
-        )
+        M = map(x -> mass(x), ions)
+        if true
+            A = (
+                k_axial, z = linear_chain_normal_modes(M, com, ẑ),
+                pc, x = minimize_psuedopotential_constant(M, com_frequencies, k_axial),   
+                dc, y = minimize_DC_imbalance(M, com_frequencies, k_axial, pc)
+            )
+        end
         vm = (
             x = Vector{VibrationalMode}(undef, 0),
             y = Vector{VibrationalMode}(undef, 0),
@@ -204,10 +306,7 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
             push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i]))
         end
         l = linear_equilibrium_positions(length(ions))
-        #= Needs to be changed when allowing for multi-species chains. Current workaround 
-           takes the mass of only the first ion to define the characteristic length scale.
-        =#
-        l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z)
+        l0 = characteristic_length_scale(k_axial)
         for (i, ion) in enumerate(ions)
             Core.setproperty!(ion, :ionnumber, i)
             Core.setproperty!(ion, :position, l[i] * l0)
@@ -222,19 +321,16 @@ end
 Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
 The order is `[lc.x..., lc.y..., lc.z...]`.
 """
-function get_vibrational_modes(lc::LinearChain)
-    return collect(Iterators.flatten(lc.vibrational_modes))
-end
+get_vibrational_modes(lc::LinearChain) = collect(Iterators.flatten(lc.vibrational_modes))
 
 function Base.print(lc::LinearChain)
     println("$(length(lc.ions)) ions")
     println("com frequencies: $(lc.com_frequencies)")
-    return println("selected vibrational_modes: $(lc.vibrational_modes)")
+    println("selected vibrational_modes: $(lc.vibrational_modes)")
 end
 
-function Base.show(io::IO, lc::LinearChain)  # suppress long output
-    return print(io, "LinearChain($(length(lc.ions)) ions)")
-end
+# suppress long output
+Base.show(io::IO, lc::LinearChain) = print(io, "LinearChain($(length(lc.ions)) ions)")
 
 # Takes e.g. (y=[1]) to (x=[], y=[1], z=[])
 function _construct_vibrational_modes(x)
@@ -253,3 +349,59 @@ function _construct_vibrational_modes(x)
     end
     return (; zip(xyz, values)...)
 end
+
+
+#############################################################################################
+# General functions
+#############################################################################################
+
+"""
+    axial_trap_frequency(VDC::Real, M::Real, z₀:Real, ξ::Real)
+
+Computes the ion trap frequency along the axial direction according to:
+
+``ω_z = \\sqrt{2 e V_{DC} ξ / M z₀²}``
+
+where `e` is the charge of the electron, `VDC` is the voltage on the endcap electrodes, 
+`M` is the mass of the ion, `z₀` is the distance from the endcap 
+electrodes to the trapping point and `ξ` is a dimensionless constant between 0 and 1 that 
+accounts for deviations from an ideal trap. [ref](https://doi.org/10.1063/1.367318)
+"""
+axial_trap_frequency(VDC, M, z₀, ξ) = √((2 * e * VDC * ξ) / (M * z₀^2))
+
+"""
+    radial_trap_frequency(
+        VDC::Real, VRF::Real, ΩRF::Real, M::Real, z₀::Real, r₀::Real, ξ::Real, ψ::Real
+    )
+
+Computes the ion trap frequency along one of the radial directions according to:
+
+``ω_{x,y} = \\sqrt{ω_{DC}^2/2 + (ψeV_{RF} / 2Mr₀²Ω_{RF})²}``
+
+``ω_{DC} = `` `axial_trap_frequency(VDC, M, z₀, ξ)`
+
+where `e` is the charge of the electron, `VDC` is the voltage on the endcap electrodes, 
+`VRF` is the amplitude of the voltage on the RF electrodes, `ΩRF` is (2π ×) the RF 
+frequency, `z₀` is the distance from the endcap electrodes to the trapping point, `r₀` is the 
+distance from the RF electrodes to the trapping point `ξ` is a dimensionless constant between 
+0 and 1 that accounts for deviations of the DC fields from an ideal trap and `ψ` accounts for 
+similar deviations for the RF fields. [ref](https://doi.org/10.1063/1.367318)
+"""
+function radial_trap_frequency(VDC, VRF, ΩRF, M, z₀, r₀, ξ, ψ) 
+    ωDC = axial_trap_frequency(VDC, M, z₀, ξ)
+    return √((-ωDC^2 / 2 + (ψ * e * VRF / (2 * M * r₀^2 * ΩRF))^2))
+end
+
+#=
+    characteristic_length_scale(M::Real, ν::Real)
+
+Returns the characteristic length scale for a linear chain of identical ions of mass `M`
+and with axial trap frequency ``2π × ν``.
+=#
+characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
+#=
+    characteristic_length_scale(k::Real) 
+    
+``k = Mν²`` 
+=#
+characteristic_length_scale(k::Real) = (e^2 / (4π * ϵ₀ * k))^(1 / 3)

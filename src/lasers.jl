@@ -73,7 +73,8 @@ function Base.print(L::Laser)
     println("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
     println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
     println("E(t=0): ", "$(L.E(0.0)) V/m")
-    return println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
+    println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
+    return
 end
 
 function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
