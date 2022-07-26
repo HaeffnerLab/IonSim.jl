@@ -1,5 +1,7 @@
 using Test, IonSim
 using Suppressor
+using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant, 
+              minimize_DC_imbalance, linear_equilibrium_positions
 
 @suppress_err begin
     @testset "ion_configurations -- LinearChain" begin
@@ -50,16 +52,15 @@ using Suppressor
         # against known values
         posL = [-2.8708, -2.10003, -1.4504, -0.85378, -0.2821]
         pos = [posL; -1 .* reverse(posL)]
-        @test any(isapprox.(linear_equilibrium_positions(10), pos, rtol = 1e-4))
+        @test any(isapprox.(IonSim.linear_equilibrium_positions(10), pos, rtol = 1e-4))
 
         # and test calculation of characterstic length scale for linear chain, equal mass
         C = Ca40()
-        @test characteristic_length_scale(mass(C), 1e6) ≈ 4.449042804354206e-6
+        @test IonSim.characteristic_length_scale(mass(C), 1e6) ≈ 4.449042804354206e-6
 
         # and do the same for Anm, which computes the normal modes
-        @test_throws AssertionError Anm(2, (x = 0.5, y = 0.5, z = 1), (x = 1, y = 0, z = 0))
         cst = [-0.2132, 0.6742, -0.6742, 0.2132]
-        freq, mode = Anm(4, (x = 2, y = 2, z = 1), (x = 0, y = 0, z = 1))[end]
+        freq, mode = IonSim.linear_chain_normal_modes([1, 1, 1, 1], (x = 2, y = 2, z = 1), (x = 0, y = 0, z = 1))[2][end]
         @test freq ≈ √9.308 rtol = 1e-4
         if mode[1] > 0
             cst = -1 .* cst

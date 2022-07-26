@@ -40,7 +40,7 @@ where ``M`` equals the maximum of `M` and ν is the frequency defining the harmo
 If `withJacobian`` is true, the analytic Jacobian is used in the solver (but this doesn't 
 generally seem to be necessary).
 =#
-function linear_equilibirum_positions(N::Int; withJacobian=false)
+function linear_equilibrium_positions(N::Int; withJacobian=false)
     function f!(F, x, N)
         for i in 1:N
             F[i] = (
@@ -113,9 +113,9 @@ according to psuedopotential_constant and DC_imbalance.
 =#
 function linear_chain_normal_modes(
     M::Vector{<:Real}, 
-    com::NamedTuple{(:x, :y, :z)}, 
+    com::Union{NamedTuple{(:x, :y, :z)}, Nothing}, 
     axis::NamedTuple{(:x, :y, :z)};
-    ω::Union{Vector{<:Real}, Nothing}=nothing,
+    ω::Union{Vector, Nothing}=nothing,
     psuedopotential_constant=0, 
     DC_imbalance=1,
     k_axial=1
@@ -123,6 +123,9 @@ function linear_chain_normal_modes(
     # Constuct Hessian H (https://doi.org/10.1007/s100530170275)
     N = length(M)
     l = linear_equilibrium_positions(N)
+    if isnothing(com)
+        k_axial = maximum(M) * (2π * 1e6)^2
+    end
     a, β = axis == ẑ ? (2, 0) : (-1, psuedopotential_constant * maximum(M))
     H = Array{Real}(undef, N, N)
     for n in 1:N, j in 1:N
@@ -134,7 +137,7 @@ function linear_chain_normal_modes(
                 )
             else
                 H[n, j] = (
-                    ω[n]^2 + 
+                    M[n] * ω[n]^2 / k_axial + 
                     a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
                 )
             end
@@ -155,7 +158,7 @@ function linear_chain_normal_modes(
             push!(h1, value > 0 ? sqrt(value) : -sqrt(-value))
         end
     end
-    if axis == ẑ
+    if axis == ẑ && !isnothing(com)
         # the axial spring constants are mass-independent
         k_axial = (2π * com.z / minimum(h1))^2 # k_axial: axial spring constant
     end
@@ -174,7 +177,7 @@ function linear_chain_normal_modes(
     end
 end
 
-function minimize(f, axis)
+function minimize(f, axis, com)
     for i in 1:1e4
         res = optimize(
             x -> abs(f(x)[1][1] - com[axis]), 
@@ -196,48 +199,48 @@ end
 
 function minimize_psuedopotential_constant(M, com, k_axial)
     if all(y -> y == M[1], M)
-        res = nothing
+        pc = nothing
     else
-        res = minimize(
+        pc = minimize(
             x -> linear_chain_normal_modes(
                     M, com, x̂, k_axial=k_axial, 
                     psuedopotential_constant=first(x), DC_imbalance=1
                 ),
-            :x
+            :x, com
         )
     end
-    if isnothing(res)
+    if isnothing(pc)
         dci = -2 * (com.x / com.z)^2
-        res = 0
+        pc = 0
     else
         dci = 1
     end
     a = linear_chain_normal_modes(
-            M, com, x̂, k_axial=k_axial, psuedopotential_constant=res, DC_imbalance=dci
+            M, com, x̂, k_axial=k_axial, psuedopotential_constant=pc, DC_imbalance=dci
         )
-    return res, a
+    return pc, dci, a
 end
 
 function minimize_DC_imbalance(M, com, k_axial, pc)
     if all(y -> y == M[1], M)
-        res = nothing
+        dci = nothing
     else
-        res = minimize(
+        dci = minimize(
             x -> linear_chain_normal_modes(
                     M, com, ŷ, k_axial=k_axial, 
                     psuedopotential_constant=pc, DC_imbalance=first(x)
                 ),
-            :y
+            :y, com
         )
     end
-    if isnothing(res)
-        res = -2 * (com.y / com.z)^2
+    if isnothing(dci)
+        dci = -2 * (com.y / com.z)^2
         pc = 0
     end
     a = linear_chain_normal_modes(
-                M, com, ŷ, k_axial=k_axial, psuedopotential_constant=pc, DC_imbalance=res
+                M, com, ŷ, k_axial=k_axial, psuedopotential_constant=pc, DC_imbalance=dci
             )
-    return res, a
+    return pc, dci, a
 end
 
 _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
@@ -254,9 +257,9 @@ harmonic potential and forming a linear coulomb crystal.
 **user-defined fields**
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
-        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be 
+        Describes the COM frequencies `(x=ω_x, y=ω_y, z=ω_z)`. The ``z``-axis is taken to be 
         parallel to the crystal's symmetry axis and we assume (but don't directly enforce) 
-        that ``ν\_z/ν\_{x,y} > 0.73N^{0.86}`` [ref](https://doi.org/10.1007/s003400050225) 
+        that ``ω\\_z/ω\\_{x,y} > 0.73N^{0.86}`` [ref](https://doi.org/10.1007/s003400050225) 
 * `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  eg. `(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
     mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
@@ -271,14 +274,16 @@ harmonic potential and forming a linear coulomb crystal.
 struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x, :y, :z)}
+    ion_frequencies::NamedTuple{(:x, :y, :z), <:Tuple} 
     vibrational_modes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     full_normal_mode_description::NamedTuple{(:x, :y, :z)}
-    function LinearChain(; ions, com_frequencies, vibrational_modes::NamedTuple)
+    function LinearChain(; 
+            ions, com_frequencies=nothing, ion_frequencies=nothing, 
+            vibrational_modes::NamedTuple
+        )
         vibrational_modes = _construct_vibrational_modes(vibrational_modes)
         warn = nothing
         for i in 1:length(ions), j in (i + 1):length(ions)
-            @assert typeof(ions[i]) == typeof(ions[j]) ("multispecies chains not yet " * 
-            "supported; all ions in chain must be of same species")
             if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
                 if isnothing(warn)
@@ -288,15 +293,28 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
                 end
             end
         end
-        N = length(ions)
-        M = map(x -> mass(x), ions)
-        if true
-            A = (
-                k_axial, z = linear_chain_normal_modes(M, com, ẑ),
-                pc, x = minimize_psuedopotential_constant(M, com_frequencies, k_axial),   
-                dc, y = minimize_DC_imbalance(M, com_frequencies, k_axial, pc)
-            )
+        M = mass.(ions)
+        if isnothing(ion_frequencies)
+            k_axial, z = linear_chain_normal_modes(M, com_frequencies, ẑ)
+            pcx, dcix, x = minimize_psuedopotential_constant(M, com_frequencies, k_axial)  
+            pcy, dciy, y = minimize_DC_imbalance(M, com_frequencies, k_axial, pcx)
+            xf, yf, zf = [], [], []
+            for ionmass in M
+                ωx = sqrt(k_axial * (-dcix / 2 + pcx * maximum(M) / ionmass) / ionmass)
+                ωy = sqrt(k_axial * (-dciy / 2 + pcy * maximum(M) / ionmass) / ionmass)
+                ωz = sqrt(k_axial / ionmass)
+                push!(xf, ωx)
+                push!(yf, ωy)
+                push!(zf, ωz)
+            end
+            ion_frequencies = (x=xf, y=yf, z=zf)
+        else
+            k_axial, z = linear_chain_normal_modes(M, nothing, ẑ, ω=ion_frequencies.z)
+            x = linear_chain_normal_modes(M, nothing, x̂, ω=ion_frequencies.x, k_axial=k_axial)
+            y = linear_chain_normal_modes(M, nothing, ŷ, ω=ion_frequencies.y, k_axial=k_axial)
+            com_frequencies = (x=maximum(first.(x)), y=maximum(first.(y)), z=minimum(first.(z)))
         end
+        A = (x=x, y=y, z=z)
         vm = (
             x = Vector{VibrationalMode}(undef, 0),
             y = Vector{VibrationalMode}(undef, 0),
@@ -312,7 +330,7 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
             Core.setproperty!(ion, :ionnumber, i)
             Core.setproperty!(ion, :position, l[i] * l0)
         end
-        return new(ions, com_frequencies, vm, A)
+        return new(ions, com_frequencies, ion_frequencies, vm, A)
     end
 end
 

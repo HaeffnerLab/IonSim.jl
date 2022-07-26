@@ -616,7 +616,7 @@ function matrix_element(
     else
         @error (
             "calculation of atomic transition matrix element for transition type $multipole "
-            "not currently supported"
+            * "not currently supported"
         )
     end
 end
@@ -673,7 +673,7 @@ function _construct_sublevels(selected_sublevels, properties)
         else
             @error (
                 "no level structure specified in constructor, and no default level structure "
-                "specified for this ion species"
+                * "specified for this ion species"
             )
         end
     elseif selected_sublevels == "all"
