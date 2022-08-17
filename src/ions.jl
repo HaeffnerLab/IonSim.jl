@@ -554,6 +554,28 @@ function matrix_element(
             units_factor = abs(e * Efield / (2ħ) * sqrt(15 * A12 / (α * c * k^3)))
             return units_factor * hyperfine_factor * geometric_factor / 2π
         end
+    elseif multipole == "M1"
+        # as implemented, this will error as it requires an API change to include l and s.
+        # I'd like to consider adding "term" as a data structure. Almost always, these arguments are
+        # being passed together, and I think it would be useful to have them in a structure that's
+        # easy to unpack, even if just to ease the syntax burden on the user
+        if abs(q) > 1
+            return 0
+        else
+            hyperfine_factor = abs(
+                sqrt((2 * f1 + 1) * (2 * f2 + 1) * (2 * j1 + 1) * (2 * j2 + 1)) * wigner6j(j2, I, f2, f1, 1, j1) *
+                (
+                wigner6j(l, j1, s, j2, l, 1) sqrt((2 * l + 1) * (l + 1) * l) +
+                (−2.002319) * wigner6j(s, j1, l, j2, s, 1) sqrt((2 * s + 1) * (s + 1) * s) # should I do something besides hardcode the g factor here?
+                ))
+            geometric_factor = abs(
+                sqrt(2j2 + 1) *
+                wigner3j(f2, 1, f1, -m2, q, m1) *
+                (transpose(c_rank1[q + 2, :]) * cross(khat_rotated, ϵhat_rotated))
+            )
+            units_factor = e * mu_B * Efield / c
+            return units_factor * hyperfine_factor * geometric_factor / 2π
+        end
     else
         @error "calculation of atomic transition matrix element for transition type $multipole not currently supported"
     end
