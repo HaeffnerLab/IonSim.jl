@@ -566,7 +566,7 @@ function matrix_element(
                 sqrt((2 * f1 + 1) * (2 * f2 + 1) * (2 * j1 + 1) * (2 * j2 + 1)) * wigner6j(j2, I, f2, f1, 1, j1) *
                 (
                 wigner6j(l, j1, s, j2, l, 1) sqrt((2 * l + 1) * (l + 1) * l) +
-                (−2.002319) * wigner6j(s, j1, l, j2, s, 1) sqrt((2 * s + 1) * (s + 1) * s) # should I do something besides hardcode the g factor here?
+                (-2.002319) * wigner6j(s, j1, l, j2, s, 1) sqrt((2 * s + 1) * (s + 1) * s) # should I do something besides hardcode the g factor here?
                 ))
             geometric_factor = abs(
                 sqrt(2j2 + 1) *
