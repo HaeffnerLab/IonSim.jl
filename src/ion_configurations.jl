@@ -333,7 +333,7 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
                 push!(zf, ωz)
             end
             ion_frequencies = (x = xf, y = yf, z = zf)
-            l0 = characteristic_length_scale(k_axial)
+            l0 = compute_characteristic_length_scale(k_axial)
         else
             if isnothing(characteristic_length_scale)
                 error("If specifying individual ion frequencies, you 
@@ -455,15 +455,15 @@ function radial_trap_frequency(VDC, VRF, ΩRF, M, z₀, r₀, ξ, ψ)
 end
 
 #=
-    characteristic_length_scale(M::Real, ν::Real)
+    compute_characteristic_length_scale(M::Real, ν::Real)
 
 Returns the characteristic length scale for a linear chain of identical ions of mass `M`
 and with axial trap frequency ``2π × ν``.
 =#
-characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
+compute_characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
 #=
-    characteristic_length_scale(k::Real) 
+    compute_characteristic_length_scale(k::Real) 
 
 ``k = Mν²`` 
 =#
-characteristic_length_scale(k::Real) = (e^2 / (4π * ϵ₀ * k))^(1 / 3)
+compute_characteristic_length_scale(k::Real) = (e^2 / (4π * ϵ₀ * k))^(1 / 3)

@@ -59,7 +59,7 @@ using IonSim:
 
         # and test calculation of characterstic length scale for linear chain, equal mass
         C = Ca40()
-        @test IonSim.characteristic_length_scale(mass(C), 1e6) ≈ 4.449042804354206e-6
+        @test IonSim.compute_characteristic_length_scale(mass(C), 1e6) ≈ 4.449042804354206e-6
 
         # and do the same for Anm, which computes the normal modes
         cst = [-0.2132, 0.6742, -0.6742, 0.2132]
