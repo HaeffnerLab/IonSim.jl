@@ -460,7 +460,8 @@ end
 Returns the characteristic length scale for a linear chain of identical ions of mass `M`
 and with axial trap frequency ``2π × ν``.
 =#
-compute_characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
+compute_characteristic_length_scale(M::Real, ν::Real) =
+    (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
 #=
     compute_characteristic_length_scale(k::Real) 
 
