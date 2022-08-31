@@ -6,6 +6,5 @@ include("quantum_numbers.jl")
 include("stark_shift.jl")
 include("zeeman_shift.jl")
 include("transitions.jl")
-include("ion_operators.jl")
 
 include("species/_include_species.jl")
