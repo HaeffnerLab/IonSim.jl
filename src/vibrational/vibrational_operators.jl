@@ -2,8 +2,7 @@ using QuantumOptics: projector, tensor, SparseOperator, DenseOperator, basisstat
 using LinearAlgebra: diagm
 import QuantumOptics: displace, thermalstate, coherentthermalstate, fockstate
 
-export 
-    create,
+export create,
     destroy,
     number,
     displace,

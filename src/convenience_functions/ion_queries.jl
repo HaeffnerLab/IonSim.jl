@@ -1,7 +1,6 @@
-export 
-    Efield_from_pi_time,
-    Efield_from_pi_time!, 
-    Efield_from_rabi_frequency, 
+export Efield_from_pi_time,
+    Efield_from_pi_time!,
+    Efield_from_rabi_frequency,
     Efield_from_rabi_frequency!,
     transitionfrequency,
     transitionwavelength,
@@ -202,16 +201,16 @@ transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = f
         ignore_starkshift = ignore_starkshift
     )
 transitionwavelength(
-        ion_index::Int,
-        transition::Tuple,
-        T::Trap;
-        ignore_starkshift = false
-    ) = transitionwavelength(
-            T.configuration.ions[ion_index],
-            transition,
-            T;
-            ignore_starkshift = ignore_starkshift
-        )
+    ion_index::Int,
+    transition::Tuple,
+    T::Trap;
+    ignore_starkshift = false
+) = transitionwavelength(
+    T.configuration.ions[ion_index],
+    transition,
+    T;
+    ignore_starkshift = ignore_starkshift
+)
 
 #FIXME: This doc string is self-referential. 
 """
@@ -236,4 +235,3 @@ zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
     zeeman_shift(I, sublevel, Bfield(T, I))
 zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Trap) =
     zeeman_shift(T.configuration.ions[ion_index], sublevel, T)
-    
