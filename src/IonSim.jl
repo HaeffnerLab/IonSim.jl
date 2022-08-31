@@ -41,7 +41,7 @@ include("vibrational/_include_vibrational.jl")
 include("ion_configurations.jl")
 include("trap/_include_trap.jl")
 include("ion_operators.jl")
-include("hamiltonians.jl")
+include("hamiltonian/_include_hamiltonian.jl")
 include("time_evolution.jl")
 
 module analytical
