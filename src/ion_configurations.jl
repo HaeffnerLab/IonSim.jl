@@ -4,12 +4,7 @@ using Optim
 using .PhysicalConstants: e, ϵ₀
 
 export IonConfiguration,
-    ions,
-    LinearChain,
-    get_vibrational_modes,
-    axial_trap_frequency,
-    radial_trap_frequency
-
+    ions, LinearChain, get_vibrational_modes, axial_trap_frequency, radial_trap_frequency
 
 """
     IonConfiguration
@@ -21,7 +16,6 @@ abstract type IonConfiguration end
 
 # required functions
 ions(I::IonConfiguration)::Vector{Ion} = I.ions
-                                                  
 
 #############################################################################################
 # LinearChain - a linear Coulomb crystal
@@ -40,13 +34,11 @@ where ``M`` equals the maximum of `M` and ν is the frequency defining the harmo
 If `withJacobian`` is true, the analytic Jacobian is used in the solver (but this doesn't 
 generally seem to be necessary).
 =#
-function linear_equilibrium_positions(N::Int; withJacobian=false)
+function linear_equilibrium_positions(N::Int; withJacobian = false)
     function f!(F, x, N)
         for i in 1:N
             F[i] = (
-                  x[i] 
-                - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) 
-                + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
+                x[i] - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
             )
         end
     end
@@ -55,19 +47,21 @@ function linear_equilibrium_positions(N::Int; withJacobian=false)
         for i in 1:N, j in 1:N
             if i ≡ j
                 J[i, j] = (
-                      1 
-                    + 2 * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) 
-                    - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
+                    1 +
+                    2 * (
+                        sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    )
                 )
             else
                 J[i, j] = (
-                     -2 * (sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) 
-                    - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N]))
+                    -2 * (
+                        sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    )
                 )
             end
         end
     end
-    
+
     # see eq.8 in the ref to see where (2.018/N^0.559) comes from
     if isodd(N)
         initial_x = [(2.018 / N^0.559) * i for i in (-N ÷ 2):(N ÷ 2)]
@@ -77,7 +71,10 @@ function linear_equilibrium_positions(N::Int; withJacobian=false)
     end
     if withJacobian
         sol = nlsolve(
-            (F, x) -> f!(F, x, N), (J, x) -> j!(J, x, N), initial_x, method = :newton
+            (F, x) -> f!(F, x, N),
+            (J, x) -> j!(J, x, N),
+            initial_x,
+            method = :newton
         )
     else
         sol = nlsolve((F, x) -> f!(F, x, N), initial_x, method = :newton)
@@ -112,31 +109,32 @@ according to psuedopotential_constant and DC_imbalance.
 + k_axial: The (mass-independent) spring constant for the axial modes.
 =#
 function linear_chain_normal_modes(
-    M::Vector{<:Real}, 
-    com::Union{NamedTuple{(:x, :y, :z)}, Nothing}, 
+    M::Vector{<:Real},
+    com::Union{NamedTuple{(:x, :y, :z)}, Nothing},
     axis::NamedTuple{(:x, :y, :z)};
-    ω::Union{Vector, Nothing}=nothing,
-    psuedopotential_constant=0, 
-    DC_imbalance=1,
-    k_axial=1
+    ω::Union{Vector, Nothing} = nothing,
+    psuedopotential_constant = 0,
+    DC_imbalance = 1,
+    k_axial = 1
 )
     # Constuct Hessian H (https://doi.org/10.1007/s100530170275)
     N = length(M)
     l = linear_equilibrium_positions(N)
     a, β = axis == ẑ ? (2, 0) : (-1, psuedopotential_constant * maximum(M))
-    C = isnothing(com) ? e^2 / (4π*ϵ₀) : 1
+    C = isnothing(com) ? e^2 / (4π * ϵ₀) : 1
     H = Array{Real}(undef, N, N)
     for n in 1:N, j in 1:N
         if n ≡ j
             if isnothing(ω)
                 H[n, j] = (
-                    (-1 / 2)^(axis != ẑ) * DC_imbalance + β / M[n] + 
+                    (-1 / 2)^(axis != ẑ) * DC_imbalance +
+                    β / M[n] +
                     a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
                 )
             else
                 H[n, j] = (
-                    M[n] * ω[n]^2 / k_axial + 
-                     C * a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
+                    M[n] * ω[n]^2 / k_axial +
+                    C * a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
                 )
             end
         else
@@ -179,9 +177,9 @@ end
 function minimize(f, axis, com)
     for i in 1:1e4
         res = optimize(
-            x -> abs(f(x)[1][1] - com[axis]), 
-            [i * randn()], 
-            Optim.Options(g_abstol=1e-12, g_reltol=1e-12)
+            x -> abs(f(x)[1][1] - com[axis]),
+            [i * randn()],
+            Optim.Options(g_abstol = 1e-12, g_reltol = 1e-12)
         )
         (res.iterations == 0) && continue
         !res.g_converged && continue
@@ -202,10 +200,15 @@ function minimize_psuedopotential_constant(M, com, k_axial)
     else
         pc = minimize(
             x -> linear_chain_normal_modes(
-                    M, com, x̂, k_axial=k_axial, 
-                    psuedopotential_constant=first(x), DC_imbalance=1
-                ),
-            :x, com
+                M,
+                com,
+                x̂,
+                k_axial = k_axial,
+                psuedopotential_constant = first(x),
+                DC_imbalance = 1
+            ),
+            :x,
+            com
         )
     end
     if isnothing(pc)
@@ -215,8 +218,13 @@ function minimize_psuedopotential_constant(M, com, k_axial)
         dci = 1
     end
     a = linear_chain_normal_modes(
-            M, com, x̂, k_axial=k_axial, psuedopotential_constant=pc, DC_imbalance=dci
-        )
+        M,
+        com,
+        x̂,
+        k_axial = k_axial,
+        psuedopotential_constant = pc,
+        DC_imbalance = dci
+    )
     return pc, dci, a
 end
 
@@ -226,10 +234,15 @@ function minimize_DC_imbalance(M, com, k_axial, pc)
     else
         dci = minimize(
             x -> linear_chain_normal_modes(
-                    M, com, ŷ, k_axial=k_axial, 
-                    psuedopotential_constant=pc, DC_imbalance=first(x)
-                ),
-            :y, com
+                M,
+                com,
+                ŷ,
+                k_axial = k_axial,
+                psuedopotential_constant = pc,
+                DC_imbalance = first(x)
+            ),
+            :y,
+            com
         )
     end
     if isnothing(dci)
@@ -237,8 +250,13 @@ function minimize_DC_imbalance(M, com, k_axial, pc)
         pc = 0
     end
     a = linear_chain_normal_modes(
-                M, com, ŷ, k_axial=k_axial, psuedopotential_constant=pc, DC_imbalance=dci
-            )
+        M,
+        com,
+        ŷ,
+        k_axial = k_axial,
+        psuedopotential_constant = pc,
+        DC_imbalance = dci
+    )
     return pc, dci, a
 end
 
@@ -280,10 +298,13 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
     length_scale::Real
     vibrational_modes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     full_normal_mode_description::NamedTuple{(:x, :y, :z)}
-    function LinearChain(; 
-            ions, com_frequencies=nothing, ion_frequencies=nothing, 
-            vibrational_modes::NamedTuple, characteristic_length_scale=nothing
-        )
+    function LinearChain(;
+        ions,
+        com_frequencies = nothing,
+        ion_frequencies = nothing,
+        vibrational_modes::NamedTuple,
+        characteristic_length_scale = nothing
+    )
         vibrational_modes = _construct_vibrational_modes(vibrational_modes)
         warn = nothing
         for i in 1:length(ions), j in (i + 1):length(ions)
@@ -300,7 +321,7 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         M = mass.(ions)
         if isnothing(ion_frequencies)
             k_axial, z = linear_chain_normal_modes(M, com_frequencies, ẑ)
-            pcx, dcix, x = minimize_psuedopotential_constant(M, com_frequencies, k_axial)  
+            pcx, dcix, x = minimize_psuedopotential_constant(M, com_frequencies, k_axial)
             pcy, dciy, y = minimize_DC_imbalance(M, com_frequencies, k_axial, pcx)
             xf, yf, zf = [], [], []
             for ionmass in M
@@ -311,7 +332,7 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
                 push!(yf, ωy)
                 push!(zf, ωz)
             end
-            ion_frequencies = (x=xf, y=yf, z=zf)
+            ion_frequencies = (x = xf, y = yf, z = zf)
             l0 = characteristic_length_scale(k_axial)
         else
             if isnothing(characteristic_length_scale)
@@ -319,19 +340,22 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
                 must also specify the `characteristic_length_scale`")
             end
             _, z = linear_chain_normal_modes(
-                M, nothing, ẑ, ω=ion_frequencies.z, k_axial=characteristic_length_scale
+                M,
+                nothing,
+                ẑ,
+                ω = ion_frequencies.z,
+                k_axial = characteristic_length_scale
             )
-            x = linear_chain_normal_modes(M, nothing, x̂, ω=ion_frequencies.x)
-            y = linear_chain_normal_modes(M, nothing, ŷ, ω=ion_frequencies.y)
-            com_frequencies = (
-                x=maximum(first.(x)), y=maximum(first.(y)), z=minimum(first.(z))
-            )
+            x = linear_chain_normal_modes(M, nothing, x̂, ω = ion_frequencies.x)
+            y = linear_chain_normal_modes(M, nothing, ŷ, ω = ion_frequencies.y)
+            com_frequencies =
+                (x = maximum(first.(x)), y = maximum(first.(y)), z = minimum(first.(z)))
             l0 = 1
         end
-        A = (x=x, y=y, z=z)
+        A = (x = x, y = y, z = z)
         for axis in A
             for frequency in first.(axis)
-                if frequency < 0 
+                if frequency < 0
                     error("Outside of linear chain stability regime (negative eigenvalues)")
                 end
             end
@@ -364,7 +388,7 @@ get_vibrational_modes(lc::LinearChain) = collect(Iterators.flatten(lc.vibrationa
 function Base.print(lc::LinearChain)
     println("$(length(lc.ions)) ions")
     println("com frequencies: $(lc.com_frequencies)")
-    println("selected vibrational_modes: $(lc.vibrational_modes)")
+    return println("selected vibrational_modes: $(lc.vibrational_modes)")
 end
 
 # suppress long output
@@ -374,8 +398,9 @@ Base.show(io::IO, lc::LinearChain) = print(io, "LinearChain($(length(lc.ions)) i
 function _construct_vibrational_modes(x)
     k = collect(keys(x))
     xyz = [:x, :y, :z]
-    @assert isnothing(findfirst(x -> x ∉ xyz, k)) ("keys of `vibrational_modes` must be " *
-    "`:x`, `:y` or `:z`")
+    @assert isnothing(findfirst(x -> x ∉ xyz, k)) (
+        "keys of `vibrational_modes` must be " * "`:x`, `:y` or `:z`"
+    )
     indxs = findall(x -> x ∉ k, xyz)
     values = []
     for i in 1:3
@@ -387,7 +412,6 @@ function _construct_vibrational_modes(x)
     end
     return (; zip(xyz, values)...)
 end
-
 
 #############################################################################################
 # General functions
@@ -425,7 +449,7 @@ distance from the RF electrodes to the trapping point `ξ` is a dimensionless co
 0 and 1 that accounts for deviations of the DC fields from an ideal trap and `ψ` accounts for 
 similar deviations for the RF fields. [ref](https://doi.org/10.1063/1.367318)
 """
-function radial_trap_frequency(VDC, VRF, ΩRF, M, z₀, r₀, ξ, ψ) 
+function radial_trap_frequency(VDC, VRF, ΩRF, M, z₀, r₀, ξ, ψ)
     ωDC = axial_trap_frequency(VDC, M, z₀, ξ)
     return √((-ωDC^2 / 2 + (ψ * e * VRF / (2 * M * r₀^2 * ΩRF))^2))
 end
@@ -439,7 +463,7 @@ and with axial trap frequency ``2π × ν``.
 characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1 / 3)
 #=
     characteristic_length_scale(k::Real) 
-    
+
 ``k = Mν²`` 
 =#
 characteristic_length_scale(k::Real) = (e^2 / (4π * ϵ₀ * k))^(1 / 3)

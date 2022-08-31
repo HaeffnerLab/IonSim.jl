@@ -1,7 +1,10 @@
 using Test, IonSim
 using Suppressor
-using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant, 
-              minimize_DC_imbalance, linear_equilibrium_positions
+using IonSim:
+    linear_chain_normal_modes,
+    minimize_psuedopotential_constant,
+    minimize_DC_imbalance,
+    linear_equilibrium_positions
 
 @suppress_err begin
     @testset "ion_configurations -- LinearChain" begin
@@ -60,7 +63,11 @@ using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant,
 
         # and do the same for Anm, which computes the normal modes
         cst = [-0.2132, 0.6742, -0.6742, 0.2132]
-        freq, mode = IonSim.linear_chain_normal_modes([1, 1, 1, 1], (x = 2, y = 2, z = 1), (x = 0, y = 0, z = 1))[2][end]
+        freq, mode = IonSim.linear_chain_normal_modes(
+            [1, 1, 1, 1],
+            (x = 2, y = 2, z = 1),
+            (x = 0, y = 0, z = 1)
+        )[2][end]
         @test freq ≈ √9.308 rtol = 1e-4
         if mode[1] > 0
             cst = -1 .* cst
@@ -90,9 +97,9 @@ using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant,
             m = M[1]
             M = M[2]
             μ = M / m
-            C1 = 1 + (1/μ)
-            C2 = sqrt(1 + 1/μ^2 - 1/μ)
-            return sqrt.((k/m) * [C1 - C2, C1 + C2]) / 2π
+            C1 = 1 + (1 / μ)
+            C2 = sqrt(1 + 1 / μ^2 - 1 / μ)
+            return sqrt.((k / m) * [C1 - C2, C1 + C2]) / 2π
         end
 
         function two_ion_eigenvectors(k, M)
@@ -100,24 +107,20 @@ using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant,
             M = M[2]
             μ = M / m
             C = √(1 + μ^2 - μ)
-            return [
-                normalize([1 - μ + C, 1] / √μ),
-                normalize([1 - μ - C, 1] / √μ)
-            ]
+            return [normalize([1 - μ + C, 1] / √μ), normalize([1 - μ - C, 1] / √μ)]
         end
 
         #=
         Confirm that k_axial = mᵢ(ω_z)ᵢ² ∀i is computed correctly by comparing with 
         value for homogoneous chain
         =#
-        M = [Ba] 
-        com = (x=3e6, y=3e6, z=1e5)
+        M = [Ba]
+        com = (x = 3e6, y = 3e6, z = 1e5)
 
         k_axial_analytic = (M[1] * (2π * com.z)^2)
         k_axial_numeric, a = linear_chain_normal_modes(M, com, ẑ)
 
-        @test k_axial_analytic ≈ k_axial_numeric rtol=1e-8
-
+        @test k_axial_analytic ≈ k_axial_numeric rtol = 1e-8
 
         #=
         Compare the axial eigenvalues and eigenvectors for a two-ion mixed-species crystal
@@ -128,9 +131,9 @@ using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant,
 
         b, c = two_ion_eigenvalues(k_axial, M)
 
-        @test a[1][1]/a[2][1] ≈ b/c rtol=1e-8
-        @test a[1][1] ≈ b rtol=1e-8
-        @test a[2][1] ≈ c rtol=1e-8 
+        @test a[1][1] / a[2][1] ≈ b / c rtol = 1e-8
+        @test a[1][1] ≈ b rtol = 1e-8
+        @test a[2][1] ≈ c rtol = 1e-8
 
         vec1, vec2 = two_ion_eigenvectors(k_axial, M)
 
@@ -149,10 +152,10 @@ using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant,
         this tuple specifies the lowest (highest) eigenfrequency for the axial (radial)
         direction. In order to find the 
         =#
-        M = [Yb, Yb, Yb, Yb, Ba] 
+        M = [Yb, Yb, Yb, Yb, Ba]
         com_x = 4e6 + 1e5 * randn()
         com_x = com_x > 2.8e6 ? com_x : 2.8e6
-        com = (x=com_x, y=3.2e6, z=1.58e5)
+        com = (x = com_x, y = 3.2e6, z = 1.58e5)
 
         #= 
         psuedopotential_constant: 
@@ -167,16 +170,16 @@ using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant,
         check that this is working.
         =#
         pc, a = minimize_psuedopotential_constant(M, com, k_axial)
-        @test a[1][1] ≈ com.x rtol=1e-10
+        @test a[1][1] ≈ com.x rtol = 1e-10
 
         #= 
         DC_imbalance:
         We perfom the same procedure to set the DC_imbalance based on com.y
         =#
         com_y = com_x + 1e4randn()
-        com = (x=com_x, y=com_y, z=1.58e5)
+        com = (x = com_x, y = com_y, z = 1.58e5)
         res, a = minimize_DC_imbalance(M, com, k_axial, pc)
-        @test a[1][1] ≈ com.y rtol=1e-10
+        @test a[1][1] ≈ com.y rtol = 1e-10
 
         #=
         Fiducial references: (out of stability regime checks)
@@ -189,21 +192,66 @@ using IonSim: linear_chain_normal_modes, minimize_psuedopotential_constant,
         to be doing evertying correctly on our side.
         =#
         fiducial = [
-            (3.403e6, [5.396022467497479e-5, 0.00013583535621031288, 0.00043382488271360937, 0.002865729612600849, 0.9999957890045382])
-            (2.7468670091375294e6, [-0.6308264182921963, -0.5474351959987166, -0.4512008853923827, -0.31430600819209487, 0.0014934530345156107])
-            (2.744229265594708e6, [0.6794488606327558, -0.0731278554989956, -0.47502035356991, -0.5543937437967771, 0.002191590353902189])
-            (2.740824881097956e6, [-0.35803896744787195, 0.6745351565726543, 0.12358908202222524, -0.6336653462250121, 0.0020947875323122324])
-            (2.7370687177239084e6, [0.11051994247579877, -0.489866035033838, 0.7453176887574986, -0.43853920565433885, 0.0012320570662960287])
+            (
+                3.403e6,
+                [
+                    5.396022467497479e-5,
+                    0.00013583535621031288,
+                    0.00043382488271360937,
+                    0.002865729612600849,
+                    0.9999957890045382
+                ]
+            )
+            (
+                2.7468670091375294e6,
+                [
+                    -0.6308264182921963,
+                    -0.5474351959987166,
+                    -0.4512008853923827,
+                    -0.31430600819209487,
+                    0.0014934530345156107
+                ]
+            )
+            (
+                2.744229265594708e6,
+                [
+                    0.6794488606327558,
+                    -0.0731278554989956,
+                    -0.47502035356991,
+                    -0.5543937437967771,
+                    0.002191590353902189
+                ]
+            )
+            (
+                2.740824881097956e6,
+                [
+                    -0.35803896744787195,
+                    0.6745351565726543,
+                    0.12358908202222524,
+                    -0.6336653462250121,
+                    0.0020947875323122324
+                ]
+            )
+            (
+                2.7370687177239084e6,
+                [
+                    0.11051994247579877,
+                    -0.489866035033838,
+                    0.7453176887574986,
+                    -0.43853920565433885,
+                    0.0012320570662960287
+                ]
+            )
         ]
-        com = (x=3.403e6, y=3.403e6, z=1.58e5)
+        com = (x = 3.403e6, y = 3.403e6, z = 1.58e5)
         res, a = minimize_psuedopotential_constant(M, com, k_axial)
 
         # note there is an ambiguity in the overall sign of the vectors
         for (i, val) in enumerate(a)
             @test sign(val[1][1]) * val[1] ≈ sign(fiducial[i][1][1]) * fiducial[i][1]
-            @test sign(val[2][1]) * val[2] ≈ sign(fiducial[i][2][1]) * fiducial[i][2] rtol=1e-4
+            @test sign(val[2][1]) * val[2] ≈ sign(fiducial[i][2][1]) * fiducial[i][2] rtol =
+                1e-4
         end
-
 
         #=
         For the mixed species case, the user can instead specify the trap parameters in order 

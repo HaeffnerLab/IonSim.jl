@@ -73,11 +73,10 @@ nuclearspin(I::Ion)::Rational = speciesproperties(I).nuclearspin
 # Functions to modify ion properties
 #############################################################################################
 
-validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
-    @assert sublevel in sublevels(I) (
-        "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of " * 
-        "available sublevels."
-    )
+validatesublevel(I::Ion, sublevel::Tuple{String, Real}) = @assert sublevel in sublevels(I) (
+    "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of " *
+    "available sublevels."
+)
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
 
 """
@@ -217,8 +216,8 @@ Returns the sublevel corresponding to the given alias `alias` of `I`. Inverse fu
 function alias2sublevel(I::Ion, alias::String)
     all_aliases = I.sublevel_aliases
     @assert alias in keys(all_aliases) (
-        "Ion does not contain any sublevel with the alias $alias. Use sublevel_aliases(Ion) "
-        * "to see available aliases."
+        "Ion does not contain any sublevel with the alias $alias. Use sublevel_aliases(Ion) " *
+        "to see available aliases."
     )
     return all_aliases[alias]
 end
@@ -579,7 +578,7 @@ function matrix_element(
         theta = acos(Bhat_array[3])
         amatrix = [0 -a[3] a[2]; a[3] 0 -a[1]; -a[2] a[1] 0]
         # Rotation matrix in axis-angle representation (axis=a, angle=theta)
-        R = eye3 + sin(theta) * amatrix + (1 - cos(theta)) * amatrix^2    
+        R = eye3 + sin(theta) * amatrix + (1 - cos(theta)) * amatrix^2
     end
     ϵhat_rotated = R * ϵhat_array
     khat_rotated = R * khat_array
@@ -614,8 +613,8 @@ function matrix_element(
         end
     else
         @error (
-            "calculation of atomic transition matrix element for transition type $multipole "
-            * "not currently supported"
+            "calculation of atomic transition matrix element for transition type $multipole " *
+            "not currently supported"
         )
     end
 end
@@ -671,8 +670,8 @@ function _construct_sublevels(selected_sublevels, properties)
             selected_sublevels = properties.default_sublevel_selection
         else
             @error (
-                "no level structure specified in constructor, and no default level structure "
-                * "specified for this ion species"
+                "no level structure specified in constructor, and no default level structure " *
+                "specified for this ion species"
             )
         end
     elseif selected_sublevels == "all"
@@ -685,9 +684,7 @@ function _construct_sublevels(selected_sublevels, properties)
         # Ensure that the string is a valid level
         level = manifold[1]
         @assert level in keys(full_level_structure) "invalid level $level"
-        @assert level ∉ [k[1] for k in keys(sublevels)] (
-            "multiple instances of level $level in ion constructor call"
-        )
+        @assert level ∉ [k[1] for k in keys(sublevels)] ("multiple instances of level $level in ion constructor call")
         level_structure = full_level_structure[level]
 
         # Add chosen sublevels
@@ -763,7 +760,7 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
         Core.setproperty!(I, :sublevel_aliases, v)
     elseif s == :stark_shift
         # New stark shift dict is initially identical to the old one
-        starkshift_full_new = stark_shift(I) 
+        starkshift_full_new = stark_shift(I)
         for (sublevel, shift) in v
             validatesublevel(I, sublevel)
             starkshift_full_new[sublevel] = shift # Change the shifts as necessary
