@@ -143,5 +143,3 @@ function hamiltonian(
     end
     return f
 end
-
-

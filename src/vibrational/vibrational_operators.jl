@@ -3,9 +3,16 @@ using LinearAlgebra: diagm
 import QuantumOptics: displace, thermalstate, coherentthermalstate, fockstate
 
 export create,
-    destroy, number, displace, coherentstate, coherentthermalstate, fockstate, thermalstate, get_η
+    destroy,
+    number,
+    displace,
+    coherentstate,
+    coherentthermalstate,
+    fockstate,
+    thermalstate,
+    get_η
 
-    """
+"""
     get_η(V::VibrationalMode, L::Laser, I::Ion)
 The Lamb-Dicke parameter:
 ``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}``

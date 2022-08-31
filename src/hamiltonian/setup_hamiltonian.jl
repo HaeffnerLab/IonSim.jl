@@ -74,7 +74,6 @@ function _setup_fluctuation_hamiltonian(T, timescale)
     return all_unique_indices, gbi, gbs, bfunc, δνi, δνfuncs
 end
 
-
 """
 The purpose of the hamiltonian function is to evaluate a vector of time-dependent functions
 and use the returned values to update, in-place, a pre-allocated array.
