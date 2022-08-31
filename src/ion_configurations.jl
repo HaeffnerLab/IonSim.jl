@@ -373,7 +373,8 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
             Core.setproperty!(ion, :ionnumber, i)
             Core.setproperty!(ion, :position, l[i] * l0)
         end
-        return new(ions, com_frequencies, ion_frequencies, vm, A)
+        println(typeof(vm))
+        return new(ions, com_frequencies, ion_frequencies, l0, vm, A)
     end
 end
 
