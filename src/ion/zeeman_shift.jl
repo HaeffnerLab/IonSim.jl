@@ -1,5 +1,6 @@
-export landegj, landegf, zeeman_shift
+using IonSim.PhysicalConstants
 
+export landegj, landegf, zeeman_shift
 """
 landegj(l::Real, j::Real, s::Real=1//2)
 Landé g-factor of fine structure energy level

@@ -4,8 +4,8 @@ export two_ion_ms, rabi_flop
 """
     two_ion_ms(tspan, Ω::Real, ν::Real, δ::Real, η::Real, n̄::Real)
 [ref](https://doi.org/10.1103/PhysRevA.62.022311) <br>
-Assumes vibrational mode starts in a thermal state with: ``\\langle a^\\dagger a\\rangle = n̄`` 
-and ions start in doubly ground state. Returns `(ρgg, ρee)`, the population in the doubly 
+Assumes vibrational mode starts in a thermal state with: ``\\langle a^\\dagger a\\rangle = n̄``
+and ions start in doubly ground state. Returns `(ρgg, ρee)`, the population in the doubly
 ground and doubly excited state, respectively. ``[Ω], [ν], [δ] = Hz``
 """
 function two_ion_ms(tspan, Ω::Real, ν::Real, δ::Real, η::Real, n̄::Real)

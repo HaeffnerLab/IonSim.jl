@@ -1,6 +1,16 @@
 using IonSim.PhysicalConstants: e
 
-export Ion
+export Ion,
+    speciesproperties,
+    sublevels,
+    sublevel_aliases,
+    shape,
+    stark_shift,
+    ionnumber,
+    ionposition,
+    mass,
+    charge,
+    nuclearspin
 
 """
     Ion

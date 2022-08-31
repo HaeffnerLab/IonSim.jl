@@ -10,7 +10,7 @@ export VibrationalMode
 
 **user-defined fields**
 * `ν::Real`: frequency [Hz]
-* `mode_structure::Vector{Real}`: The normalized eigenvector describing the collective motion 
+* `mode_structure::Vector{Real}`: The normalized eigenvector describing the collective motion
         of the ions belonging to this mode.
 * `δν::Union{Function,Real}`: Either a function describing time-dependent fluctuations of `ν`
         or a real number which will be converted to the constant function `t -> δν`.

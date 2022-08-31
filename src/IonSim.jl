@@ -33,13 +33,14 @@ An abstract type for specialized bases, which are unique to IonSim.
 abstract type IonSimBasis <: Basis end
 export IonSimBasis
 
+include("helpers.jl")
 include("constants.jl")
-include("ion/_setup.jl")
-include("vibrational_modes.jl")
+include("ion/_include_ion.jl")
 include("lasers.jl")
+include("vibrational/_include_vibrational.jl")
 include("ion_configurations.jl")
-include("traps.jl")
-include("operators.jl")
+include("trap/_include_trap.jl")
+include("ion_operators.jl")
 include("hamiltonians.jl")
 include("time_evolution.jl")
 
