@@ -1,3 +1,4 @@
+include("../ion_configurations/_include_ion_configurations.jl")
 export ionstate, sigma, ionprojector
 
 """
