@@ -123,10 +123,8 @@ function linear_chain_normal_modes(
     # Constuct Hessian H (https://doi.org/10.1007/s100530170275)
     N = length(M)
     l = linear_equilibrium_positions(N)
-    if isnothing(com)
-        k_axial = maximum(M) * (2π * 1e6)^2
-    end
     a, β = axis == ẑ ? (2, 0) : (-1, psuedopotential_constant * maximum(M))
+    C = isnothing(com) ? e^2 / (4π*ϵ₀) : 1
     H = Array{Real}(undef, N, N)
     for n in 1:N, j in 1:N
         if n ≡ j
@@ -138,27 +136,28 @@ function linear_chain_normal_modes(
             else
                 H[n, j] = (
                     M[n] * ω[n]^2 / k_axial + 
-                    a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
+                     C * a * sum([1 / abs(l[j] - l[p])^3 for p in 1:N if p != j])
                 )
             end
         else
-            H[n, j] = -a / abs(l[j] - l[n])^3
+            H[n, j] = -C * a / abs(l[j] - l[n])^3
         end
         # Mass-weight the matrix elements. This means the eigenvectors 
         # of this Hessian will need to be 'unweighted' later
         H[n, j] /= √(M[n] * M[j])
     end
+    println(H)
     h = eigen(H)
     h1 = []
-    for (i, value) in enumerate(h.values)
+    for value in h.values
         if axis == ẑ
-            @assert i > 0 "Outside of linear chain stability regime (negative eigenvalues)"
+            @assert value > 0 "Outside of linear chain stability regime (negative eigenvalues)"
             push!(h1, sqrt(value))
         else
             push!(h1, value > 0 ? sqrt(value) : -sqrt(-value))
         end
     end
-    if axis == ẑ && !isnothing(com)
+    if axis == ẑ && isnothing(com)
         # the axial spring constants are mass-independent
         k_axial = (2π * com.z / minimum(h1))^2 # k_axial: axial spring constant
     end
@@ -274,12 +273,13 @@ harmonic potential and forming a linear coulomb crystal.
 struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x, :y, :z)}
-    ion_frequencies::NamedTuple{(:x, :y, :z), <:Tuple} 
+    ion_frequencies::NamedTuple{(:x, :y, :z), <:Tuple}
+    length_scale::Real
     vibrational_modes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     full_normal_mode_description::NamedTuple{(:x, :y, :z)}
     function LinearChain(; 
             ions, com_frequencies=nothing, ion_frequencies=nothing, 
-            vibrational_modes::NamedTuple
+            vibrational_modes::NamedTuple, characteristic_length_scale=nothing
         )
         vibrational_modes = _construct_vibrational_modes(vibrational_modes)
         warn = nothing
@@ -293,6 +293,7 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
                 end
             end
         end
+        l = linear_equilibrium_positions(length(ions))
         M = mass.(ions)
         if isnothing(ion_frequencies)
             k_axial, z = linear_chain_normal_modes(M, com_frequencies, ẑ)
@@ -308,13 +309,30 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
                 push!(zf, ωz)
             end
             ion_frequencies = (x=xf, y=yf, z=zf)
+            l0 = characteristic_length_scale(k_axial)
         else
-            k_axial, z = linear_chain_normal_modes(M, nothing, ẑ, ω=ion_frequencies.z)
-            x = linear_chain_normal_modes(M, nothing, x̂, ω=ion_frequencies.x, k_axial=k_axial)
-            y = linear_chain_normal_modes(M, nothing, ŷ, ω=ion_frequencies.y, k_axial=k_axial)
-            com_frequencies = (x=maximum(first.(x)), y=maximum(first.(y)), z=minimum(first.(z)))
+            if isnothing(characteristic_length_scale)
+                error("If specifying individual ion frequencies, you 
+                must also specify the `characteristic_length_scale`")
+            end
+            _, z = linear_chain_normal_modes(
+                M, nothing, ẑ, ω=ion_frequencies.z, k_axial=characteristic_length_scale
+            )
+            x = linear_chain_normal_modes(M, nothing, x̂, ω=ion_frequencies.x)
+            y = linear_chain_normal_modes(M, nothing, ŷ, ω=ion_frequencies.y)
+            com_frequencies = (
+                x=maximum(first.(x)), y=maximum(first.(y)), z=minimum(first.(z))
+            )
+            l0 = 1
         end
         A = (x=x, y=y, z=z)
+        for axis in A
+            for frequency in first.(axis)
+                if frequency < 0 
+                    error("Outside of linear chain stability regime (negative eigenvalues)")
+                end
+            end
+        end
         vm = (
             x = Vector{VibrationalMode}(undef, 0),
             y = Vector{VibrationalMode}(undef, 0),
@@ -324,8 +342,6 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
         for (i, modes) in enumerate(vibrational_modes), mode in modes
             push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i]))
         end
-        l = linear_equilibrium_positions(length(ions))
-        l0 = characteristic_length_scale(k_axial)
         for (i, ion) in enumerate(ions)
             Core.setproperty!(ion, :ionnumber, i)
             Core.setproperty!(ion, :position, l[i] * l0)
