@@ -1,6 +1,6 @@
+include("ionproperties.jl")
 include("ion.jl")
-include("IonProperties.jl")
-include("IonInstance.jl")
+include("ioninstance.jl")
 include("levels.jl")
 include("quantumnumbers.jl")
 include("stark_shift.jl")
