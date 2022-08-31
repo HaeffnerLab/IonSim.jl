@@ -197,13 +197,13 @@ end
         T = Trap(configuration = chain, lasers = [L1, L2, L3])
         η = IonSim._ηmatrix(T)
 
-        # η[1,1,1] corresponds laser1, ion1, mode1 (x̂) and η[1,1,3] corresponds laser1, ion1, 
+        # η[1,1,1] corresponds laser1, ion1, mode1 (x̂) and η[1,1,3] corresponds laser1, ion1,
         # mode3 (ẑ). They both have the same projection on L1.k, but the frequency of mode1 is
-        # twice as large as mode2, so it's L-D factor should be √2 times smaller 
+        # twice as large as mode2, so it's L-D factor should be √2 times smaller
         @test abs(η[1, 1, end](1.0)) ≈ abs(η[1, 1, end - 2](1.0) / √2)
         # With this setup, the L-D factor should be the same for ion1 and ion2
         @test η[1, 1, end](1.0) ≈ η[2, 1, end](1.0)
-        # η[1, 2, 2] is the 1st ion, 2nd laser and y-stretch-mode. The L-D factor should be 
+        # η[1, 2, 2] is the 1st ion, 2nd laser and y-stretch-mode. The L-D factor should be
         # opposite in sign, equal in magnitude to the 2nd ion, 2nd laser and y-stretch-mode
         @test η[1, 2, end - 1](1.0) ≈ -η[2, 2, end - 1](1.0)
         # L3, which is in the ẑ direction should only have projection on zmode (mode3)
@@ -232,7 +232,7 @@ end
         T = Trap(configuration = chain, lasers = [L], δB = 0)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
 
-        # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays 
+        # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays
         @test length(global_B_indices) == 0 && length(global_B_scales) == 0
         # and bfunc should be identically zero like T.δB
         @test sum(bfunc.(0:1e4)) == 0
@@ -249,11 +249,11 @@ end
         # Not sure what this test is supposed to be; commented out for now
         # # and make sure that the susceptibilites are correct
         # zs = [zeeman_shift(1, quantumnumbers(C, sublevel)) for sublevel in sublevels(C)]
-        # @test length(unique([global_B_scales; zs])) == length(zs) 
+        # @test length(unique([global_B_scales; zs])) == length(zs)
 
         # test _setup_δν_hamiltonian
 
-        # setup system 
+        # setup system
         chain = LinearChain(
             ions = [C],
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
@@ -336,7 +336,7 @@ end
         N = mode.N + 1
         Efield_from_rabi_frequency!(1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
-        ## first just shine light on 1st ion 
+        ## first just shine light on 1st ion
         L.pointing = [(1, 1.0)]
         ridxs, cidxs = get_indices(1, [N], false)
         _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
@@ -399,7 +399,7 @@ end
         @test length(unique([ridxs; r])) == length(ridxs)
         @test length(unique([cidxs; c])) - 1 == length(cidxs)
 
-        ## when laser tuned to carrier, setting an rwa_cutoff below the vibrationl_mode frequency 
+        ## when laser tuned to carrier, setting an rwa_cutoff below the vibrationl_mode frequency
         ## should have the same effect
         L.λ = transitionwavelength(C1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T1)
         _, repeated_indices, conj_repeated_indices =
@@ -408,99 +408,190 @@ end
         @test length(unique([cidxs; c])) - 1 == length(cidxs)
     end
 
-    # @testset "hamiltonian" begin
-    #     C1 = Ca40([("S1/2", -1/2), ("D5/2", -1/2)])
-    #     C2 = Ca40([("S1/2", -1/2), ("D5/2", -1/2)])
-    #     L = Laser()
-    #     L.pointing = [(1, 1.0), (2, 1.0)]
-    #     L.λ = transitionwavelength(C1, ("S1/2", "D5/2"))
-    #     chain = LinearChain(
-    #                 ions=[C1, C2], com_frequencies=(x=3e6,y=3e6,z=1e6), 
-    #                 vibrational_modes=(;z=[1,2])
-    #             )
-    #     T = Trap(configuration=chain, B=4e-4, Bhat=(x̂ + ŷ + ẑ)/√3, lasers=[L])
-    #     mode1 = T.configuration.vibrational_modes.z[1]
-    #     mode2 = T.configuration.vibrational_modes.z[2]
-    #     Δ = round(randn(), digits=5) * 1e5  # TODO: this begins to fail at below 1 Hz!
-    #     L.Δ =  Δ
-    #     ϕ = randn()
-    #     L.ϕ = ϕ
-    #     mode1.N = 10
-    #     mode2.N = 9
-    #     Ω = randn()
-    #     Efield_from_rabi_frequency!(Ω * 1e6, T, 1, 1, (("S1/2", -1/2), ("D5/2", -1/2)))
+    @testset "hamiltonian" begin
+        # tests whether the following are the same:
+        #   * Hamiltonian built from components ("QuantumOptics-style")
+        #   * Hamiltonian built with hamiltonians.jl
 
-    #     # full hamiltonian (w conj_repeated_indices)
-    #     timescale = 1e-6
-    #     ion_op(t) = Ω * π * exp(-im * (2π * Δ*t*timescale + ϕ)) * C1[("D5/2", -1/2)] ⊗ C1[("S1/2", -1/2)]'
-    #     η11 = get_η(mode1, L, C1)
-    #     η12 = get_η(mode2, L, C1)
-    #     η21 = get_η(mode1, L, C2)
-    #     η22 = get_η(mode2, L, C2)
-    #     mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
-    #     mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
-    #     Hp(t) = (ion_op(t) ⊗ one(C2) ⊗ mode_op1(t, η=η11) ⊗ mode_op2(t, η=η12) 
-    #              + one(C1) ⊗ ion_op(t) ⊗ mode_op1(t, η=η21) ⊗ mode_op2(t, η=η22))
-    #     qoH(t) = Hp(t) + dagger(Hp(t))
-    #     tp = abs(51randn())
+        # define ion, laser, chain, trap
+        C_a = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C_b = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        L = Laser()
+        L.pointing = [(1, 1.0), (2, 1.0)]
+        chain = LinearChain(
+            ions = [C_a, C_b],
+            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
+            vibrational_modes = (; z = [1, 2])
+        )
+        T = Trap(configuration = chain, B = 4e-4, Bhat = (x̂ + ŷ + ẑ) / √3, lasers = [L])
+        L.λ = transitionwavelength(C_a, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        mode1 = T.configuration.vibrational_modes.z[1]
+        mode2 = T.configuration.vibrational_modes.z[2]
+        Δ = round(randn(), digits = 5) * 1e5  # TODO: this begins to fail at below 1 Hz!
+        L.Δ = Δ
+        ϕ = randn()
+        L.ϕ = ϕ
+        mode1.N = 10
+        mode2.N = 9
+        Ω = randn()
+        Efield_from_rabi_frequency!(Ω * 1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
-    #     H = hamiltonian(T, lamb_dicke_order=101)
-    #     H1 = hamiltonian(T, lamb_dicke_order=101, time_dependent_eta=true)
-    #     @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
-    #     @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
+        # Case 1a: full hamiltonian (w conj_repeated_indices); controlled by not specifying rwa_cutoff
 
-    #     mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
-    #     mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="analytic")
-    #     H1 = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=false)
-    #     H = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=true)
-    #     @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
-    #     @test H1(tp, 0).data ≈ H(tp, 0).data  
+        # define "QuantumOptics-style" Hamiltonian
+        # ion_op specifies the evolution of the ion under the laser
+        timescale = 1e-6
+        ion_op(t) =
+            Ω *
+            π *
+            exp(-im * (2π * Δ * t * timescale + ϕ)) *
+            (C_a[("D5/2", -1 / 2)] ⊗ C_a[("S1/2", -1 / 2)]')
+        ηa1 = get_η(mode1, L, C_a)
+        ηa2 = get_η(mode2, L, C_a)
+        ηb1 = get_η(mode1, L, C_b)
+        ηb2 = get_η(mode2, L, C_b)
 
-    #     # full hamiltonian (w/o conj_repeated_indices)
-    #     H = hamiltonian(T, lamb_dicke_order=101, rwa_cutoff=1e10)
-    #     H1 = hamiltonian(T, lamb_dicke_order=101, time_dependent_eta=true, rwa_cutoff=1e10)
-    #     mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
-    #     mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
-    #     @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
-    #     @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
+        # displacement operators for COM and stretch modes
+        mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method = "truncated")
+        mode_op2(t; η) =
+            displace(mode2, im * η * exp(im * 2π * √3 * t), method = "truncated")
 
-    #     mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
-    #     mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="analytic")
-    #     H1 = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=false, rwa_cutoff=1e10)
-    #     H = hamiltonian(T, lamb_dicke_order=101, displacement="analytic", time_dependent_eta=true, rwa_cutoff=1e10)
-    #     @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
-    #     @test H1(tp, 0).data ≈ H(tp, 0).data
+        Hp(t) = (
+            ion_op(t) ⊗ one(C_b) ⊗ mode_op1(t, η = ηa1) ⊗ mode_op2(t, η = ηa2) +
+            one(C_a) ⊗ ion_op(t) ⊗ mode_op1(t, η = ηb1) ⊗ mode_op2(t, η = ηb2)
+        )
+        qoH(t) = Hp(t) + dagger(Hp(t))
+        tp = abs(51randn())
 
-    #     # # Lamb-Dicke
-    #     mode_op11 = DenseOperator(mode1, diagm(0 => [1 - η11^2 * i for i in 0:mode1.N]))
-    #     mode_op12 = DenseOperator(mode2, diagm(0 => [1 - η12^2 * i for i in 0:mode2.N]))
-    #     mode_op21 = DenseOperator(mode1, diagm(0 => [1 - η21^2 * i for i in 0:mode1.N]))
-    #     mode_op22 = DenseOperator(mode2, diagm(0 => [1 - η22^2 * i for i in 0:mode2.N]))
-    #     mode_op1 = mode_op11 ⊗ mode_op12
-    #     mode_op2 = mode_op21 ⊗ mode_op22
-    #     Hp(t) = ion_op(t) ⊗ one(C2) ⊗ mode_op1 + one(C1) ⊗ ion_op(t) ⊗ mode_op2
-    #     qoH(t) = Hp(t) + dagger(Hp(t))
-    #     H = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf)
-    #     H1 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, time_dependent_eta=true)
-    #     H2 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic")
-    #     H3 = hamiltonian(T, lamb_dicke_order=0, rwa_cutoff=Inf, displacement="analytic", time_dependent_eta=true)
-    #     # only considering first order corrections to carrier (propto η^2) so this won't be perfect
-    #     @test norm((qoH(tp) - H(tp, 0)).data) < 2
-    #     @test norm((qoH(tp) - H1(tp, 0)).data) < 2
-    #     @test norm((qoH(tp) - H2(tp, 0)).data) < 2
-    #     @test norm((qoH(tp) - H3(tp, 0)).data) < 2
+        # define hamiltonians.jl
+        H = hamiltonian(T, lamb_dicke_order = 101)
+        H1 = hamiltonian(T, lamb_dicke_order = 101, time_dependent_eta = true)
+        # test similarity at a random time input
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
 
-    #     # RWA
-    #     H = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5)
-    #     H1 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, time_dependent_eta=true)
-    #     H2 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic")
-    #     H3 = hamiltonian(T, lamb_dicke_order=30, rwa_cutoff=3e5, displacement="analytic", time_dependent_eta=true)
-    #     # only considering first order corrections to carrier (propto η^2) so this won't be perfect
-    #     @test norm((qoH(tp) - H(tp, 0)).data) < 2
-    #     @test norm((qoH(tp) - H1(tp, 0)).data) < 2
-    #     @test norm((qoH(tp) - H2(tp, 0)).data) < 2
-    #     @test norm((qoH(tp) - H3(tp, 0)).data) < 2
+        # Case 1b: analytic solution (as opposed to truncated solution)
+        mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method = "analytic")
+        mode_op2(t; η) =
+            displace(mode2, im * η * exp(im * 2π * √3 * t), method = "analytic")
+        H1 = hamiltonian(
+            T,
+            lamb_dicke_order = 101,
+            displacement = "analytic",
+            time_dependent_eta = false
+        )
+        H = hamiltonian(
+            T,
+            lamb_dicke_order = 101,
+            displacement = "analytic",
+            time_dependent_eta = true
+        )
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test H1(tp, 0).data ≈ H(tp, 0).data
 
-    #     @test_throws AssertionError hamiltonian(T, lamb_dicke_order=[1, 2, 3], rwa_cutoff=3e5)
-    # end
+        # Case 2a: full hamiltonian (w/o conj_repeated_indices)
+        H = hamiltonian(T, lamb_dicke_order = 101, rwa_cutoff = 1e10)
+        H1 = hamiltonian(
+            T,
+            lamb_dicke_order = 101,
+            time_dependent_eta = true,
+            rwa_cutoff = 1e10
+        )
+        mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method = "truncated")
+        mode_op2(t; η) =
+            displace(mode2, im * η * exp(im * 2π * √3 * t), method = "truncated")
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
+
+        # Case 2b: Like 2a, but with analytic solution
+        mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method = "analytic")
+        mode_op2(t; η) =
+            displace(mode2, im * η * exp(im * 2π * √3 * t), method = "analytic")
+        H1 = hamiltonian(
+            T,
+            lamb_dicke_order = 101,
+            displacement = "analytic",
+            time_dependent_eta = false,
+            rwa_cutoff = 1e10
+        )
+        H = hamiltonian(
+            T,
+            lamb_dicke_order = 101,
+            displacement = "analytic",
+            time_dependent_eta = true,
+            rwa_cutoff = 1e10
+        )
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test H1(tp, 0).data ≈ H(tp, 0).data
+
+        # Case 3: test Hamiltonian with zero Lamb-Dicke value, i.e. no vibrational modes
+        mode_opa1 = DenseOperator(mode1, diagm(0 => [1 - ηa1^2 * i for i in 0:(mode1.N)]))
+        mode_opa2 = DenseOperator(mode2, diagm(0 => [1 - ηa2^2 * i for i in 0:(mode2.N)]))
+        mode_opb1 = DenseOperator(mode1, diagm(0 => [1 - ηb1^2 * i for i in 0:(mode1.N)]))
+        mode_opb2 = DenseOperator(mode2, diagm(0 => [1 - ηb2^2 * i for i in 0:(mode2.N)]))
+        mode_op_a = mode_opa1 ⊗ mode_opa2
+        mode_op_b = mode_opb1 ⊗ mode_opb2
+        Hp(t) = ion_op(t) ⊗ one(C_b) ⊗ mode_op_a + one(C_a) ⊗ ion_op(t) ⊗ mode_op_b
+        qoH(t) = Hp(t) + dagger(Hp(t))
+
+        H = hamiltonian(T, lamb_dicke_order = 0, rwa_cutoff = Inf)
+        H1 = hamiltonian(
+            T,
+            lamb_dicke_order = 0,
+            rwa_cutoff = Inf,
+            time_dependent_eta = true
+        )
+        H2 = hamiltonian(
+            T,
+            lamb_dicke_order = 0,
+            rwa_cutoff = Inf,
+            displacement = "analytic"
+        )
+        H3 = hamiltonian(
+            T,
+            lamb_dicke_order = 0,
+            rwa_cutoff = Inf,
+            displacement = "analytic",
+            time_dependent_eta = true
+        )
+        # only considering first order corrections to carrier (propto η^2) so this won't be perfect
+        @test norm((qoH(tp) - H(tp, 0)).data) < 2
+        @test norm((qoH(tp) - H1(tp, 0)).data) < 2
+        @test norm((qoH(tp) - H2(tp, 0)).data) < 2
+        @test norm((qoH(tp) - H3(tp, 0)).data) < 2
+
+        # Case 4: Try a normal example with a intermediate rwa_cutoff value
+        H = hamiltonian(T, lamb_dicke_order = 30, rwa_cutoff = 3e5)
+        H1 = hamiltonian(
+            T,
+            lamb_dicke_order = 30,
+            rwa_cutoff = 3e5,
+            time_dependent_eta = true
+        )
+        H2 = hamiltonian(
+            T,
+            lamb_dicke_order = 30,
+            rwa_cutoff = 3e5,
+            displacement = "analytic"
+        )
+        H3 = hamiltonian(
+            T,
+            lamb_dicke_order = 30,
+            rwa_cutoff = 3e5,
+            displacement = "analytic",
+            time_dependent_eta = true
+        )
+        # only considering first order corrections to carrier (propto η^2) so this won't be perfect
+        @test norm((qoH(tp) - H(tp, 0)).data) < 2
+        @test norm((qoH(tp) - H1(tp, 0)).data) < 2
+        @test norm((qoH(tp) - H2(tp, 0)).data) < 2
+        @test norm((qoH(tp) - H3(tp, 0)).data) < 2
+
+        # Case 5: Invalid lamb_dicke_order parameters should fail
+        @test_throws AssertionError hamiltonian(
+            T,
+            lamb_dicke_order = [1, 2, 3],
+            rwa_cutoff = 3e5
+        )
+    end
 end  # end suppress

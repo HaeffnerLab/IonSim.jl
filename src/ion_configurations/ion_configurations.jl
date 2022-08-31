@@ -28,7 +28,7 @@ ions(I::IonConfiguration)::Vector{Ion} = I.ions
     linear_equilibrium_positions(N::Int)
 Returns the scaled equilibrium positions of `N` ions in a harmonic potential, assuming that
 all ions have the same mass. 
-[ref](https://link.springer.com/content/pdf/10.1007%2Fs003400050373.pdf)
+[ref](https://doi.org/10.1007/s003400050373)
 """
 function linear_equilibrium_positions(N::Int)
     function f!(F, x, N)
