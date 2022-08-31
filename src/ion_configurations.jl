@@ -259,7 +259,10 @@ harmonic potential and forming a linear coulomb crystal.
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`: 
         Describes the COM frequencies `(x=ω_x, y=ω_y, z=ω_z)`. The ``z``-axis is taken to be 
         parallel to the crystal's symmetry axis and we assume (but don't directly enforce) 
-        that ``ω\\_z/ω\\_{x,y} > 0.73N^{0.86}`` [ref](https://doi.org/10.1007/s003400050225) 
+        that ``ω\\_z/ω\\_{x,y} > 0.73N^{0.86}`` [ref](https://doi.org/10.1007/s003400050225)
+        When the ions are different species (so different masses) there is no longer generally 
+        a unique com mode. In this case we take com to correspond to the lowest (highest) 
+        eigenfrequency of the axial (radial) modes, which corresponds to the homogoneous case.
 * `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  eg. `(x=[1], y=[2], z=[1,2])`. 
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest 
     mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would 
