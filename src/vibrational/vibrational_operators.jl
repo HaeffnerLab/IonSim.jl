@@ -2,7 +2,8 @@ using QuantumOptics: projector, tensor, SparseOperator, DenseOperator, basisstat
 using LinearAlgebra: diagm
 import QuantumOptics: displace, thermalstate, coherentthermalstate, fockstate
 
-export create,
+export 
+    create,
     destroy,
     number,
     displace,
@@ -57,9 +58,11 @@ Otherwise if `method="analytic"`, the matrix elements are computed assuming an
 infinite-dimension Hilbert space. In general, this option will not return a unitary operator.
 """
 function displace(v::VibrationalMode, α::Number; method = "truncated")
-    # @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
-    # Above line commented out to allow for Hamiltonian construction even if vibrational mode N = 0.
-    # May want to think of a different way to perform this check in the future.
+    #= 
+    @assert v.N ≥ abs(α) "`α` must be less than `v.N`" Above line commented out to allow 
+    for Hamiltonian construction even if vibrational mode N = 0. May want to think of a 
+    different way to perform this check in the future. 
+    =#
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     D = zeros(ComplexF64, v.N + 1, v.N + 1)
     if α == 0
@@ -107,8 +110,10 @@ end
 Returns a coherent state on `v` with complex amplitude ``α``.
 """
 function coherentstate(v::VibrationalMode, α::Number)
-    # this implementation is the same as in QuantumOptics.jl, but there the function is
-    # restricted to v::FockBasis, so we must reimplement here
+    #=
+    This implementation is the same as in QuantumOptics.jl, but there the function is
+    estricted to v::FockBasis, so we must reimplement here
+    =#
     @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
     k = zeros(ComplexF64, v.N + 1)
     k[1] = exp(-abs2(α) / 2)

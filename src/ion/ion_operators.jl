@@ -42,7 +42,6 @@ sigma(ion::Ion, ψ1::Union{Tuple{String, Real}, String, Int}) = sigma(ion, ψ1, 
 
 """
     ionprojector(obj, sublevels...; only_ions=false)
-
 If `obj<:IonConfiguration` this will return ``|ψ₁⟩⟨ψ₁|⊗...⊗|ψ\\_N⟩⟨ψ\\_N|⊗𝟙``
 where ``|ψᵢ⟩`` = `obj.ions[i][sublevels[i]]` and the identity operator ``𝟙`` is over all of the
 COM modes considered in `obj`.

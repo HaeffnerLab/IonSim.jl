@@ -1,7 +1,7 @@
 export IonProperties
 
 """
-IonProperties type.
+    IonProperties type.
 **Required keywords**
 * `mass`: Mass of ion in kg
 * `charge`: Charge of ion in units of elementary charge

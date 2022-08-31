@@ -1,3 +1,2 @@
 include("trap.jl")
-include("efield.jl")
-include("bfield.jl")
+include("B_field.jl")

@@ -2,7 +2,7 @@ using IonSim.PhysicalConstants
 
 export landegj, landegf, zeeman_shift
 """
-landegj(l::Real, j::Real, s::Real=1//2)
+    landegj(l::Real, j::Real, s::Real=1//2)
 Landé g-factor of fine structure energy level
 
 **args**
@@ -14,7 +14,7 @@ landegj(l::Real, j::Real, s::Real = 1 // 2) =
     3 // 2 + (s * (s + 1) - l * (l + 1)) / (2j * (j + 1))
 
 """
-landegf(l::Real, j::Real, f::Real, i::Real, s::Real=1//2)
+    landegf(l::Real, j::Real, f::Real, i::Real, s::Real=1//2)
 Landé g-factor of hyperfine energy level
 
 **args**
@@ -29,7 +29,7 @@ landegf(l::Real, j::Real, f::Real, i::Real, s::Real = 1 // 2) =
 landegf(qnums::NamedTuple) = landegf(qnums.l, qnums.j, qnums.f, qnums.i, qnums.s)
 
 """
-landegf(I::Ion, level::String)
+    landegf(I::Ion, level::String)
 `landegf` for the quantum numbers of `level` in `I`.
 """
 function landegf(I::Ion, level::String)
@@ -42,7 +42,7 @@ function landegf(I::Ion, level::String)
 end
 
 """
-zeeman_shift(I::Ion, sublevel}, B::Real)
+    zeeman_shift(I::Ion, sublevel}, B::Real)
 Returns the Zeeman shift at a magnetic field of `B` of `sublevel` of `I`.
 
 If `sublevel` has a custom g-factor defined, then this is used. Otherwise, `landegf` is used to compute the Landé g-factor.

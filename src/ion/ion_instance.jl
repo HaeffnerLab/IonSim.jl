@@ -1,7 +1,7 @@
 export IonInstance
 
 """
-IonInstance(selected_sublevels::Vector{Tuple}[, starkshift::Dict])
+    IonInstance(selected_sublevels::Vector{Tuple}[, starkshift::Dict])
 Ion instance of some species
 
 `selected_sublevels` specifies which energy sublevels will be present in the Hilbert space of this Ion instance, as a subset of all possible sublevels.

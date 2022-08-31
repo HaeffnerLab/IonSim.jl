@@ -111,7 +111,7 @@ function lifetime(I::Ion, level::String)
 end
 
 """
-matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
 Computes the matrix elements (units of Hz) between two energy sublevels
 **args**
 * `I`: Ion undergoing transition

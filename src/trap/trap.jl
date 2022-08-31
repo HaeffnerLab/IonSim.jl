@@ -1,7 +1,7 @@
 using QuantumOptics: tensor, CompositeBasis
 using .PhysicalConstants: ħ, c
 
-export Trap, get_basis, set_gradient!, global_beam!
+export Trap, get_basis
 
 """
     Trap(;
@@ -175,14 +175,4 @@ function get_basis(T::Trap)::CompositeBasis
         T.configuration.vibrational_modes.y...,
         T.configuration.vibrational_modes.z...,
     )
-end
-
-"""
-global_beam!(T::Trap, laser::Laser)
-Set `laser` to shine with full intensity on all ions in `Trap`.
-"""
-function global_beam!(T::Trap, laser::Laser)
-    for n in eachindex(T.configuration.ions)
-        push!(laser.pointing, (n, 1.0))
-    end
 end

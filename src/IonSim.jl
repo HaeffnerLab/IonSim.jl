@@ -36,13 +36,13 @@ export IonSimBasis
 include("helpers.jl")
 include("constants.jl")
 include("ion/_include_ion.jl")
-include("lasers.jl")
+include("lasers/_include_lasers.jl")
 include("vibrational/_include_vibrational.jl")
-include("ion_configurations.jl")
+include("ion_configurations/_include_ion_configurations.jl")
 include("trap/_include_trap.jl")
-include("ion_operators.jl")
 include("hamiltonian/_include_hamiltonian.jl")
 include("time_evolution.jl")
+include("convenience_functions/_include_convenience_functions.jl")
 
 module analytical
 include("analytic_functions.jl")
