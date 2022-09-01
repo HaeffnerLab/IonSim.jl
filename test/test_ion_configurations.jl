@@ -28,7 +28,7 @@ using IonSim:
         if ionposition(lc.ions[1]) > 0
             cmode .*= -1
         end
-        @test [ionposition(I) for I in lc.ions] ≈ cmode rtol = 1e-6
+        @test [ionposition(I) for I in lc.ions] ≈ cmode * IonSim.compute_characteristic_length_scale(C.mass, 1) rtol = 1e-6
 
         # should get warning if same ion is input multiple times to ion kwarg
         warning = "Some ions point to the same thing. Making copies."
