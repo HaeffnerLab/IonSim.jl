@@ -135,6 +135,7 @@ mutable struct Microwave <: LightField
     ϵ::NamedTuple{(:x, :y, :z)}
     k::NamedTuple{(:x, :y, :z)}
     ϕ::Function
+    pointing::Array{Tuple{Int, <:Real}}(undef, 0)
     function Microwave(;
         λ = nothing,
         E::TE = 0,
@@ -150,7 +151,8 @@ mutable struct Microwave <: LightField
         # Above commented out until we figure out a better place to put this warning
         TE <: Number ? Et(t) = E : Et = E
         Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
-        return new(λ, Et, Δ, ϵ, k, ϕt)
+
+        return new(λ, Et, Δ, ϵ, k, ϕt, [])
     end
     # for copying
     Microwave(λ, E, Δ, ϵ, k, ϕ) = new(λ, E, Δ, ϵ, k, ϕ)

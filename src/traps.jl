@@ -66,7 +66,7 @@ mutable struct Trap
     Bhat::NamedTuple{(:x, :y, :z)}
     ∇B::Real
     δB::Function
-    lasers::Array{<:Laser}
+    lasers::Array{<:LightField}
     basis::CompositeBasis
     _cnst_δB::Bool
     function Trap(;
