@@ -153,7 +153,7 @@ mutable struct Microwave <: LightField
         return new(λ, Et, Δ, ϵ, k, ϕt)
     end
     # for copying
-    Laser(λ, E, Δ, ϵ, k, ϕ) = new(λ, E, Δ, ϵ, k, ϕ)
+    Microwave(λ, E, Δ, ϵ, k, ϕ) = new(λ, E, Δ, ϵ, k, ϕ)
 end
 
 function Base.print(MW::Microwave)
