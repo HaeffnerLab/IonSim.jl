@@ -16,6 +16,16 @@ function Base.:(==)(LF1::LightField, LF2::LightField)
     return true
 end
 
+function Base.print(LF::LightField)
+    println("λ: ", LF.λ, " m")
+    println("Δ: ", LF.Δ, " Hz")
+    println("ϵ̂: ", "(x=$(LF.ϵ.x), y=$(LF.ϵ.y), z=$(LF.ϵ.z))")
+    println("k̂: ", "(z=$(LF.k.x), y=$(LF.k.y), z=$(LF.k.z))")
+    println("E(t=0): ", "$(LF.E(0.0)) V/m")
+    return println("ϕ(t=0): ", "$(LF.ϕ(0.0)) ⋅ 2π")
+end
+
+
 """
     Laser(;λ=nothing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
         
@@ -70,15 +80,6 @@ mutable struct Laser <: LightField
     end
     # for copying
     Laser(λ, E, Δ, ϵ, k, ϕ, pointing) = new(λ, E, Δ, ϵ, k, ϕ, pointing)
-end
-
-function Base.print(L::Laser)
-    println("λ: ", L.λ, " m")
-    println("Δ: ", L.Δ, " Hz")
-    println("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
-    println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
-    println("E(t=0): ", "$(L.E(0.0)) V/m")
-    return println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
 end
 
 function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
@@ -158,14 +159,6 @@ mutable struct Microwave <: LightField
     Microwave(λ, E, Δ, ϵ, k, ϕ) = new(λ, E, Δ, ϵ, k, ϕ)
 end
 
-function Base.print(MW::Microwave)
-    println("λ: ", MW.λ, " m")
-    println("Δ: ", MW.Δ, " Hz")
-    println("ϵ̂: ", "(x=$(MW.ϵ.x), y=$(MW.ϵ.y), z=$(MW.ϵ.z))")
-    println("k̂: ", "(z=$(MW.k.x), y=$(MW.k.y), z=$(MW.k.z))")
-    println("E(t=0): ", "$(MW.E(0.0)) V/m")
-    return println("ϕ(t=0): ", "$(MW.ϕ(0.0)) ⋅ 2π")
-end
 
 function Base.setproperty!(MW::Microwave, s::Symbol, v::Tv) where {Tv}
     rtol = 1e-6
