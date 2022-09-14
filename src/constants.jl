@@ -2,7 +2,7 @@ module PhysicalConstants
 
 import Base.sqrt
 
-export μB, ħ, c, e, ϵ₀, α, kB, eye3, c_rank1, c_rank2
+export μB, ħ, c, e, ϵ₀, α, kB, gₛ, eye3, c_rank1, c_rank2
 
 """
     PhysicalConstant(x::Real)
@@ -31,6 +31,8 @@ const ϵ₀ = PhysicalConstant(8.85418782e-12, "(s^4A^2) / (m^3 kg)")
 const α = PhysicalConstant(0.007297352557920479, "")
 """`kB` = 1.38064852e-23 ``m^2kg/(s^2K)``"""
 const kB = PhysicalConstant(1.38064852e-23, "m^2kg/(s^2K)")
+"""`gₛ` = -2.00231930436256"""
+const gₛ = PhysicalConstant(-2.00231930436256, "")
 
 #############################################################################################
 # 3D real-space tensors

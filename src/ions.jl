@@ -1,6 +1,6 @@
 using WignerSymbols: wigner3j, wigner6j
 using LinearAlgebra: cross
-#using .PhysicalConstants: e, ħ, α, μB, e, eye3, c_rank1, c_rank2
+#using .PhysicalConstants: e, ħ, α, μB, e, gₛ, eye3, c_rank1, c_rank2
 using IonSim.PhysicalConstants
 
 export Ion,
@@ -396,6 +396,7 @@ function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_starkshif
            transitionfrequency(I, transition, B = B, ignore_starkshift = ignore_starkshift)
 end
 
+#TODO: Add M1s here!!
 """
     leveltransitions(I::Ion)
 Returns all allowed transitions between levels of `I` as a vector of `Tuple{String,String}`.
@@ -566,7 +567,7 @@ function matrix_element(
                 sqrt((2 * f1 + 1) * (2 * f2 + 1) * (2 * j1 + 1) * (2 * j2 + 1)) * wigner6j(j2, I, f2, f1, 1, j1) *
                 (
                 wigner6j(l, j1, s, j2, l, 1) sqrt((2 * l + 1) * (l + 1) * l) +
-                (-2.002319) * wigner6j(s, j1, l, j2, s, 1) sqrt((2 * s + 1) * (s + 1) * s) # should I do something besides hardcode the g factor here?
+                gₛ * wigner6j(s, j1, l, j2, s, 1) sqrt((2 * s + 1) * (s + 1) * s)
                 ))
             geometric_factor = abs(
                 sqrt(2j2 + 1) *
