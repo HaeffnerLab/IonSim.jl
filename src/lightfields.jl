@@ -112,7 +112,7 @@ function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
     return Core.setproperty!(L, s, v)
 end
 
-# This could probably be made into one function with Unitfuls? 
+# This could probably be made into one function with Unitfuls?
 laser_from_intensity(λ, i, Δ, ϵ, k, ϕ, pointing) = Laser(λ, sqrt(2i / (c*ϵ₀)), Δ, ϵ, k, ϕ, pointing)
 laser_from_waist_power(λ, P, Δ, ϵ, k, ϕ, pointing, w₀) = laser_from_intensity(λ, 2P/(π*w₀^2), Δ, ϵ, k, ϕ, pointing)
 

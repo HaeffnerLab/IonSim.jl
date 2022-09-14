@@ -31,7 +31,8 @@ interacting with laser light.
 * `∇B`: Magnitude of the B-field gradient. We assume that the gradient always points along the
         z-direction. [Tesla / meter]
 * `δB::Function`: Time-dependence of the B-field [Tesla]
-* `lasers::Array{<:Laser}`: For each laser in the array, the pointing field should contain
+* `lasers::Array{<:LightField}`: Microwaves are globally addressed.
+        For each laser in the array, the pointing field should contain
         an array of `Tuple{Int,Real}`. The first element specifies the index of an ion
         in the `ions` field that the laser interacts with. The second element specifies a 
         scaling factor for the strength of that interaction (to be used, e.g., for 
@@ -66,7 +67,7 @@ mutable struct Trap
     Bhat::NamedTuple{(:x, :y, :z)}
     ∇B::Real
     δB::Function
-    lasers::Array{<:LightField}
+    lasers::Array{<:LightField} #rename to lightfields?
     basis::CompositeBasis
     _cnst_δB::Bool
     function Trap(;
@@ -173,14 +174,17 @@ function get_basis(T::Trap)::CompositeBasis
 end
 
 """
-    global_beam!(T::Trap, laser::Laser)
-Set `laser` to shine with full intensity on all ions in `Trap`.
+    global_beam!(T::Trap, lightfield::LightField)
+Set `lightfield` to shine with full intensity on all ions in `Trap`.
 """
-function global_beam!(T::Trap, laser::Laser)
+function global_beam!(T::Trap, lightfield::LightField)
     for n in eachindex(T.configuration.ions)
-        push!(laser.pointing, (n, 1.0))
+        push!(lightfield.pointing, (n, 1.0))
     end
 end
+
+# TODO: Bfield_from_pi_time, for M1 transitions
+# TODO: Bfield_from_rabi_frequency
 
 """
     Efield_from_pi_time(
@@ -343,7 +347,7 @@ end
 
 """
     Bfield(T::Trap, ion::Ion)
-Retuns the value of the magnetic field in `T` at the location of `ion`, including both the trap's overall B-field and its B-field gradient.
+Returns the value of the magnetic field in `T` at the location of `ion`, including both the trap's overall B-field and its B-field gradient.
 """
 function Bfield(T::Trap, ion::Ion)
     @assert ionintrap(T, ion) "trap does not contain ion"
@@ -397,16 +401,16 @@ transitionwavelength(
 )
 
 """
-    matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real)
+    matrix_element(I::Ion, transition::Tuple, T::Trap, lightfield::LightField, time::Real)
 Calls `matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))`
 with `Efield`, `khat`, and `ϵhat` evaluated for `laser` at time `time`, and `Bhat` evaluated for `T`.
 
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real) =
-    matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
-matrix_element(ion_index::Int, transition::Tuple, T::Trap, laser::Laser, time::Real) =
-    matrix_element(T.configuration.ions[ion_index], transition, T, laser, time)
+matrix_element(I::Ion, transition::Tuple, T::Trap, lightfield::LightField, time::Real) =
+    matrix_element(I, transition, lightfield.E(time), lightfield.k, lightfield.ϵ, T.Bhat)
+matrix_element(ion_index::Int, transition::Tuple, T::Trap, lightfield::LightField, time::Real) =
+    matrix_element(T.configuration.ions[ion_index], transition, T, lightfield, time)
 
 """
     zeeman_shift(I::Ion, sublevel, T::Trap)
