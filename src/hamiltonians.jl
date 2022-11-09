@@ -4,6 +4,7 @@ using PolynomialRoots: roots
 using QuantumOptics: SparseOperator, embed
 
 export hamiltonian
+export hamiltonian_interaction_picture
 
 """
     hamiltonian(
@@ -55,7 +56,8 @@ function hamiltonian(
     lamb_dicke_order::Union{Vector{Int}, Int} = 1,
     rwa_cutoff::Real = Inf,
     displacement::String = "truncated",
-    time_dependent_eta::Bool = false
+    time_dependent_eta::Bool = false,
+    u::Any
 )
     return hamiltonian(
         T,
@@ -64,7 +66,41 @@ function hamiltonian(
         lamb_dicke_order,
         rwa_cutoff,
         displacement,
-        time_dependent_eta
+        time_dependent_eta,
+        u
+    )
+end
+
+
+"""
+Generates the unitary transformation corresponding to the interaction picture, i.e. U = e^(-iH₀t) = exp[diag[-iω₁t,-iω₂t,...]]
+"""
+function hamiltonian_interaction_picture(
+    T::Trap;
+    timescale::Real = 1e-6,
+    lamb_dicke_order::Union{Vector{Int}, Int} = 1,
+    rwa_cutoff::Real = Inf,
+    displacement::String = "truncated",
+    time_dependent_eta::Bool = false
+)
+    u = []
+    for ion in T.configuration.ions
+        #push the interaction picture transformation to u
+        x = []
+        for sublevel in ion.sublevels
+            push!(x, (sublevel, energy(ion, sublevel, B = T.B, ignore_starkshift = true)))
+        end
+        push!(u,x)
+    end
+    return hamiltonian(
+        T,
+        T.configuration,
+        timescale,
+        lamb_dicke_order,
+        rwa_cutoff,
+        displacement,
+        time_dependent_eta,
+        u
     )
 end
 
@@ -81,7 +117,8 @@ function hamiltonian(
     lamb_dicke_order::Union{Vector{Int}, Int},
     rwa_cutoff::Real,
     displacement::String,
-    time_dependent_eta::Bool
+    time_dependent_eta::Bool,
+    u::Any
 )
     b, indxs, cindxs = _setup_base_hamiltonian(
         T,
@@ -89,7 +126,8 @@ function hamiltonian(
         lamb_dicke_order,
         rwa_cutoff,
         displacement,
-        time_dependent_eta
+        time_dependent_eta,
+        u
     )
     aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(T, timescale)
     S = SparseOperator(get_basis(T))
@@ -182,7 +220,8 @@ function _setup_base_hamiltonian(
     lamb_dicke_order,
     rwa_cutoff,
     displacement,
-    time_dependent_eta
+    time_dependent_eta,
+    u
 )
     rwa_cutoff *= timescale
     modes = reverse(get_vibrational_modes(T.configuration))
@@ -194,7 +233,7 @@ function _setup_base_hamiltonian(
     Q = prod([ion.shape[1] for ion in ions])
     ion_arrays = [spdiagm(0 => [true for _ in 1:ion.shape[1]]) for ion in ions]
 
-    ηm, Δm, Ωm = _ηmatrix(T), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
+    ηm, Δm, Ωm, ΔUm = _ηmatrix(T), _Δmatrix(T, timescale), _Ωmatrix(T, timescale), _ΔUmatrix(T, timescale, u)
     lamb_dicke_order = _check_lamb_dicke_order(lamb_dicke_order, L)
     ld_array, rows, vals = _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     if displacement == "truncated" && time_dependent_eta
@@ -242,8 +281,9 @@ function _setup_base_hamiltonian(
 
         # iterate over ion-laser transitions
         for (ti, tr) in enumerate(ts)
-            Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]
+            Δ, ΔU, Ω = Δm[rn, m][ti], ΔUm[rn, m][ti], Ωm[rn, m][ti]
             Δ_2π = Δ / 2π
+            ΔU_2π = ΔU / 2π
             typeof(Ω) <: Number && continue  # e.g. the laser doesn't shine on this ion
             locs = view(ion_idxs, ((ti - 1) * ion_reps + 1):(ti * ion_reps))
             for j in 1:prod(mode_dims)
@@ -251,8 +291,8 @@ function _setup_base_hamiltonian(
                     ri = rows[i]
                     ri < j && continue
                     cf = vals[i]
-                    pflag = abs(Δ_2π + cf) > rwa_cutoff
-                    nflag = abs(Δ_2π - cf) > rwa_cutoff
+                    pflag = abs(ΔU_2π + cf) > rwa_cutoff
+                    nflag = abs(ΔU_2π - cf) > rwa_cutoff
                     (pflag && nflag) && continue
                     rev_indxs = false
                     idxs = _inv_get_kron_indxs((rows[i], j), mode_dims)
@@ -312,7 +352,7 @@ function _setup_base_hamiltonian(
                                     t ->
                                         a(t) .+ _D_cnst_eta(
                                             Ω(t),
-                                            Δ,
+                                            ΔU,
                                             νlist,
                                             timescale,
                                             idxs,
@@ -326,7 +366,7 @@ function _setup_base_hamiltonian(
                                     t ->
                                         a(t) .+ _D(
                                             Ω(t),
-                                            Δ,
+                                            ΔU,
                                             ηlist(t),
                                             νlist,
                                             timescale,
@@ -340,7 +380,7 @@ function _setup_base_hamiltonian(
                                     t ->
                                         a(t) .+ _Dtrunc(
                                             Ω(t),
-                                            Δ,
+                                            ΔU,
                                             ηlist(t),
                                             νlist,
                                             rootlist,
@@ -360,7 +400,7 @@ function _setup_base_hamiltonian(
                                 Tuple{ComplexF64, ComplexF64},
                                 Tuple{Float64}
                             }(
-                                t -> _D_cnst_eta(Ω(t), Δ, νlist, timescale, idxs, D, t, L)
+                                t -> _D_cnst_eta(Ω(t), ΔU, νlist, timescale, idxs, D, t, L)
                             )
                         elseif displacement == "analytic"
                             f = FunctionWrapper{
@@ -368,7 +408,7 @@ function _setup_base_hamiltonian(
                                 Tuple{Float64}
                             }(
                                 t ->
-                                    _D(Ω(t), Δ, ηlist(t), νlist, timescale, idxs, t, L)
+                                    _D(Ω(t), ΔU, ηlist(t), νlist, timescale, idxs, t, L)
                             )
                         elseif displacement == "truncated"
                             f = FunctionWrapper{
@@ -377,7 +417,7 @@ function _setup_base_hamiltonian(
                             }(
                                 t -> _Dtrunc(
                                     Ω(t),
-                                    Δ,
+                                    ΔU,
                                     ηlist(t),
                                     νlist,
                                     rootlist,
@@ -535,6 +575,40 @@ function _Δmatrix(T, timescale)
     return Δnmkj
 end
 
+# Returns an array of vectors. The rows and columns of the array refer to ions and lasers,
+# respectively. For each row/column we have a vector of values ΔU = 2π*(laser freq) - Uki. 
+# We need to separate this calculation from _Ωmatrix to implement RWA easily.  
+function _ΔUmatrix(T, timescale, u) #jcp - added this function to replace _Δmatrix for arbitrary rotating frames.
+    ions = T.configuration.ions
+    lasers = T.lasers
+    (N, M) = length(ions), length(lasers)
+    B = T.B
+    ∇B = T.∇B
+    ΔUnmkj = Array{Vector}(undef, N, M)
+    for n in 1:N, m in 1:M
+        Btot = B + ∇B * ionposition(ions[n])
+        v = Vector{Float64}(undef, 0)
+        for transition in subleveltransitions(ions[n])
+            Uk = 0
+            Ui = 0
+            for (index,x) in enumerate(u[n])
+                if x[1]==transition[1]
+                    Ui = x[2]
+                end
+                if x[1]==transition[2]
+                    Uk = x[2]
+                end
+            end
+            Uki = Uk - Ui
+#            push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - Uki))
+            push!(v, timescale * (2π*(c/lasers[m].λ + lasers[m].Δ) + Uki)) #for now, I want the unitary to incorporate the 2pi
+        end
+        ΔUnmkj[n, m] = v
+    end
+    return ΔUnmkj
+end
+
+
 # Returns an array of vectors. the rows and columns of the array refer to ions and lasers,
 # respectively. For each row/column we have a vector of coupling strengths between the laser
 # and all allowed electronic ion transitions.
@@ -691,3 +765,4 @@ function _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     length(a) == 1 ? ld_array = a[1] : ld_array = kron(a...)
     return ld_array, rowvals(ld_array), log.(nonzeros(ld_array))
 end
+
