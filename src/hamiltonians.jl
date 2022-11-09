@@ -88,7 +88,7 @@ function hamiltonian_interaction_picture(
         #push the interaction picture transformation to u
         x = []
         for sublevel in ion.sublevels
-            push!(x, (sublevel, energy(ion, sublevel, B = T.B, ignore_starkshift = true)))
+            push!(x, (sublevel, -2π*energy(ion, sublevel, B = T.B, ignore_starkshift = true)))
         end
         push!(u,x)
     end
