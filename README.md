@@ -5,7 +5,14 @@
 [![test status](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml/badge.svg)](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml)
 [![codecov][codecov-badge]][codecov-url]
 [![License: MIT][license-badge]][license-url]
+This branch implements the ability for a user to perform an arbitrary rotating frame transformation in the process of generating the hamiltonian. These changes are contained within hamiltonians.jl and do not affect any other files at this time.
 
+This is done by adding an argument to the exported function hamiltonian(), which is called u (for "unitary"). This should be a vector of vectors of tuples. The tuples contain an eigenstate of the bare atomic Hamiltonian at the first index, and an angular frequency (don't forget factors of 2π) at the second index, so that u[n][k][1] gives the kth rotating state of the nth ion, and the angular frequency of the rotation is u[n][k][2].
+
+Inside of hamiltonians.jl, this change is implemented via the replacement of the funcion \_Δmatrix with the similarly-named \_ΔUmatrix. Whereas \_Δmatrix was calculating the detuning of atomic transitions with respect to lasers, \_ΔUmatrix instead returns the quantity u[n][k][2] - u[n][j][2] + νm for the nth ion's transition between eigenstates j and k actuated by the mth laser, and νm is the mth laser's angular frequency. Note that for the interaction picture, u[n][k][2] - u[n][j][2] = νm-2π(Enk - Enj) which is exactly what \_Δmatrix was computing before. Replacing \_Δmatrix with \_ΔUmatrix adequately implements the rotating frame transformation specified by u for all of the off-diagonal elements of the Hamiltonian.
+
+Additionally, a new function is exported called hamiltonian\_interaction\_picture() which simply calls hamiltonian() but does not require a unitary transformation vector as an argument. Instead, it automatically generates the interaction picture transformation and feeds it to hamiltonian().
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
 A simple tool, built on top of [QuantumOptics.jl](https://qojulia.org/), for simulating the dynamics of a configuration of
 trapped ions interacting with laser light.
 
