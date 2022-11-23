@@ -197,10 +197,10 @@ function ionprojector(
     ions = IC.ions
     L = length(ions)
     @assert L ≡ length(sublevels) "wrong number of sublevels"
-    modes = get_vibrational_modes(IC)
+    allmodes = modes(IC)
     observable = tensor([projector(ions[i][sublevels[i]]) for i in 1:L]...)
     if !only_ions
-        for mode in modes
+        for mode in allmodes
             observable = observable ⊗ one(mode)
         end
     end

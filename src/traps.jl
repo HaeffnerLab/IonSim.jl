@@ -2,7 +2,16 @@ using QuantumOptics: tensor, CompositeBasis
 using .PhysicalConstants: ħ, c
 
 export Trap,
-    get_basis,
+    basis,
+    configuration,
+    lasers,
+    ions,
+    modes,
+    xmodes,
+    ymodes,
+    zmodes,
+    modecutoff!,
+    groundstate,
     Efield_from_pi_time,
     Efield_from_pi_time!,
     transition_frequency,
@@ -10,7 +19,7 @@ export Trap,
     Efield_from_rabi_frequency,
     Efield_from_rabi_frequency!,
     global_beam!,
-    get_η
+    lambdicke
 
 #############################################################################################
 # an ion trap with a linear ion chain configuration
@@ -147,6 +156,14 @@ end
 
 Base.show(io::IO, T::Trap) = print(io, "Trap")  # suppress long output
 
+
+#############################################################################################
+# Object fields
+#############################################################################################
+configuration(T::Trap) = T.configuration
+lasers(T::Trap) = T.lasers
+
+
 #############################################################################################
 # general functions
 #############################################################################################
@@ -160,10 +177,10 @@ function ionintrap(trap::Trap, ion::Ion)
 end
 
 """
-    get_basis(T::Trap)
+    basis(T::Trap)
 Returns the composite basis describing the Hilbert space for `T`.
 """
-function get_basis(T::Trap)::CompositeBasis
+function basis(T::Trap)::CompositeBasis # Isn't this already constructed as T.basis?
     return tensor(
         T.configuration.ions...,
         T.configuration.vibrational_modes.x...,
@@ -171,6 +188,54 @@ function get_basis(T::Trap)::CompositeBasis
         T.configuration.vibrational_modes.z...,
     )
 end
+
+""""
+    ions(T::Trap)
+Returns a list of the ions in the `Trap`.
+"""
+ions(T::Trap) = ions(configuration(T))
+
+
+"""
+    modes(T::Trap)
+Returns modes(configuration(T))
+"""
+modes(T::Trap) = modes(configuration(T))
+"""
+    xmodes(T::Trap)
+Returns an array of all of the selected `VibrationalModes` in the x-direction in the `Trap`'s `IonConfiguration`.
+"""
+xmodes(T::Trap) = xmodes(configuration(T))
+"""
+    ymodes(T::Trap)
+Returns an array of all of the selected `VibrationalModes` in the y-direction in the `Trap`'s `IonConfiguration`.
+"""
+ymodes(T::Trap) = ymodes(configuration(T))
+"""
+    zmodes(T::Trap)
+Returns an array of all of the selected `VibrationalModes` in the z-direction in the `Trap`'s `IonConfiguration`.
+"""
+zmodes(T::Trap) = zmodes(configuration(T))
+
+"""
+    modecutoff!(T::Trap, N::Int)
+Sets the upper bound of the Hilbert space of all `VibrationalMode`s in the configuration of `T` to be the Fock state `N`.
+"""
+function modecutoff!(T::Trap, N::Int)
+    modecutoff!(configuration(T), N)
+end
+
+"""
+    groundstate(obj)
+If obj is a `VibrationalMode`, returns the N=0 ket of that mode.
+If obj is a Vector of `VibrationalMode`, returns a tensor product `mode1[0] ⊗ mode2[0] ⊗ ...` in the same order given.
+If obj is a `LinearChain` or `Trap`, returns the full ground state of the motional degrees of freedom as a tensor product.
+"""
+groundstate(mode::VibrationalMode) = mode[0]
+groundstate(modes::Vector{VibrationalMode}) = tensor([mode[0] for mode in modes]...)
+groundstate(lc::LinearChain) = groundstate(modes(lc))
+groundstate(T::Trap) = groundstate(modes(T))
+
 
 """
     global_beam!(T::Trap, laser::Laser)
@@ -467,12 +532,12 @@ function (
 end
 
 """
-    get_η(V::VibrationalMode, L::Laser, I::Ion)
+    lambdicke(V::VibrationalMode, L::Laser, I::Ion)
 The Lamb-Dicke parameter: 
 ``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
 for a given vibrational mode, ion and laser.
 """
-function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled = false)
+function lambdicke(V::VibrationalMode, L::Laser, I::Ion; scaled = false)
     @fastmath begin
         k = 2π / L.λ
         scaled ? ν = 1 : ν = V.ν

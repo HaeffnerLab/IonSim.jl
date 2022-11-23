@@ -8,7 +8,11 @@ export IonConfiguration,
     Anm,
     LinearChain,
     characteristic_length_scale,
-    get_vibrational_modes
+    modes,
+    xmodes,
+    ymodes,
+    zmodes,
+    modecutoff!
 
 """
     IonConfiguration
@@ -185,12 +189,38 @@ struct LinearChain <: IonConfiguration  # Note: this is not a mutable struct
 end
 
 """
-    get_vibrational_modes(lc::LinearChain)
+    modes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
 The order is `[lc.x..., lc.y..., lc.z...]`.
 """
-function get_vibrational_modes(lc::LinearChain)
+function modes(lc::LinearChain)
     return collect(Iterators.flatten(lc.vibrational_modes))
+end
+
+"""
+    xmodes(lc::LinearChain)
+Returns an array of all of the selected `VibrationalModes` in the x-direction in the `LinearChain`.
+"""
+xmodes(lc::LinearChain) = lc.vibrational_modes.x
+"""
+    ymodes(lc::LinearChain)
+Returns an array of all of the selected `VibrationalModes` in the y-direction in the `LinearChain`.
+"""
+ymodes(lc::LinearChain) = lc.vibrational_modes.y
+"""
+    zmodes(lc::LinearChain)
+Returns an array of all of the selected `VibrationalModes` in the z-direction in the `LinearChain`.
+"""
+zmodes(lc::LinearChain) = lc.vibrational_modes.z
+
+"""
+    modecutoff!(lc::LinearChain, N::Int)
+Sets the upper bound of the Hilbert space of all `VibrationalMode`s in `lc` to be the Fock state `N`.
+"""
+function modecutoff!(lc::LinearChain, N::Int)
+    for mode in modes(lc)
+        mode.N = N
+    end
 end
 
 function Base.print(lc::LinearChain)
