@@ -1,4 +1,3 @@
-using .PhysicalConstants: PhysicalConstant
 export Ca40
 
 const properties_ca40 = IonProperties(;

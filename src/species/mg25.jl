@@ -1,5 +1,3 @@
-using .PhysicalConstants: PhysicalConstant
-
 export Mg25
 
 const properties_mg25 = IonProperties(

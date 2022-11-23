@@ -1,5 +1,3 @@
-using .PhysicalConstants: PhysicalConstant
-
 export Yb171
 
 const properties_yb171 = IonProperties(

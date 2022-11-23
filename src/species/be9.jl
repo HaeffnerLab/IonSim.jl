@@ -1,5 +1,3 @@
-using .PhysicalConstants: PhysicalConstant
-
 export Be9
 
 const properties_be9 = IonProperties(
