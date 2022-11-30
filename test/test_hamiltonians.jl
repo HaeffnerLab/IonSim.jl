@@ -155,28 +155,28 @@ end
         end
 
         # _Δmatrix
-        # zero B, zero laser detuning, zero stark shift should give an array of zeros
+        # zero B, zero laser detuning, zero manual shift should give an array of zeros
         Δ = IonSim._Δmatrix(T, 1)
         for i in 1:2, j in 1:2
             @test Δ[i, j][1] == 0
         end
 
-        # zero B, zero stark shift, non-zero laser detuning should return columns that all have
+        # zero B, zero manual shift, non-zero laser detuning should return columns that all have
         # the same value
         L1.Δ = 1
         L2.Δ = -1
         Δ = IonSim._Δmatrix(T, 1)
         @test Δ[1, 1][1] ≈ 2π && Δ[2, 1][1] ≈ 2π && Δ[1, 2][1] ≈ -2π && Δ[2, 2][1] ≈ -2π
 
-        # zero B, zero laser detuning, now add stark shift to just one of the ions
+        # zero B, zero laser detuning, now add manual shift to just one of the ions
         L1.Δ = 0
         L2.Δ = 0
-        set_stark_shift!(C, ("S1/2", -1 / 2), 1)
+        set_manual_shift!(C, ("S1/2", -1 / 2), 1)
         Δ = IonSim._Δmatrix(T, 1)
         @test Δ[1, 1][1] ≈ 2π && Δ[1, 2][1] ≈ 2π && Δ[2, 1][1] ≈ 0 && Δ[2, 2][1] ≈ 0
 
         # lastly let's test when resonant
-        zero_stark_shift!(C)
+        zero_manual_shift!(C)
         T.B = 1e-4
         L1.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         Δ = IonSim._Δmatrix(T, 1)
@@ -446,10 +446,10 @@ end
             π *
             exp(-im * (2π * Δ * t * timescale + ϕ)) *
             (C_a[("D5/2", -1 / 2)] ⊗ C_a[("S1/2", -1 / 2)]')
-        ηa1 = get_η(mode1, L, C_a)
-        ηa2 = get_η(mode2, L, C_a)
-        ηb1 = get_η(mode1, L, C_b)
-        ηb2 = get_η(mode2, L, C_b)
+        ηa1 = lambdicke(mode1, L, C_a)
+        ηa2 = lambdicke(mode2, L, C_a)
+        ηb1 = lambdicke(mode1, L, C_b)
+        ηb2 = lambdicke(mode2, L, C_b)
 
         # displacement operators for COM and stretch modes
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method = "truncated")

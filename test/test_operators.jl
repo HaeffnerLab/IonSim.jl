@@ -13,7 +13,7 @@ using Suppressor
         vibrational_modes = (x = [1], y = [], z = [1])
     )
     T = Trap(configuration = chain)
-    allmodes = get_vibrational_modes(chain)
+    allmodes = modes(chain)
 
     @testset "operators -- VibrationalMode operators" begin
         # test creation of VibrationalMode functions by comparison with equiv. QO functions

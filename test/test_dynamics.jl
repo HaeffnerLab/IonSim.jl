@@ -19,7 +19,7 @@ using Suppressor
         L.k = (x̂ + ẑ) / √2
         L.ϵ = (x̂ - ẑ) / √2
         Ω = (rand() + 0.2) * 1e4 # Small so that sideband transitions are suppressed
-        Ω00 = Ω * exp(-get_η(mode, L, C)^2 / 2) # Actual Rabi frequency of n=0 carrier Rabi oscillations
+        Ω00 = Ω * exp(-lambdicke(mode, L, C)^2 / 2) # Actual Rabi frequency of n=0 carrier Rabi oscillations
         Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
         h = hamiltonian(T)
@@ -52,10 +52,10 @@ using Suppressor
             @.((Ω00^2 / (Ω00^2 + Δ^2)) * sin(2π * √(Ω00^2 + Δ^2) / 2 * tout * 1e-6)^2)
         @test isapprox(ex_ionsim_d1, ex_analyt_d1, rtol = 1e-4)
 
-        # add detuning using ion's stark_shift field
+        # add detuning using ion's manual_shift
         L.Δ = 0
-        C.stark_shift[("S1/2", -1 / 2)] = -Δ / 2
-        C.stark_shift[("D5/2", -1 / 2)] = Δ / 2
+        C.manual_shift[("S1/2", -1 / 2)] = -Δ / 2
+        C.manual_shift[("D5/2", -1 / 2)] = Δ / 2
         h = hamiltonian(T)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -70,7 +70,7 @@ using Suppressor
         # hot carrier
         # For this test, numerical result deviates from analytical quickly as nbar grows.
         # Keeping max at 10 ensures agreement to 10^-4; if max nbar is 20, find that need rtol no less than 10^-2
-        zero_stark_shift!(C)
+        zero_manual_shift!(C)
         mode.N = 100
         ψi_ion = C[("S1/2", -1 / 2)] ⊗ C[("S1/2", -1 / 2)]'
         n̄ = rand(1:10)
@@ -78,7 +78,7 @@ using Suppressor
         ψi = ψi_ion ⊗ ψi_mode
         h = hamiltonian(T, lamb_dicke_order = 0)
         tout, sol = timeevolution.schroedinger_dynamic(tspan, ψi, h)
-        η = get_η(mode, L, C)
+        η = lambdicke(mode, L, C)
         ex_ionsim_cn = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
         ex_analyt_cn = analytical.rabi_flop(1e-6 * tout, Ω, η, n̄)
         @test isapprox(ex_ionsim_cn, ex_analyt_cn, rtol = 1e-2)
@@ -144,7 +144,7 @@ using Suppressor
             transitionfrequency(1, ("S1/2", "D5/2"), T)
         L.ϕ = t -> 1e-6 * 2 * pi * Δf * t
         Ω = (rand() + 0.1) * 1e6
-        Ω00 = Ω * exp(-get_η(mode, L, C)^2 / 2)
+        Ω00 = Ω * exp(-lambdicke(mode, L, C)^2 / 2)
         Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
         h = hamiltonian(T, lamb_dicke_order = 0)
@@ -188,7 +188,7 @@ using Suppressor
             ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
             h
         )
-        η = get_η(mode, L, C)
+        η = lambdicke(mode, L, C)
         ex_ionsim_δν = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
         ex_analyt_δν = @.(sin(2π * sqrt(2) * (η / sqrt(1.02)) * Ω00 / 2 * 1e-6 * tout)^2)
         @test isapprox(ex_ionsim_δν, ex_analyt_δν, rtol = 1e-1)
@@ -223,7 +223,7 @@ using Suppressor
         L2.ϵ = x̂
 
         mode.N = 15
-        η = abs(get_η(mode, L1, C))
+        η = abs(lambdicke(mode, L1, C))
         Ω = √(1e3 * ϵ) / η  # This will give a 1kHz MS strength, since coupling goes like (ηΩ)^2/ϵ
 
         Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))

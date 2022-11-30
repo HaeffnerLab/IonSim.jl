@@ -12,7 +12,7 @@ using Suppressor
         @test typeof(sublevel_aliases(C)) == Dict{String, Tuple}
         @test isempty(sublevel_aliases(C))
         @test typeof(shape(C)) == Vector{Int64}
-        @test typeof(stark_shift(C)) == OrderedDict{Tuple, Real}
+        @test typeof(manual_shift(C)) == OrderedDict{Tuple, Real}
         @test typeof(ionnumber(C)) == Missing
         @test typeof(ionposition(C)) == Missing
 
@@ -43,11 +43,11 @@ using Suppressor
         set_sublevel_alias!(C, ("S1/2", -1 / 2), "S")
         set_sublevel_alias!(C, ("D5/2", -5 / 2), "D")
 
-        #test stark shift
-        set_stark_shift!(C, "S", 10.0)
-        @test stark_shift(C, "S") == 10.0
-        zero_stark_shift!(C)
-        @test stark_shift(C, "S") == 0.0
+        #test manual shift
+        set_manual_shift!(C, "S", 10.0)
+        @test manual_shift(C, "S") == 10.0
+        zero_manual_shift!(C)
+        @test manual_shift(C, "S") == 0.0
 
         # test levels and sublevels
         @test levels(C) == ["S1/2", "D5/2"]
