@@ -418,49 +418,49 @@ function Bfield(T::Trap, ion::Ion)
 end
 
 """
-    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+    transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_manualshift=false)
 Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
 One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
 """
-transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
+transitionfrequency(ion::Ion, transition::Tuple, T::Trap; ignore_manualshift = false) =
     transitionfrequency(
         ion,
         transition;
         B = Bfield(T, ion),
-        ignore_starkshift = ignore_starkshift
+        ignore_manualshift = ignore_manualshift
     )
-transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_starkshift = false) =
+transitionfrequency(ion_index::Int, transition::Tuple, T::Trap; ignore_manualshift = false) =
     transitionfrequency(
         T.configuration.ions[ion_index],
         transition,
         T;
-        ignore_starkshift = ignore_starkshift
+        ignore_manualshift = ignore_manualshift
     )
 
 """
-    transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift=false)
+    transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_manualshift=false)
 Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_starkshift = false) =
+transitionwavelength(ion::Ion, transition::Tuple, T::Trap; ignore_manualshift = false) =
     transitionwavelength(
         ion,
         transition;
         B = Bfield(T, ion),
-        ignore_starkshift = ignore_starkshift
+        ignore_manualshift = ignore_manualshift
     )
 transitionwavelength(
     ion_index::Int,
     transition::Tuple,
     T::Trap;
-    ignore_starkshift = false
+    ignore_manualshift = false
 ) = transitionwavelength(
     T.configuration.ions[ion_index],
     transition,
     T;
-    ignore_starkshift = ignore_starkshift
+    ignore_manualshift = ignore_manualshift
 )
 
 """

@@ -10,14 +10,14 @@ export Ion,
     sublevel_aliases,
     sublevelalias,
     shape,
-    stark_shift,
+    manual_shift,
     ionnumber,
     ionposition,
     mass,
     charge,
     nuclearspin,
-    zero_stark_shift!,
-    set_stark_shift!,
+    zero_manual_shift!,
+    set_manual_shift!,
     alias2sublevel,
     sublevel2level,
     set_sublevel_alias!,
@@ -56,7 +56,7 @@ speciesproperties(I::Ion)::IonProperties = I.species_properties
 sublevels(I::Ion)::Vector{Tuple{String, Real}} = I.sublevels
 sublevel_aliases(I::Ion)::Dict{String, Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
-stark_shift(I::Ion)::OrderedDict{Tuple, Real} = I.stark_shift
+manual_shift(I::Ion)::OrderedDict{Tuple, Real} = I.manual_shift
 ionnumber(I::Ion)::Union{Int, Missing} = I.ionnumber
 ionposition(I::Ion)::Union{Real, Missing} = I.position
 
@@ -135,32 +135,32 @@ function clear_all_sublevel_aliases!(I::Ion)
 end
 
 """
-    set_stark_shift!(I::Ion, sublevel, shift::Real)
-Applies a stark shift `shift` to the chosen `sublevel` of `I` (overwriting any previously assigned stark shift).
+    set_manual_shift!(I::Ion, sublevel, shift::Real)
+Applies a manual shift `shift` to the chosen `sublevel` of `I` (overwriting any previously assigned manual shift).
 """
-function set_stark_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
+function set_manual_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
     validatesublevel(I, sublevel)
-    return I.stark_shift[(sublevel[1], Rational(sublevel[2]))] = shift
+    return I.manual_shift[(sublevel[1], Rational(sublevel[2]))] = shift
 end
-set_stark_shift!(I::Ion, alias::String, shift::Real) =
-    set_stark_shift!(I, alias2sublevel(I, alias), shift)
+set_manual_shift!(I::Ion, alias::String, shift::Real) =
+    set_manual_shift!(I, alias2sublevel(I, alias), shift)
 """
-    set_stark_shift!(I::Ion, stark_shift_dict::Dict)
-Applies `set_stark_shift(I, sublevel, shift)` to all pairs `sublevel => shift` of the Dict `stark_shift_dict`.
+    set_manual_shift!(I::Ion, manual_shift_dict::Dict)
+Applies `set_manual_shift(I, sublevel, shift)` to all pairs `sublevel => shift` of the Dict `manual_shift_dict`.
 """
-function set_stark_shift!(I::Ion, stark_shift_dict::Dict)
-    for sublevel in keys(stark_shift_dict)
-        set_stark_shift!(I, sublevel, stark_shift_dict[sublevel])
+function set_manual_shift!(I::Ion, manual_shift_dict::Dict)
+    for sublevel in keys(manual_shift_dict)
+        set_manual_shift!(I, sublevel, manual_shift_dict[sublevel])
     end
 end
 
 """
-    zero_stark_shift!(I::Ion)
-Sets the stark shift of all sublevels of `I` to zero.
+    zero_manual_shift!(I::Ion)
+Sets the manual shift of all sublevels of `I` to zero.
 """
-function zero_stark_shift!(I::Ion)
-    for sublevel in keys(stark_shift(I))
-        I.stark_shift[sublevel] = 0.0
+function zero_manual_shift!(I::Ion)
+    for sublevel in keys(manual_shift(I))
+        I.manual_shift[sublevel] = 0.0
     end
 end
 
@@ -302,14 +302,14 @@ function landegf(I::Ion, level::String)
 end
 
 """
-    stark_shift(I::Ion, sublevel)
-Returns the assigned stark shift of `sublevel` of Ion `I`.
+    manual_shift(I::Ion, sublevel)
+Returns the assigned manual shift of `sublevel` of Ion `I`.
 """
-function stark_shift(I::Ion, sublevel::Tuple{String, Real})
+function manual_shift(I::Ion, sublevel::Tuple{String, Real})
     validatesublevel(I, sublevel)
-    return stark_shift(I)[sublevel]
+    return manual_shift(I)[sublevel]
 end
-stark_shift(I::Ion, alias::String) = stark_shift(I, alias2sublevel(I, alias))
+manual_shift(I::Ion, alias::String) = manual_shift(I, alias2sublevel(I, alias))
 
 """
     zeeman_shift(I::Ion, sublevel, B::Real)
@@ -340,21 +340,21 @@ zeeman_shift(I::Ion, alias::String, B::Real) = zeeman_shift(I, alias2sublevel(I,
 # This function is written to be able to accept either a level or sublevel in the second argument
 # Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
 """
-    energy(I::Ion, sublevel; B=0, ignore_starkshift=false)
-Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting the value of the magnetic field `B`. The Stark shift may be omitted by setting `ignore_starkshift=true`.
+    energy(I::Ion, sublevel; B=0, ignore_manualshift=false)
+Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting the value of the magnetic field `B`. The manual shift may be omitted by setting `ignore_manualshift=true`.
 """
-function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_starkshift = false)
+function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_manualshift = false)
     validatesublevel(I, sublevel)
     E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
     zeeman = zeeman_shift(I, sublevel, B)
-    stark = (ignore_starkshift ? 0.0 : stark_shift(I, sublevel))
-    return E0 + zeeman + stark
+    manual = (ignore_manualshift ? 0.0 : manual_shift(I, sublevel))
+    return E0 + zeeman + manual
 end
 """
     energy(I::Ion, level::String)
 Returns the energy of `level` of `I`.
 """
-function energy(I::Ion, level_or_alias::String; B = 0, ignore_starkshift = false)
+function energy(I::Ion, level_or_alias::String; B = 0, ignore_manualshift = false)
     # If the second argument is a String, it could be either a level name or the alias of a sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Return the bare energy of that level.
@@ -365,34 +365,34 @@ function energy(I::Ion, level_or_alias::String; B = 0, ignore_starkshift = false
             I,
             alias2sublevel(I, level_or_alias),
             B = B,
-            ignore_starkshift = ignore_starkshift
+            ignore_manualshift = ignore_manualshift
         )
     end
 end
 
 """
-    transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
+    transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)
 `transition` is a Tuple of two sublevels or levels.
 
 Computes the absolute values of the difference in energies between `transition[1]` and `transition[2]`.
 
-If between sublevels, then the Zeeman shift may be included by setting the value of the magnetic field `B`, and Stark shifts may be omitted by setting `ignore_starkshift=true`.
+If between sublevels, then the Zeeman shift may be included by setting the value of the magnetic field `B`, and manual shifts may be omitted by setting `ignore_manualshift=true`.
 """
-function transitionfrequency(I::Ion, transition::Tuple; B = 0, ignore_starkshift = false)
+function transitionfrequency(I::Ion, transition::Tuple; B = 0, ignore_manualshift = false)
     # Multidispatch of the function energy should make this work regardless of whether the transition is between levels or sublevels, and regardless of whether or not aliases are used
     return abs(
-        energy(I, transition[1], B = B, ignore_starkshift = ignore_starkshift) -
-        energy(I, transition[2], B = B, ignore_starkshift = ignore_starkshift)
+        energy(I, transition[1], B = B, ignore_manualshift = ignore_manualshift) -
+        energy(I, transition[2], B = B, ignore_manualshift = ignore_manualshift)
     )
 end
 
 """
-    transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)
-Returns the wavelength corresponding to `transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_starkshift=false)`.
+    transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)
+Returns the wavelength corresponding to `transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)`.
 """
-function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_starkshift = false)
+function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_manualshift = false)
     return c /
-           transitionfrequency(I, transition, B = B, ignore_starkshift = ignore_starkshift)
+           transitionfrequency(I, transition, B = B, ignore_manualshift = ignore_manualshift)
 end
 
 """
@@ -644,13 +644,13 @@ function _construct_sublevels(selected_sublevels, properties)
     return sublevels
 end
 
-function _construct_starkshift(starkshift, sublevels)
-    starkshift_full = OrderedDict{Tuple, Real}()
+function _construct_manualshift(manualshift, sublevels)
+    manualshift_full = OrderedDict{Tuple, Real}()
     for sublevel in sublevels
-        starkshift_full[sublevel] =
-            (haskey(starkshift, sublevel) ? starkshift[sublevel] : 0.0)
+        manualshift_full[sublevel] =
+            (haskey(manualshift, sublevel) ? manualshift[sublevel] : 0.0)
     end
-    return starkshift_full
+    return manualshift_full
 end
 
 #############################################################################################
@@ -674,38 +674,38 @@ function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
         return
     elseif s == :sublevels
         Core.setproperty!(I, :sublevels, _construct_sublevels(v, speciesproperties(I)))
-        # Also update the stark shift dict as necessary; keep old stark shift values and assign zero stark shift to new sublevels
-        starkshift_full_old = stark_shift(I)
-        starkshift_full_new = OrderedDict{Tuple, Real}()
+        # Also update the manual shift dict as necessary; keep old manual shift values and assign zero manual shift to new sublevels
+        manualshift_full_old = manual_shift(I)
+        manualshift_full_new = OrderedDict{Tuple, Real}()
         for sublevel in sublevels(I)
-            starkshift_full_new[sublevel] = (
-                haskey(starkshift_full_old, sublevel) ? starkshift_full_old[sublevel] : 0.0
+            manualshift_full_new[sublevel] = (
+                haskey(manualshift_full_old, sublevel) ? manualshift_full_old[sublevel] : 0.0
             )
         end
-        Core.setproperty!(I, :stark_shift, starkshift_full_new)
+        Core.setproperty!(I, :manual_shift, manualshift_full_new)
         return
     elseif s == :sublevel_aliases
         for (alias, sublevel) in v
             validatesublevel(I, sublevel)
         end
         Core.setproperty!(I, :sublevel_aliases, v)
-    elseif s == :stark_shift
-        starkshift_full_new = stark_shift(I) # New stark shift dict is initially identical to the old one
+    elseif s == :manual_shift
+        manualshift_full_new = manual_shift(I) # New manual shift dict is initially identical to the old one
         for (sublevel, shift) in v
             validatesublevel(I, sublevel)
-            starkshift_full_new[sublevel] = shift # Change the shifts as necessary
+            manualshift_full_new[sublevel] = shift # Change the shifts as necessary
         end
-        Core.setproperty!(I, :stark_shift, starkshift_full_new)
+        Core.setproperty!(I, :manual_shift, manualshift_full_new)
     end
 end
 
 function Base.:(==)(b1::T, b2::T) where {T <: Ion}
-    # Takes two ions to be equal if they are the same species, contain the same sublevels, and have the same stark shifts
+    # Takes two ions to be equal if they are the same species, contain the same sublevels, and have the same manual shifts
     # Does not care about sublevel aliases or the ordering of sublevels
     return (
         b1.species_properties == b2.species_properties &&
         sort(b1.sublevels) == sort(b2.sublevels) &&
-        sort(b1.stark_shift) == sort(b2.stark_shift)
+        sort(b1.manual_shift) == sort(b2.manual_shift)
     )
 end
 
@@ -783,7 +783,7 @@ function Base.:(==)(p1::IonProperties, p2::IonProperties)
 end
 
 """
-IonInstance(selected_sublevels::Vector{Tuple}[, starkshift::Dict])
+IonInstance(selected_sublevels::Vector{Tuple}[, manualshift::Dict])
 Ion instance of some species
 
 `selected_sublevels` specifies which energy sublevels will be present in the Hilbert space of this Ion instance, as a subset of all possible sublevels.
@@ -804,7 +804,7 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 * `sublevels`::Vector{Tuple{String,Real}}: List of all sublevels present in the Hilbert space
 * `sublevel_aliases::Dict{String,Tuple}`: Dict specifying aliases assigned to sublevels, in the format `alias => sublevel`
 * `shape`::Vector{Int}: Dimension of the Hilbert space
-* `stark_shift::OrderedDict`: A dictionary with keys denoting the selected levels and values, a real number for describing a shift of the level's energy. This is just a convenient way to add Stark shifts to the simulation without additional resources
+* `manual_shift::OrderedDict`: A dictionary with keys denoting the selected levels and values, a real number for describing a shift of the level's energy. This is just a convenient way to add manual shifts to the simulation, such as Stark shifts off of energy levels not present in the Hilbert space, without additional resources
 * `ionnumber`: When the ion is added to an `IonConfiguration`, this value keeps track of its order in the chain
 * `position`: When the ion is added to an `IonConfiguration`, this value keeps track of its physical position in meters
 """
@@ -814,7 +814,7 @@ mutable struct IonInstance{Species <: Any} <: Ion
     sublevels::Vector{Tuple{String, Real}}
     sublevel_aliases::Dict{String, Tuple}
     shape::Vector{Int}
-    stark_shift::OrderedDict{Tuple, Real}
+    manual_shift::OrderedDict{Tuple, Real}
     ionnumber::Union{Int, Missing}
     position::Union{Real, Missing}
 
@@ -822,17 +822,17 @@ mutable struct IonInstance{Species <: Any} <: Ion
     function IonInstance{Species}(
         properties,
         selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
-        starkshift = Dict()
+        manualshift = Dict()
     ) where {Species <: Any}
         sublevels = _construct_sublevels(selected_sublevels, properties)
         shape = [length(sublevels)]
-        starkshift_full = _construct_starkshift(starkshift, sublevels)
+        manualshift_full = _construct_manualshift(manualshift, sublevels)
         return new{Species}(
             properties,
             sublevels,
             Dict(),
             shape,
-            starkshift_full,
+            manualshift_full,
             missing,
             missing
         )
@@ -842,20 +842,20 @@ mutable struct IonInstance{Species <: Any} <: Ion
         sublevels,
         sublevel_aliases,
         shape,
-        stark_shift,
+        manual_shift,
         ionnumber,
         position
     ) where {Species <: Any}
         sublevels = deepcopy(sublevels)
         sublevel_aliases = deepcopy(sublevel_aliases)
         shape = copy(shape)
-        stark_shift = deepcopy(stark_shift)
+        manual_shift = deepcopy(manual_shift)
         return new{Species}(
             species_properties,
             sublevels,
             sublevel_aliases,
             shape,
-            stark_shift,
+            manual_shift,
             ionnumber,
             position
         )
