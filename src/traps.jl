@@ -15,6 +15,8 @@ export Trap,
     Efield_from_pi_time,
     Efield_from_pi_time!,
     transition_frequency,
+    wavelength!,
+    wavelength_from_transition!,
     set_gradient!,
     Efield_from_rabi_frequency,
     Efield_from_rabi_frequency!,
@@ -460,6 +462,32 @@ transitionwavelength(
     T;
     ignore_starkshift = ignore_starkshift
 )
+
+"""
+    wavelength!(laser::Laser, wavelength::Real)
+Sets the wavelength of `laser` to `wavelength`.
+"""
+function wavelength!(laser::Laser, wavelength::Real)
+    laser.λ = wavelength
+end
+
+"""
+    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, Bfield::Real)
+    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, T::Trap)
+Sets the wavelength of `laser` to the transition wavelength of `transition` in the ion `ion`,
+at a magnetic field value given by `Bfield` if the final argument is a `Real`, or at the magnetic
+field seen by `ion` if the final argument is the `Trap` that contains it.
+"""
+function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, Bfield::Real)
+    wavelength = transitionwavelength(ion, transition, B=Bfield)
+    laser.λ = wavelength
+    return wavelength
+end
+function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, T::Trap)
+    wavelength = transitionwavelength(ion, transition, T)
+    laser.λ = wavelength
+    return wavelength
+end
 
 """
     matrix_element(I::Ion, transition::Tuple, T::Trap, laser::Laser, time::Real)
