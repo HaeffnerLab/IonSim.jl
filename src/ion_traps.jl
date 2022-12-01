@@ -16,7 +16,7 @@ export IonTrap,
 
 """
     IonTrap
-Physical configuration of ions. Stores a collection of ions and  information about the
+Physical configuration of ions. Stores a collection of ions and information about the
 interactions of their center of mass motion.
 """
 abstract type IonTrap end

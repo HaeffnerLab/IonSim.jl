@@ -121,7 +121,7 @@ using Suppressor
         # @test_throws AssertionError C.selected_level_structure = []
 
         # # test get properties
-        warning = "ion has not been added to a configuration"
+        warning = "ion has not been added to an iontrap"
         @test_logs (:warn, warning) C.ionnumber
         @test_logs (:warn, warning) C.position
     end

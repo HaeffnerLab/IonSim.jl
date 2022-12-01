@@ -17,12 +17,12 @@ using Suppressor
     )
 
     @testset "chambers -- Chamber" begin
-        T = Chamber(configuration = chain, lasers = [L1, L1])
+        T = Chamber(iontrap = chain, lasers = [L1, L1])
 
         # test construction of CompositeBasis
-        @test T.basis.bases[1] ≡ T.configuration.ions[1]
-        @test T.basis.bases[2] ≡ T.configuration.ions[2]
-        @test T.basis.bases[3] ≡ T.configuration.vibrational_modes.z[1]
+        @test T.basis.bases[1] ≡ T.iontrap.ions[1]
+        @test T.basis.bases[2] ≡ T.iontrap.ions[2]
+        @test T.basis.bases[3] ≡ T.iontrap.vibrational_modes.z[1]
 
         # test construction of T.δB
         t = 0:1:100
@@ -36,9 +36,9 @@ using Suppressor
 
         # test for warning when lasers=[L, L, L, ...] where L point to the same thing
         warn = "Some lasers point to the same thing. Making copies."
-        @test_logs (:warn, warn) Chamber(configuration = chain, lasers = [L1, L1, L1])
+        @test_logs (:warn, warn) Chamber(iontrap = chain, lasers = [L1, L1, L1])
         # and test that, in this case, copies are made
-        T1 = Chamber(configuration = chain, lasers = [L1, L1, L1, L1], δB = t -> t)
+        T1 = Chamber(iontrap = chain, lasers = [L1, L1, L1, L1], δB = t -> t)
         for i in 1:4, j in (i + 1):4
             @test !(T1.lasers[i] ≡ T1.lasers[j])
         end
@@ -51,15 +51,15 @@ using Suppressor
         basis = T.basis
         T.basis = 100
         @test T.basis == basis
-        # changing the configuration should also update the basis
+        # changing the iontrap should also update the basis
         chain1 = LinearChain(
             ions = [C, C, C],
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (; z = [1])
         )
         @test length(T.basis.bases) ≡ 3
-        T.configuration = chain1
-        @test T.configuration ≡ chain1
+        T.iontrap = chain1
+        @test T.iontrap ≡ chain1
         @test length(T.basis.bases) ≡ 4
 
         # make sure print/show doesn't throw errors
@@ -69,7 +69,7 @@ using Suppressor
 
     @testset "chambers -- general functions" begin
         Bhat = (x̂ + ŷ + ẑ) / √3
-        T = Chamber(configuration = chain, lasers = [L1], Bhat = Bhat)
+        T = Chamber(iontrap = chain, lasers = [L1], Bhat = Bhat)
 
         # basis
         @test T.basis == basis(T)
@@ -82,7 +82,7 @@ using Suppressor
         # Efield_from_pi_time
         ion_index = 1
         laser_index = 1
-        ion = T.configuration.ions[ion_index]
+        ion = T.iontrap.ions[ion_index]
         transition = (("S1/2", -1 / 2), ("D5/2", -1 / 2))
         # compare to specific pre-computed value for both methods
         E1 = Efield_from_pi_time(1e-6, Bhat, L1, ion, transition)
@@ -103,7 +103,7 @@ using Suppressor
         # Efield_from_rabi_frequency
         ion_index = 1
         laser_index = 1
-        ion = T.configuration.ions[ion_index]
+        ion = T.iontrap.ions[ion_index]
         transition = (("S1/2", -1 / 2), ("D5/2", -1 / 2))
         # compare to specific pre-computed value for both methods
         E1 = Efield_from_rabi_frequency(5e5, Bhat, L1, ion, transition)
@@ -134,8 +134,8 @@ using Suppressor
 
         # set_gradient
         set_gradient!(T, (1, 2), transition, 1e6)
-        f1 = transitionfrequency(T.configuration.ions[1], transition, T)
-        f2 = transitionfrequency(T.configuration.ions[2], transition, T)
+        f1 = transitionfrequency(T.iontrap.ions[1], transition, T)
+        f2 = transitionfrequency(T.iontrap.ions[2], transition, T)
         @test abs(f1 - f2) ≈ 1e6
 
         # test :(==)
@@ -144,7 +144,7 @@ using Suppressor
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (x = [1], z = [1])
         )
-        T = Chamber(configuration = chain1, lasers = [L1, L2])
+        T = Chamber(iontrap = chain1, lasers = [L1, L2])
         xmode = chain1.vibrational_modes.x[1]
         zmode = chain1.vibrational_modes.z[1]
         cb = basis(T)

@@ -59,7 +59,7 @@ function hamiltonian(
 )
     return hamiltonian(
         T,
-        T.configuration,
+        T.iontrap,
         timescale,
         lamb_dicke_order,
         rwa_cutoff,
@@ -76,7 +76,7 @@ end
 # Hamiltonian.
 function hamiltonian(
     T::Chamber,
-    configuration::LinearChain,
+    iontrap::LinearChain,
     timescale::Real,
     lamb_dicke_order::Union{Vector{Int}, Int},
     rwa_cutoff::Real,
@@ -190,7 +190,7 @@ function _setup_base_hamiltonian(
     νlist = Tuple([mode.ν for mode in allmodes])
     mode_dims = [mode.N + 1 for mode in allmodes]
 
-    ions = reverse(T.configuration.ions)
+    ions = reverse(T.iontrap.ions)
     Q = prod([ion.shape[1] for ion in ions])
     ion_arrays = [spdiagm(0 => [true for _ in 1:ion.shape[1]]) for ion in ions]
 
@@ -444,7 +444,7 @@ end
 # the time-dependence of δB. When the system is integrated, the Hamiltonian terms will be
 # updated at each time step by by bfunc(t) times the individual susceptibilities.
 function _setup_global_B_hamiltonian(T, timescale)
-    ions = T.configuration.ions
+    ions = T.iontrap.ions
     global_B_indices = Vector{Vector{Int64}}(undef, 0)
     global_B_scales = Vector{Float64}(undef, 0)
     δB = T.δB
@@ -493,7 +493,7 @@ end
 # A 3D array of Lamb-Dicke parameters for each combination of ion, laser and mode. Modes are
 # populated in reverse order.
 function _ηmatrix(T)
-    ions = T.configuration.ions
+    ions = T.iontrap.ions
     vms = modes(T)
     lasers = T.lasers
     (N, M, L) = map(x -> length(x), [ions, lasers, vms])
@@ -517,7 +517,7 @@ end
 # for each ion transition. We need to separate this calculation from _Ωmatrix to implement
 # RWA easily.
 function _Δmatrix(T, timescale)
-    ions = T.configuration.ions
+    ions = T.iontrap.ions
     lasers = T.lasers
     (N, M) = length(ions), length(lasers)
     B = T.B
@@ -539,7 +539,7 @@ end
 # respectively. For each row/column we have a vector of coupling strengths between the laser
 # and all allowed electronic ion transitions.
 function _Ωmatrix(T, timescale)
-    ions = T.configuration.ions
+    ions = T.iontrap.ions
     lasers = T.lasers
     (N, M) = length(ions), length(lasers)
     Ωnmkj = Array{Vector}(undef, N, M)

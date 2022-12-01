@@ -29,14 +29,14 @@ export Chamber,
 
 """
     Chamber(;
-            configuration::LinearChain, B::Real=0, Bhat::NamedTuple{(:x,:y,:z)=ẑ, ∇B::Real=0,
+            iontrap::LinearChain, B::Real=0, Bhat::NamedTuple{(:x,:y,:z)=ẑ, ∇B::Real=0,
              δB::Union{Real,Function}=0, lasers::Vector{Laser}
     )
 
 Information necessary to describe the Hamiltonian for a collection of ions in a linear chain
 interacting with laser light.
 **user-defined fields**
-* `configuration<:LinearChain`
+* `iontrap<:LinearChain`
 * `B`: A real value describing the mean magnitude of the B-field [Tesla].
 * `Bhat::NamedTuple{(:x,:y,:z)}`: Describes the direction of the B-field (defaults to ẑ).
 * `∇B`: Magnitude of the B-field gradient. We assume that the gradient always points along the
@@ -53,10 +53,10 @@ interacting with laser light.
         modes. If constructing the Hamiltonian explictly (with [`hamiltonian`](@ref)), then
         the ordering of the basis is set, by convention, as
         ``ion₁ ⊗ ion₂ ⊗ ... ⊗ ion_N ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ mode_N``, where the ion bases are
-        ordered according to the order in `T.configuration.ions` and the vibrational modes
+        ordered according to the order in `T.iontrap.ions` and the vibrational modes
         are ordered according to the order in
-        `[T.configuration.vibrational_modes.x, T.configuration.vibrational_modes.y,
-        T.configuration.vibrational_modes.z]`.
+        `[T.iontrap.vibrational_modes.x, T.iontrap.vibrational_modes.y,
+        T.iontrap.vibrational_modes.z]`.
     E.g. for:
 
     ```
@@ -72,7 +72,7 @@ interacting with laser light.
     Otherwise, the ordering is according to the form of the initial state used in the solver.
 """
 mutable struct Chamber
-    configuration::LinearChain
+    iontrap::LinearChain
     B::Real
     Bhat::NamedTuple{(:x, :y, :z)}
     ∇B::Real
@@ -81,7 +81,7 @@ mutable struct Chamber
     basis::CompositeBasis
     _cnst_δB::Bool
     function Chamber(;
-        configuration::LinearChain,
+        iontrap::LinearChain,
         B = 0,
         Bhat = ẑ,
         ∇B = 0,
@@ -91,7 +91,7 @@ mutable struct Chamber
         warn = nothing
         for i in 1:length(lasers)
             if length(lasers[i].pointing) == 0
-                for n in eachindex(configuration.ions)
+                for n in eachindex(iontrap.ions)
                     push!(lasers[i].pointing, (n, 1.0))
                 end
             end
@@ -107,9 +107,9 @@ mutable struct Chamber
         end
         @assert isapprox(norm(Bhat), 1, rtol = 1e-6) "!(|$Bhat| = 1)"
         for (li, l) in enumerate(lasers), p in l.pointing
-            @assert p[1] <= length(configuration.ions) (
-                """lasers[$li] points at configuration.ions[$(p[1])], but there are only
-                 $(length(configuration.ions)) ions."""
+            @assert p[1] <= length(iontrap.ions) (
+                """lasers[$li] points at iontrap.ions[$(p[1])], but there are only
+                 $(length(iontrap.ions)) ions."""
             )
         end
         if TδB <: Number
@@ -120,12 +120,12 @@ mutable struct Chamber
             δBt = δB
         end
         basis = tensor(
-            configuration.ions...,
-            configuration.vibrational_modes.x...,
-            configuration.vibrational_modes.y...,
-            configuration.vibrational_modes.z...,
+            iontrap.ions...,
+            iontrap.vibrational_modes.x...,
+            iontrap.vibrational_modes.y...,
+            iontrap.vibrational_modes.z...,
         )
-        return new(configuration, B, Bhat, ∇B, δBt, lasers, basis, _cnst_δB)
+        return new(iontrap, B, Bhat, ∇B, δBt, lasers, basis, _cnst_δB)
     end
 end
 
@@ -142,7 +142,7 @@ function Base.setproperty!(T::Chamber, s::Symbol, v::Tv) where {Tv}
         Core.setproperty!(T, :_cnst_δB, _cnst_δB)
     elseif s == :basis || s == :_cnst_δB
         return
-    elseif s == :configuration
+    elseif s == :iontrap
         Core.setproperty!(T, s, v)
         basis = tensor(
             v.ions...,
@@ -162,7 +162,7 @@ Base.show(io::IO, T::Chamber) = print(io, "Chamber")  # suppress long output
 #############################################################################################
 # Object fields
 #############################################################################################
-iontrap(T::Chamber) = T.configuration
+iontrap(T::Chamber) = T.iontrap
 lasers(T::Chamber) = T.lasers
 
 
@@ -175,7 +175,7 @@ lasers(T::Chamber) = T.lasers
 Returns a boolean that indicates whether `ion` is actually in `trap`. Useful for checking if an error needs to be thrown.
 """
 function ionintrap(trap::Chamber, ion::Ion)
-    return ion in ions(trap.configuration)
+    return ion in ions(trap.iontrap)
 end
 
 """
@@ -184,10 +184,10 @@ Returns the composite basis describing the Hilbert space for `T`.
 """
 function basis(T::Chamber)::CompositeBasis # Isn't this already constructed as T.basis?
     return tensor(
-        T.configuration.ions...,
-        T.configuration.vibrational_modes.x...,
-        T.configuration.vibrational_modes.y...,
-        T.configuration.vibrational_modes.z...,
+        T.iontrap.ions...,
+        T.iontrap.vibrational_modes.x...,
+        T.iontrap.vibrational_modes.y...,
+        T.iontrap.vibrational_modes.z...,
     )
 end
 
@@ -200,7 +200,7 @@ ions(T::Chamber) = ions(iontrap(T))
 
 """
     modes(T::Chamber)
-Returns modes(configuration(T))
+Returns modes(iontrap(T))
 """
 modes(T::Chamber) = modes(iontrap(T))
 """
@@ -221,7 +221,7 @@ zmodes(T::Chamber) = zmodes(iontrap(T))
 
 """
     modecutoff!(T::Chamber, N::Int)
-Sets the upper bound of the Hilbert space of all `VibrationalMode`s in the configuration of `T` to be the Fock state `N`.
+Sets the upper bound of the Hilbert space of all `VibrationalMode`s in the `IonTrap` of `T` to be the Fock state `N`.
 """
 function modecutoff!(T::Chamber, N::Int)
     modecutoff!(iontrap(T), N)
@@ -244,7 +244,7 @@ groundstate(T::Chamber) = groundstate(modes(T))
 Set `laser` to shine with full intensity on all ions in `Chamber`.
 """
 function global_beam!(T::Chamber, laser::Laser)
-    for n in eachindex(T.configuration.ions)
+    for n in eachindex(T.iontrap.ions)
         push!(laser.pointing, (n, 1.0))
     end
 end
@@ -265,7 +265,7 @@ Efield_from_pi_time(
         )
 ```
 which is the same as
-`Efield_from_pi_time(pi_time, T.Bhat, T.lasers[laser_index], T.configuration.ions[ion_index],
+`Efield_from_pi_time(pi_time, T.Bhat, T.lasers[laser_index], T.iontrap.ions[ion_index],
 transition)`
 """
 function Efield_from_pi_time(
@@ -300,7 +300,7 @@ function Efield_from_pi_time(
         pi_time,
         T.Bhat,
         T.lasers[laser_index],
-        T.configuration.ions[ion_index],
+        T.iontrap.ions[ion_index],
         transition
     )
 end
@@ -351,7 +351,7 @@ Efield_from_rabi_frequency(
 ```
 which is the same as
 `Efield_from_rabi_frequency(pi_time, T.Bhat, T.lasers[laser_index],
-T.configuration.ions[ion_index], transition)`
+T.iontrap.ions[ion_index], transition)`
 """
 function Efield_from_rabi_frequency(
     Ω::Real,
@@ -374,7 +374,7 @@ function Efield_from_rabi_frequency(
         Ω,
         T.Bhat,
         T.lasers[laser_index],
-        T.configuration.ions[ion_index],
+        T.iontrap.ions[ion_index],
         transition
     )
 end
@@ -432,7 +432,7 @@ transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_manualshift 
     )
 transitionfrequency(ion_index::Int, transition::Tuple, T::Chamber; ignore_manualshift = false) =
     transitionfrequency(
-        T.configuration.ions[ion_index],
+        T.iontrap.ions[ion_index],
         transition,
         T;
         ignore_manualshift = ignore_manualshift
@@ -457,7 +457,7 @@ transitionwavelength(
     T::Chamber;
     ignore_manualshift = false
 ) = transitionwavelength(
-    T.configuration.ions[ion_index],
+    T.iontrap.ions[ion_index],
     transition,
     T;
     ignore_manualshift = ignore_manualshift
@@ -499,7 +499,7 @@ One may alternatively replace `ion` with `ion_index`::Int, which instead specifi
 matrix_element(I::Ion, transition::Tuple, T::Chamber, laser::Laser, time::Real) =
     matrix_element(I, transition, laser.E(time), laser.k, laser.ϵ, T.Bhat)
 matrix_element(ion_index::Int, transition::Tuple, T::Chamber, laser::Laser, time::Real) =
-    matrix_element(T.configuration.ions[ion_index], transition, T, laser, time)
+    matrix_element(T.iontrap.ions[ion_index], transition, T, laser, time)
 
 """
     zeeman_shift(I::Ion, sublevel, T::Chamber)
@@ -510,7 +510,7 @@ One may alternatively replace `ion` with `ion_index`::Int, which instead specifi
 zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Chamber) =
     zeeman_shift(I, sublevel, Bfield(T, I))
 zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Chamber) =
-    zeeman_shift(T.configuration.ions[ion_index], sublevel, T)
+    zeeman_shift(T.iontrap.ions[ion_index], sublevel, T)
 
 """
     set_gradient!(
@@ -521,8 +521,8 @@ ions, which are assumed to be of the same species. `ion_indxs` refer to the
 ordering of the ions in the chain.
 """
 function set_gradient!(T::Chamber, ion_indxs::Tuple{Int, Int}, transition::Tuple, f::Real)
-    ionA = T.configuration.ions[ion_indxs[1]]
-    ionB = T.configuration.ions[ion_indxs[2]]
+    ionA = T.iontrap.ions[ion_indxs[1]]
+    ionB = T.iontrap.ions[ion_indxs[2]]
     separation = abs(ionposition(ionA) - ionposition(ionB))
 
     (SL1, SL2) = transition

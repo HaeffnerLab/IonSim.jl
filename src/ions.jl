@@ -662,7 +662,7 @@ Base.getindex(I::Ion, state::Union{Tuple{String, Real}, String, Int}) = ionstate
 function Base.getproperty(I::Ion, s::Symbol)
     if s == :ionnumber || s == :position
         if typeof(getfield(I, s)) <: Missing
-            @warn "ion has not been added to a configuration"
+            @warn "ion has not been added to an iontrap"
             return missing
         end
     end

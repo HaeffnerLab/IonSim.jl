@@ -128,7 +128,7 @@ end
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (; z = [1])
         )
-        T = Chamber(configuration = chain, lasers = [L1, L2])
+        T = Chamber(iontrap = chain, lasers = [L1, L2])
         Ωnmkj = IonSim._Ωmatrix(T, 1)
         t = rand(0:1e-3:100)
 
@@ -194,7 +194,7 @@ end
         L3.pointing = [(1, 1.0), (2, 1.0)]
         L3.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         L3.k = ẑ
-        T = Chamber(configuration = chain, lasers = [L1, L2, L3])
+        T = Chamber(iontrap = chain, lasers = [L1, L2, L3])
         η = IonSim._ηmatrix(T)
 
         # η[1,1,1] corresponds laser1, ion1, mode1 (x̂) and η[1,1,3] corresponds laser1, ion1,
@@ -229,7 +229,7 @@ end
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (; z = [1])
         )
-        T = Chamber(configuration = chain, lasers = [L], δB = 0)
+        T = Chamber(iontrap = chain, lasers = [L], δB = 0)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
 
         # T.δB = 0 -> global_B_indices and global_B_scales should be empty arrays
@@ -240,7 +240,7 @@ end
         # now let's test nontrivial T.δB
         T.δB = sin
         t = 0:0.1:10
-        T.configuration.vibrational_modes.z[1].N = 3
+        T.iontrap.vibrational_modes.z[1].N = 3
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
         # make sure bfunc is correct
         @test bfunc.(t) == 2π .* sin.(t)
@@ -259,14 +259,14 @@ end
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (; z = [1])
         )
-        T = Chamber(configuration = chain, lasers = [L], δB = 0)
+        T = Chamber(iontrap = chain, lasers = [L], δB = 0)
         # should return empty arrays if δν=0
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         @test length(δν_indices) == 0 && length(δν_functions) == 0
 
         # test output for simple case
-        T.configuration.vibrational_modes.z[1].N = 3
-        T.configuration.vibrational_modes.z[1].δν = 1
+        T.iontrap.vibrational_modes.z[1].N = 3
+        T.iontrap.vibrational_modes.z[1].δν = 1
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         indxs = [[8j + i for i in 1:8] for j in 1:3]
         @test δν_indices[1] == indxs
@@ -277,17 +277,17 @@ end
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             vibrational_modes = (y = [1], z = [1])
         )
-        T = Chamber(configuration = chain, lasers = [L], δB = 0)
-        T.configuration.vibrational_modes.y[1].N = 3
-        T.configuration.vibrational_modes.z[1].N = 3
-        T.configuration.vibrational_modes.z[1].δν = 1
+        T = Chamber(iontrap = chain, lasers = [L], δB = 0)
+        T.iontrap.vibrational_modes.y[1].N = 3
+        T.iontrap.vibrational_modes.z[1].N = 3
+        T.iontrap.vibrational_modes.z[1].δν = 1
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         indxs1 = [[8 * 4 * j + i for i in 1:(8 * 4)] for j in 1:3]
         @test δν_indices[1] == indxs1
 
         # test output when both modes have nonzero δν
-        T.configuration.vibrational_modes.z[1].δν = 1
-        T.configuration.vibrational_modes.y[1].δν = 1
+        T.iontrap.vibrational_modes.z[1].δν = 1
+        T.iontrap.vibrational_modes.y[1].δν = 1
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         indxs = [[8 * j + i for i in 1:(8 * 8)] for j in 1:3]
         @test δν_indices[1][1] ==
@@ -297,17 +297,17 @@ end
         @test length(δν_functions) == 2
 
         # finally, make sure δν_functions are being constructed appropriately
-        T.configuration.vibrational_modes.y[1].δν = cos
-        T.configuration.vibrational_modes.z[1].δν = sin
+        T.iontrap.vibrational_modes.y[1].δν = cos
+        T.iontrap.vibrational_modes.z[1].δν = sin
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         t = 0:0.1:10
         @test δν_functions[1].(t) == 2π .* cos.(t)
         @test δν_functions[2].(t) == 2π .* sin.(t)
 
         # _setup_fluctuation_hamiltonian
-        T = Chamber(configuration = chain, lasers = [L], δB = 1)
-        T.configuration.vibrational_modes.y[1].δν = cos
-        T.configuration.vibrational_modes.z[1].δν = sin
+        T = Chamber(iontrap = chain, lasers = [L], δB = 1)
+        T.iontrap.vibrational_modes.y[1].δν = cos
+        T.iontrap.vibrational_modes.z[1].δν = sin
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
         all_unique_indices, gbi, gbs, bfunc1, δνi, δνfuncs =
@@ -331,12 +331,12 @@ end
             vibrational_modes = (; z = [1])
         )
         T = Chamber(
-            configuration = chain,
+            iontrap = chain,
             B = 4e-4,
             Bhat = (x̂ + ŷ + ẑ) / √3,
             lasers = [L]
         )
-        mode = T.configuration.vibrational_modes.z[1]
+        mode = T.iontrap.vibrational_modes.z[1]
         mode.N = rand(1:8)
         N = mode.N + 1
         Efield_from_rabi_frequency!(1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
@@ -372,13 +372,13 @@ end
             vibrational_modes = (; z = [1, 2])
         )
         T1 = Chamber(
-            configuration = chain1,
+            iontrap = chain1,
             B = 4e-4,
             Bhat = (x̂ + ŷ + ẑ) / √3,
             lasers = [L1]
         )
-        mode1 = T1.configuration.vibrational_modes.z[1]
-        mode2 = T1.configuration.vibrational_modes.z[2]
+        mode1 = T1.iontrap.vibrational_modes.z[1]
+        mode2 = T1.iontrap.vibrational_modes.z[2]
         mode1.N = N - 1
         mode2.N = rand(1:8)
         M = mode2.N + 1
@@ -429,14 +429,14 @@ end
             vibrational_modes = (; z = [1, 2])
         )
         T = Chamber(
-            configuration = chain,
+            iontrap = chain,
             B = 4e-4,
             Bhat = (x̂ + ŷ + ẑ) / √3,
             lasers = [L]
         )
         L.λ = transitionwavelength(C_a, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        mode1 = T.configuration.vibrational_modes.z[1]
-        mode2 = T.configuration.vibrational_modes.z[2]
+        mode1 = T.iontrap.vibrational_modes.z[1]
+        mode2 = T.iontrap.vibrational_modes.z[2]
         Δ = round(randn(), digits = 5) * 1e5  # TODO: this begins to fail at below 1 Hz!
         L.Δ = Δ
         ϕ = randn()

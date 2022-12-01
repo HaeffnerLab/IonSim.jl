@@ -165,7 +165,7 @@ function ionstate(IC::IonTrap, states::Union{Tuple{String, Real}, String, Int}..
     return tensor([ionstate(ions[i], states[i]) for i in 1:L]...)
 end
 ionstate(T::Chamber, states::Union{Tuple{String, Real}, String, Int}...) =
-    ionstate(T.configuration, states...)
+    ionstate(T.iontrap, states...)
 
 """
     sigma(ion::Ion, ψ1::sublevel[, ψ2::sublevel])
@@ -187,7 +187,7 @@ COM modes considered in `obj`.
 
 If `only_ions=true`, then the projector is defined only over the ion subspace.
 
-If instead `obj<:Chamber`, then this is the same as `obj = Chamber.configuration`.
+If instead `obj<:Chamber`, then this is the same as `obj = Chamber.iontrap`.
 """
 function ionprojector(
     IC::IonTrap,
@@ -211,7 +211,7 @@ function ionprojector(
     sublevels::Union{Tuple{String, Real}, String, Int}...;
     only_ions = false
 )
-    return ionprojector(T.configuration, sublevels..., only_ions = only_ions)
+    return ionprojector(T.iontrap, sublevels..., only_ions = only_ions)
 end
 
 #############################################################################################
