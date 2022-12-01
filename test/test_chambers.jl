@@ -71,8 +71,8 @@ using Suppressor
         Bhat = (x̂ + ŷ + ẑ) / √3
         T = Chamber(configuration = chain, lasers = [L1], Bhat = Bhat)
 
-        # get_basis
-        @test T.basis == get_basis(T)
+        # basis
+        @test T.basis == basis(T)
 
         # global_beam!
         L = Laser(λ = λ)
@@ -147,16 +147,16 @@ using Suppressor
         T = Chamber(configuration = chain1, lasers = [L1, L2])
         xmode = chain1.vibrational_modes.x[1]
         zmode = chain1.vibrational_modes.z[1]
-        cb = get_basis(T)
+        cb = basis(T)
         @test cb == C ⊗ C ⊗ xmode ⊗ zmode
         @test cb != C ⊗ C ⊗ zmode ⊗ xmode
         @test cb != C ⊗ C ⊗ C ⊗ xmode ⊗ zmode
 
-        # test get_η
+        # test lambdicke
         # η = |k|cos(θ) * √(ħ / (2M ⋅ N ⋅ 2πν)); cos(θ) ≡ k̂ ⋅ mode_axis; N ≡ number of ions
         η(ν) = (2π / λ) * sqrt(ħ / (2 * mass(C) * 2 * 2π * ν))
-        @test abs(get_η(zmode, L, C)) ≈ η(zmode.ν)
+        @test abs(lambdicke(zmode, L, C)) ≈ η(zmode.ν)
         L.k = (x̂ + ẑ) / √2
-        @test abs(get_η(xmode, L, C)) ≈ η(xmode.ν) / √2
+        @test abs(lambdicke(xmode, L, C)) ≈ η(xmode.ν) / √2
     end
 end  # end suppress

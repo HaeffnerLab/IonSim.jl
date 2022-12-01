@@ -11,10 +11,10 @@ using Suppressor
             vibrational_modes = (y = [1], z = [4])
         )
         @test ions(lc) == lc.ions
-        # test get_vibrational_modes, which should return an array of the selected
+        # test modes, which should return an array of the selected
         # VibrationalModes in the linear chain
         vms = lc.vibrational_modes
-        @test get_vibrational_modes(lc) == [vms.x..., vms.y..., vms.z...]
+        @test modes(lc) == [vms.x..., vms.y..., vms.z...]
 
         # make sure ion numbers are updated
         @test [ionnumber(I) for I in lc.ions] == [1, 2, 3, 4]

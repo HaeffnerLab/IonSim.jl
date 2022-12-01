@@ -1,6 +1,6 @@
 using QuantumOptics: basisstate
 
-export VibrationalMode
+export VibrationalMode, modecutoff!
 
 """
     VibrationalMode(
@@ -47,6 +47,14 @@ mutable struct VibrationalMode <: IonSimBasis
         end
         return new(ν, mode_structure, δνt, N, [N + 1], axis, _cnst_δν)
     end
+end
+
+"""
+    modecutoff!(mode::VibrationalMode, N::Int)
+Sets the upper bound of the Hilbert space of `mode` to be the Fock state `N`.
+"""
+function modecutoff!(mode::VibrationalMode, N::Int)
+    mode.N = N
 end
 
 function Base.:(==)(b1::T, b2::T) where {T <: VibrationalMode}

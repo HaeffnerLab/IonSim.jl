@@ -2,15 +2,26 @@ using QuantumOptics: tensor, CompositeBasis
 using .PhysicalConstants: ħ, c
 
 export Chamber,
-    get_basis,
+    basis,
+    iontrap,
+    lasers,
+    ions,
+    modes,
+    xmodes,
+    ymodes,
+    zmodes,
+    modecutoff!,
+    groundstate,
     Efield_from_pi_time,
     Efield_from_pi_time!,
     transition_frequency,
+    wavelength!,
+    wavelength_from_transition!,
     set_gradient!,
     Efield_from_rabi_frequency,
     Efield_from_rabi_frequency!,
     global_beam!,
-    get_η
+    lambdicke
 
 #############################################################################################
 # an ion trap with a linear ion chain configuration
@@ -147,6 +158,14 @@ end
 
 Base.show(io::IO, T::Chamber) = print(io, "Chamber")  # suppress long output
 
+
+#############################################################################################
+# Object fields
+#############################################################################################
+iontrap(T::Chamber) = T.configuration
+lasers(T::Chamber) = T.lasers
+
+
 #############################################################################################
 # general functions
 #############################################################################################
@@ -160,10 +179,10 @@ function ionintrap(trap::Chamber, ion::Ion)
 end
 
 """
-    get_basis(T::Chamber)
+    basis(T::Chamber)
 Returns the composite basis describing the Hilbert space for `T`.
 """
-function get_basis(T::Chamber)::CompositeBasis
+function basis(T::Chamber)::CompositeBasis # Isn't this already constructed as T.basis?
     return tensor(
         T.configuration.ions...,
         T.configuration.vibrational_modes.x...,
@@ -171,6 +190,54 @@ function get_basis(T::Chamber)::CompositeBasis
         T.configuration.vibrational_modes.z...,
     )
 end
+
+""""
+    ions(T::Chamber)
+Returns a list of the ions in the `Chamber`.
+"""
+ions(T::Chamber) = ions(iontrap(T))
+
+
+"""
+    modes(T::Chamber)
+Returns modes(configuration(T))
+"""
+modes(T::Chamber) = modes(iontrap(T))
+"""
+    xmodes(T::Chamber)
+Returns an array of all of the selected `VibrationalModes` in the x-direction in the `Chamber`'s `IonConfiguration`.
+"""
+xmodes(T::Chamber) = xmodes(iontrap(T))
+"""
+    ymodes(T::Chamber)
+Returns an array of all of the selected `VibrationalModes` in the y-direction in the `Chamber`'s `IonConfiguration`.
+"""
+ymodes(T::Chamber) = ymodes(iontrap(T))
+"""
+    zmodes(T::Chamber)
+Returns an array of all of the selected `VibrationalModes` in the z-direction in the `Chamber`'s `IonConfiguration`.
+"""
+zmodes(T::Chamber) = zmodes(iontrap(T))
+
+"""
+    modecutoff!(T::Chamber, N::Int)
+Sets the upper bound of the Hilbert space of all `VibrationalMode`s in the configuration of `T` to be the Fock state `N`.
+"""
+function modecutoff!(T::Chamber, N::Int)
+    modecutoff!(iontrap(T), N)
+end
+
+"""
+    groundstate(obj)
+If obj is a `VibrationalMode`, returns the N=0 ket of that mode.
+If obj is a Vector of `VibrationalMode`, returns a tensor product `mode1[0] ⊗ mode2[0] ⊗ ...` in the same order given.
+If obj is a `LinearChain` or `Chamber`, returns the full ground state of the motional degrees of freedom as a tensor product.
+"""
+groundstate(mode::VibrationalMode) = mode[0]
+groundstate(modes::Vector{VibrationalMode}) = tensor([mode[0] for mode in modes]...)
+groundstate(lc::LinearChain) = groundstate(modes(lc))
+groundstate(T::Chamber) = groundstate(modes(T))
+
 
 """
     global_beam!(T::Chamber, laser::Laser)
@@ -351,54 +418,76 @@ function Bfield(T::Chamber, ion::Ion)
 end
 
 """
-    transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift=false)
+    transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_manualshift=false)
 Retuns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
 One may alternatively replace `ion` with `ion_index::Int`, which instead specifies the index of the intended ion within `T`.
 """
-transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift = false) =
+transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_manualshift = false) =
     transitionfrequency(
         ion,
         transition;
         B = Bfield(T, ion),
-        ignore_starkshift = ignore_starkshift
+        ignore_manualshift = ignore_manualshift
     )
-transitionfrequency(
-    ion_index::Int,
-    transition::Tuple,
-    T::Chamber;
-    ignore_starkshift = false
-) = transitionfrequency(
-    T.configuration.ions[ion_index],
-    transition,
-    T;
-    ignore_starkshift = ignore_starkshift
-)
+transitionfrequency(ion_index::Int, transition::Tuple, T::Chamber; ignore_manualshift = false) =
+    transitionfrequency(
+        T.configuration.ions[ion_index],
+        transition,
+        T;
+        ignore_manualshift = ignore_manualshift
+    )
 
 """
-    transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift=false)
+    transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_manualshift=false)
 Retuns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
-transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_starkshift = false) =
+transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_manualshift = false) =
     transitionwavelength(
         ion,
         transition;
         B = Bfield(T, ion),
-        ignore_starkshift = ignore_starkshift
+        ignore_manualshift = ignore_manualshift
     )
 transitionwavelength(
     ion_index::Int,
     transition::Tuple,
     T::Chamber;
-    ignore_starkshift = false
+    ignore_manualshift = false
 ) = transitionwavelength(
     T.configuration.ions[ion_index],
     transition,
     T;
-    ignore_starkshift = ignore_starkshift
+    ignore_manualshift = ignore_manualshift
 )
+
+"""
+    wavelength!(laser::Laser, wavelength::Real)
+Sets the wavelength of `laser` to `wavelength`.
+"""
+function wavelength!(laser::Laser, wavelength::Real)
+    laser.λ = wavelength
+end
+
+"""
+    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, Bfield::Real)
+    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, T::Chamber)
+Sets the wavelength of `laser` to the transition wavelength of `transition` in the ion `ion`,
+at a magnetic field value given by `Bfield` if the final argument is a `Real`, or at the magnetic
+field seen by `ion` if the final argument is the `Chamber` that contains it.
+"""
+function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, Bfield::Real)
+    wavelength = transitionwavelength(ion, transition, B=Bfield)
+    laser.λ = wavelength
+    return wavelength
+end
+function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, T::Chamber)
+    wavelength = transitionwavelength(ion, transition, T)
+    laser.λ = wavelength
+    return wavelength
+end
 
 """
     matrix_element(I::Ion, transition::Tuple, T::Chamber, laser::Laser, time::Real)
@@ -471,12 +560,12 @@ function (
 end
 
 """
-    get_η(V::VibrationalMode, L::Laser, I::Ion)
-The Lamb-Dicke parameter:
-``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}``
+    lambdicke(V::VibrationalMode, L::Laser, I::Ion)
+The Lamb-Dicke parameter: 
+``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
 for a given vibrational mode, ion and laser.
 """
-function get_η(V::VibrationalMode, L::Laser, I::Ion; scaled = false)
+function lambdicke(V::VibrationalMode, L::Laser, I::Ion; scaled = false)
     @fastmath begin
         k = 2π / L.λ
         scaled ? ν = 1 : ν = V.ν

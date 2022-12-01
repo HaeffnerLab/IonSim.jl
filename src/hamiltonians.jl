@@ -92,7 +92,7 @@ function hamiltonian(
         time_dependent_eta
     )
     aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(T, timescale)
-    S = SparseOperator(get_basis(T))
+    S = SparseOperator(basis(T))
     function f(t, ψ)  # a two argument function is required in the QuantumOptics solvers
         @inbounds begin
             @simd for i in 1:length(indxs)
@@ -185,10 +185,10 @@ function _setup_base_hamiltonian(
     time_dependent_eta
 )
     rwa_cutoff *= timescale
-    modes = reverse(get_vibrational_modes(T.configuration))
-    L = length(modes)
-    νlist = Tuple([mode.ν for mode in modes])
-    mode_dims = [mode.N + 1 for mode in modes]
+    allmodes = reverse(modes(T))
+    L = length(allmodes)
+    νlist = Tuple([mode.ν for mode in allmodes])
+    mode_dims = [mode.N + 1 for mode in allmodes]
 
     ions = reverse(T.configuration.ions)
     Q = prod([ion.shape[1] for ion in ions])
@@ -235,7 +235,7 @@ function _setup_base_hamiltonian(
         end
         if displacement == "truncated" && !time_dependent_eta
             D_arrays = []
-            for (i, mode) in enumerate(modes)
+            for (i, mode) in enumerate(allmodes)
                 push!(D_arrays, real.(displace(mode, ηlist(0)[i]).data))
             end
         end
@@ -409,14 +409,14 @@ end
 # of the full 2D system matrix upon which have been mapped the jth diagonal element of the
 # ith mode.
 function _setup_δν_hamiltonian(T, timescale)
-    N = length(T.configuration.ions)
-    modes = get_vibrational_modes(T.configuration)
+    N = length(ions(T))
+    allmodes = modes(T)
     δν_indices = Vector{Vector{Vector{Int64}}}(undef, 0)
     δν_functions = FunctionWrapper[]
     τ = timescale
-    for l in eachindex(modes)
-        δν = modes[l].δν
-        mode = modes[l]
+    for l in eachindex(allmodes)
+        δν = allmodes[l].δν
+        mode = allmodes[l]
         (mode._cnst_δν && δν(0) == 0) && continue
         push!(
             δν_functions,
@@ -424,7 +424,7 @@ function _setup_δν_hamiltonian(T, timescale)
         )
         δν_indices_l = Vector{Vector{Int64}}(undef, 0)
         mode_op = number(mode)
-        A = embed(get_basis(T), [N + l], [mode_op]).data
+        A = embed(basis(T), [N + l], [mode_op]).data
         mode_dim = mode.shape[1]
         for i in 1:(mode_dim - 1)
             indices = [x[1] for x in getfield.(findall(x -> x .== complex(i, 0), A), :I)]
@@ -456,7 +456,7 @@ function _setup_global_B_hamiltonian(T, timescale)
     for n in eachindex(ions)
         for sublevel in sublevels(ions[n])
             ion_op = sigma(ions[n], sublevel)
-            A = embed(get_basis(T), [n], [ion_op]).data
+            A = embed(basis(T), [n], [ion_op]).data
             indices = [x[1] for x in getfield.(findall(x -> x .== complex(1, 0), A), :I)]
             push!(global_B_indices, indices)
             # zeeman_shift(ions[n], sublevel, 1]) is the Zeeman shift of
@@ -494,14 +494,14 @@ end
 # populated in reverse order.
 function _ηmatrix(T)
     ions = T.configuration.ions
-    vms = get_vibrational_modes(T.configuration)
+    vms = modes(T)
     lasers = T.lasers
     (N, M, L) = map(x -> length(x), [ions, lasers, vms])
     ηnml = Array{Any}(undef, N, M, L)
     for n in 1:N, m in 1:M, l in 1:L
         δν = vms[l].δν
         ν = vms[l].ν
-        eta = get_η(vms[l], lasers[m], ions[n], scaled = true)
+        eta = lambdicke(vms[l], lasers[m], ions[n], scaled = true)
         if eta == 0
             ηnml[n, m, L - l + 1] = 0
         else
