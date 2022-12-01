@@ -40,8 +40,8 @@ number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:(v.N)))
     displace(v::VibrationalMode, α::Number; method="truncated")
 Returns the displacement operator ``D(α)`` corresponding to `v`.
 
-If `method="truncated"` (default), the matrix elements are computed according to 
-``D(α) = exp[αa^† - α^*a]`` where ``a`` and ``a^†`` live in a truncated Hilbert space of 
+If `method="truncated"` (default), the matrix elements are computed according to
+``D(α) = exp[αa^† - α^*a]`` where ``a`` and ``a^†`` live in a truncated Hilbert space of
 dimension `v.N+1`.
 Otherwise if `method="analytic"`, the matrix elements are computed assuming an
 infinite-dimension Hilbert space. In general, this option will not return a unitary operator.
@@ -70,12 +70,12 @@ end
 
 """
     thermalstate(v::VibrationalMode, n̄::Real; method="truncated")
-Returns a thermal density matrix with ``⟨a^†a⟩ ≈ n̄``. Note: approximate because we are 
+Returns a thermal density matrix with ``⟨a^†a⟩ ≈ n̄``. Note: approximate because we are
 dealing with a finite dimensional Hilbert space that must be normalized.
 
 `method` can be set to either `"truncated"` (default) or `"analytic"`. In the former case,
 the thermal density matrix is generated according to the formula:
-``ρ_{th} = exp(-νa^†a/T) / Tr [exp(-νa^†a/T)]``. In the later case, the analytic formula, 
+``ρ_{th} = exp(-νa^†a/T) / Tr [exp(-νa^†a/T)]``. In the later case, the analytic formula,
 assuming an infinite-dimensional Hilbert space, is used:
 ``[ρ_{th}]_{ij} = δ_{ij} \\frac{nⁱ}{(n+1)^{i+1}}.``
 """
@@ -97,7 +97,7 @@ end
 Returns a coherent state on `v` with complex amplitude ``α``.
 """
 function coherentstate(v::VibrationalMode, α::Number)
-    # this implementation is the same as in QuantumOptics.jl, but there the function is 
+    # this implementation is the same as in QuantumOptics.jl, but there the function is
     # restricted to v::FockBasis, so we must reimplement here
     @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
     k = zeros(ComplexF64, v.N + 1)
@@ -111,10 +111,10 @@ end
 """
     coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method="truncated)
 Returns a displaced thermal state for `v`, which is created by applying a displacement
-operation to a thermal state. The mean occupation of the thermal state is `n̄` and `α` is the 
+operation to a thermal state. The mean occupation of the thermal state is `n̄` and `α` is the
 complex amplitude of the displacement.
 
-`method` can be either `"truncated"` or `"analytic"` and this argument determines how the 
+`method` can be either `"truncated"` or `"analytic"` and this argument determines how the
 displacement operator is computed (see: [`displace`](@ref)) .
 """
 function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method = "truncated")
@@ -130,7 +130,7 @@ end
 
 """
     fockstate(v::VibrationalMode, N::Int)
-Returns the fockstate ``|N⟩`` on `v`. 
+Returns the fockstate ``|N⟩`` on `v`.
 """
 fockstate(v::VibrationalMode, N::Int) = v[N]
 
@@ -142,9 +142,9 @@ fockstate(v::VibrationalMode, N::Int) = v[N]
     ionstate(object, sublevel)
 For `object<:Ion` and `sublevel<:Tuple{String,Real}` (full sublevel name) or `sublevel<:String`
 (alias), this returns the ket corresponding to the `Ion` being in the state ``|index⟩``. The
-object can also be an `IonConfiguration` or `Trap` instance, in which case ``N`` arguments
+object can also be an `IonTrap` or `Chamber` instance, in which case ``N`` arguments
 should be given in place of `index`, where ``N`` equals the number of ions in the
-`IonConfiguration` or `Trap`. This will return the state
+`IonTrap` or `Chamber`. This will return the state
 ``|index₁⟩⊗|index₂⟩⊗...⊗|index\\_N⟩``.
 
 One may also specify `sublevel<:Int`. If `object<:Ion`, this will return the ket given by
@@ -158,13 +158,13 @@ function ionstate(I::Ion, sublevel::Tuple{String, Real})
 end
 ionstate(I::Ion, sublevelalias::String) = ionstate(I, alias2sublevel(I, sublevelalias))
 ionstate(I::Ion, sublevel::Int) = basisstate(I, sublevel)
-function ionstate(IC::IonConfiguration, states::Union{Tuple{String, Real}, String, Int}...)
+function ionstate(IC::IonTrap, states::Union{Tuple{String, Real}, String, Int}...)
     ions = IC.ions
     L = length(ions)
     @assert L ≡ length(states) "wrong number of states"
     return tensor([ionstate(ions[i], states[i]) for i in 1:L]...)
 end
-ionstate(T::Trap, states::Union{Tuple{String, Real}, String, Int}...) =
+ionstate(T::Chamber, states::Union{Tuple{String, Real}, String, Int}...) =
     ionstate(T.configuration, states...)
 
 """
@@ -181,16 +181,16 @@ sigma(ion::Ion, ψ1::Union{Tuple{String, Real}, String, Int}) = sigma(ion, ψ1, 
 """
     ionprojector(obj, sublevels...; only_ions=false)
 
-If `obj<:IonConfiguration` this will return ``|ψ₁⟩⟨ψ₁|⊗...⊗|ψ\\_N⟩⟨ψ\\_N|⊗𝟙`` 
-where ``|ψᵢ⟩`` = `obj.ions[i][sublevels[i]]` and the identity operator ``𝟙`` is over all of the 
+If `obj<:IonTrap` this will return ``|ψ₁⟩⟨ψ₁|⊗...⊗|ψ\\_N⟩⟨ψ\\_N|⊗𝟙``
+where ``|ψᵢ⟩`` = `obj.ions[i][sublevels[i]]` and the identity operator ``𝟙`` is over all of the
 COM modes considered in `obj`.
 
 If `only_ions=true`, then the projector is defined only over the ion subspace.
 
-If instead `obj<:Trap`, then this is the same as `obj = Trap.configuration`.
+If instead `obj<:Chamber`, then this is the same as `obj = Chamber.configuration`.
 """
 function ionprojector(
-    IC::IonConfiguration,
+    IC::IonTrap,
     sublevels::Union{Tuple{String, Real}, String, Int}...;
     only_ions = false
 )
@@ -207,7 +207,7 @@ function ionprojector(
     return observable
 end
 function ionprojector(
-    T::Trap,
+    T::Chamber,
     sublevels::Union{Tuple{String, Real}, String, Int}...;
     only_ions = false
 )

@@ -7,50 +7,50 @@ export hamiltonian
 
 """
     hamiltonian(
-            T::Trap; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1, 
+            T::Chamber; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1,
             rwa_cutoff::Real=Inf, displacement="truncated", time_dependent_eta=false
-        )      
-Constructs the Hamiltonian for `T` as a function of time. Return type is a function 
+        )
+Constructs the Hamiltonian for `T` as a function of time. Return type is a function
 `h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
 
 **args**
 * `timescale`: e.g. a value of 1e-6 will take time to be in ``\\mu s``
 * `lamb_dicke_order`: Only consider terms that change the phonon number by up to this value.
     If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,
-    then `lamb_dicke_order[i]` is applied to the iᵗʰ mode, according to the order in 
+    then `lamb_dicke_order[i]` is applied to the iᵗʰ mode, according to the order in
     `T.basis`.
     Note: this isn't quite the same thing as the Lamb-Dicke approximation since setting
     `lamb_dicke_order=1` will retain, for example, terms proportional to ``a^\\dagger a ``.
 * `rwa_cutoff`: drop terms in the Hamiltonian that oscillate faster than this cutoff.
-* `displacement`: This can be either `"truncated"`(default) or `"analytic"`. 
+* `displacement`: This can be either `"truncated"`(default) or `"analytic"`.
 
-   When an atom is irradiated, both the atom's energy and its momentum will generally be 
-   affected. For an atom in a harmonic potential, the exchange of momentum can be modeled as 
-   a displacement operation ``D(α=iηe^{-iνt}) = exp[αa^† - α^*a]``, where ``η`` is the 
-   Lamb-Dicke parameter, which can be described equivalently as either being proportional to 
-   the square root of the ratio of the recoil frequency with the ground state energy of the 
-   atom's motion or as the ratio of the spread of the ground state wavefunction to the 
+   When an atom is irradiated, both the atom's energy and its momentum will generally be
+   affected. For an atom in a harmonic potential, the exchange of momentum can be modeled as
+   a displacement operation ``D(α=iηe^{-iνt}) = exp[αa^† - α^*a]``, where ``η`` is the
+   Lamb-Dicke parameter, which can be described equivalently as either being proportional to
+   the square root of the ratio of the recoil frequency with the ground state energy of the
+   atom's motion or as the ratio of the spread of the ground state wavefunction to the
    wavelength of the laser.
 
-   When `"truncated"` is selected, the matrix elements of ``D(α)`` are computed by 
-   constructing ``α^* a, αa^†`` in a truncated basis (according to the dimension specified in 
-   your model) and then exponentiating their difference. This has the advantage, amongst 
+   When `"truncated"` is selected, the matrix elements of ``D(α)`` are computed by
+   constructing ``α^* a, αa^†`` in a truncated basis (according to the dimension specified in
+   your model) and then exponentiating their difference. This has the advantage, amongst
    other things, of guaranting unitarity.
-   
+
    If `"analytic"` is selected, then the matrix elements are computed assuming an infinite-
    dimensional Hilbert space.
 
    For small displacements (``η ≪ N``, where ``N`` is the dimension of the motion's Hilbert
    space), both of these methods will be good approximations.
-* `time_dependent_eta::Bool`: In addition to impacting the vibrational subspace directly, a 
-   change in the trap frequency, ``δν``, will also change the Lamb-Dicke parameter. Since 
-   typically ``δν≪ν``, this effect will be small ``η ≈ η₀(1 + δν/2ν)`` and doesn't warrant 
-   the additional computational resources needed to calculate and update it in time. In this 
+* `time_dependent_eta::Bool`: In addition to impacting the vibrational subspace directly, a
+   change in the trap frequency, ``δν``, will also change the Lamb-Dicke parameter. Since
+   typically ``δν≪ν``, this effect will be small ``η ≈ η₀(1 + δν/2ν)`` and doesn't warrant
+   the additional computational resources needed to calculate and update it in time. In this
    case, we can set `time_dependent_eta=false` (default), which will set ``η(t) = η₀``.
 
 """
 function hamiltonian(
-    T::Trap;
+    T::Chamber;
     timescale::Real = 1e-6,
     lamb_dicke_order::Union{Vector{Int}, Int} = 1,
     rwa_cutoff::Real = Inf,
@@ -73,9 +73,9 @@ end
 #############################################################################################
 
 # At each time step, this function updates in-place the 2D array describing the full system
-# Hamiltonian. 
+# Hamiltonian.
 function hamiltonian(
-    T::Trap,
+    T::Chamber,
     configuration::LinearChain,
     timescale::Real,
     lamb_dicke_order::Union{Vector{Int}, Int},
@@ -148,15 +148,15 @@ end
 The purpose of the hamiltonian function is to evaluate a vector of time-dependent functions
 and use the returned values to update, in-place, a pre-allocated array.
 
-The pre-allocated array holds the full Hamiltonian -- a tensor product defined over all of 
+The pre-allocated array holds the full Hamiltonian -- a tensor product defined over all of
 the individual ion and vibrational mode subspaces -- at a particular point in time.
 
 However, we don't know a priori the exact form of the Hilbert space or the details of the
 Hamiltonian's time dependence, since it will be defined by the user.
 
-The _setup_hamiltonian function extracts this user-defined information from a <:Trap struct 
-and converts it into two vector of vectors of indices, corresponding to redundant (see note 
-below) matrix elements of the Hamiltonian, and a matched vector of time-dependent functions 
+The _setup_hamiltonian function extracts this user-defined information from a <:Chamber struct
+and converts it into two vector of vectors of indices, corresponding to redundant (see note
+below) matrix elements of the Hamiltonian, and a matched vector of time-dependent functions
 for updating these elements.
 
 ------- Note -------
@@ -164,16 +164,16 @@ Since the terms of the Hamiltonian will always be of the form of a single ion op
 tensored with a single vibrational mode operator, there will be a lot of redundancy in the
 Hamiltonian's matrix elements. E.g.
 
-                                     [ σ₊ ⊗ D(α(t))      0         ]  
+                                     [ σ₊ ⊗ D(α(t))      0         ]
              H = 𝐼 ⊗ σ₊ ⊗ D(α(t)) =  [       0        σ₊ ⊗ D(α(t)) ]
 
-So to avoid unnecessarily evaluating functions more than once, _setup_hamiltonian also 
+So to avoid unnecessarily evaluating functions more than once, _setup_hamiltonian also
 returns a vector of vectors of indices that keep track of this redundancy.
 
 Also, we have: <m|D(α)|n> = (-1)^(n-m) × conjugate(<n|D(α)|m>). We keep track of this in an
 additional vector of vectors of indices.
 
-Finally, since we require the Hamiltonian to be Hermitian, h[i, j] = conj(h[j, i]), this 
+Finally, since we require the Hamiltonian to be Hermitian, h[i, j] = conj(h[j, i]), this
 function does not keeps track of only one of these pairs.
 =#
 function _setup_base_hamiltonian(
@@ -406,8 +406,8 @@ end
 # δν(t) × aᵀa terms for Hamiltonian. This function returns an array of functions
 # δν_functions = [2π×ν.δν(t)×timescale for ν in modes]. It also returns an array of arrays
 # of arrays of indices, δν_indices, such that δν_indices[i][j] lists all diagonal elements
-# of the full 2D system matrix upon which have been mapped the jth diagonal element of the 
-# ith mode. 
+# of the full 2D system matrix upon which have been mapped the jth diagonal element of the
+# ith mode.
 function _setup_δν_hamiltonian(T, timescale)
     N = length(ions(T))
     allmodes = modes(T)
@@ -439,9 +439,9 @@ end
 # returns a collection of empty arrays. Otherwise it iterates over the selected levels for
 # each ion and creates an array (global_B_scales), which encodes the magnetic field
 # susceptibility of each level. It also returns an array of indices (global_B_indices), that
-# keeps track of the indices of the full 2D array that represents the tensored system, 
-# corresponding to the energy of each level. Finally it returns a function (bfunc) encoding 
-# the time-dependence of δB. When the system is integrated, the Hamiltonian terms will be 
+# keeps track of the indices of the full 2D array that represents the tensored system,
+# corresponding to the energy of each level. Finally it returns a function (bfunc) encoding
+# the time-dependence of δB. When the system is integrated, the Hamiltonian terms will be
 # updated at each time step by by bfunc(t) times the individual susceptibilities.
 function _setup_global_B_hamiltonian(T, timescale)
     ions = T.configuration.ions
@@ -467,8 +467,8 @@ function _setup_global_B_hamiltonian(T, timescale)
     return global_B_indices, global_B_scales, bfunc
 end
 
-# This mostly just strings together the results from _setup_global_B_hamiltonian and 
-# _setup_δν_hamiltonian for use in the hamiltonian function. The one additional task 
+# This mostly just strings together the results from _setup_global_B_hamiltonian and
+# _setup_δν_hamiltonian for use in the hamiltonian function. The one additional task
 # performed is the creation of an array of indices (all_unique_indices), which keeps track
 # of all the diagonal indices affected by δν and/or δB, which is useful in hamiltonian().
 function _setup_fluctuation_hamiltonian(T, timescale)
@@ -513,9 +513,9 @@ function _ηmatrix(T)
 end
 
 # Returns an array of vectors. The rows and columns of the array refer to ions and lasers,
-# respectively. For each row/column we have a vector of detunings from the laser frequency 
+# respectively. For each row/column we have a vector of detunings from the laser frequency
 # for each ion transition. We need to separate this calculation from _Ωmatrix to implement
-# RWA easily.  
+# RWA easily.
 function _Δmatrix(T, timescale)
     ions = T.configuration.ions
     lasers = T.lasers
@@ -590,7 +590,7 @@ end
 
 # Returns a tuple correpsonding to: [σ₊(t)]_ij ⋅ [D(ξ(t))]_ij, [σ₊(t)]_ji ⋅ [D(ξ(t))]_ji.
 # [D(ξ(t))]_ij is calculated assuming an infinite dimensional Hilbert space for the HO.
-# As opposed to _D, in this case, we assume η(t) = η₀, which allows us to precompute _Dnm. 
+# As opposed to _D, in this case, we assume η(t) = η₀, which allows us to precompute _Dnm.
 # This precomputation is performed externally to the function and fed in as the argument `D`.
 function _D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
     d = complex(1, 0)
@@ -601,8 +601,8 @@ function _D_cnst_eta(Ω, Δ, ν, timescale, n, D, t, L)
     return g * d, g * conj(d)
 end
 
-# Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ X_n (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices: 
-# indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN). 
+# Consider: T = X₁ ⊗ X₂ ⊗ ... ⊗ X_n (Xᵢ ∈ ℝ{dims[i]×dims[i]}), and indices:
+# indxs[1], indxs[2], ..., indsx[N] = (i1, j1), (i2, j2), ..., (iN, jN).
 # This function returns (k, l) such that: T[k, l] = X₁[i1, j1] * X₂[i2, j2] *...* X_N[iN, jN]
 function _get_kron_indxs(indxs::Vector{Tuple{Int64, Int64}}, dims::Vector{Int64})
     L = length(indxs)
@@ -618,7 +618,7 @@ function _get_kron_indxs(indxs::Vector{Tuple{Int64, Int64}}, dims::Vector{Int64}
 end
 
 # The inverse of _get_kron_indxs. If T = X₁ ⊗ X₂ ⊗ X₃ and X₁, X₂, X₃ are M×M, N×N and L×L
-# dimension matrices, then we should input dims=(M, N, L). 
+# dimension matrices, then we should input dims=(M, N, L).
 function _inv_get_kron_indxs(indxs, dims)
     row, col = indxs
     N = length(dims)
@@ -662,7 +662,7 @@ function _Dnm_cnst_eta(ξ::Number, n::Int, m::Int)
 end
 
 # If lamb_dicke_order is <: Int, this constructs a constant vector with this value of length
-# L (i.e. same lamb_dicke_order for all modes). Otherwise lamb_dicke_order is reversed and 
+# L (i.e. same lamb_dicke_order for all modes). Otherwise lamb_dicke_order is reversed and
 # returned.
 function _check_lamb_dicke_order(lamb_dicke_order, L)
     if typeof(lamb_dicke_order) <: Int

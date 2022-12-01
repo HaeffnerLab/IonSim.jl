@@ -3,7 +3,7 @@ using Test, IonSim
 using Suppressor
 
 @suppress_err begin
-    @testset "ion_configurations -- LinearChain" begin
+    @testset "ion_traps -- LinearChain" begin
         C = Ca40()
         lc = LinearChain(
             ions = [C, C, C, C],
@@ -46,7 +46,7 @@ using Suppressor
         show(lc)
     end
 
-    @testset "ion_configurations -- general" begin
+    @testset "ion_traps -- general" begin
         # test calculation of equilibrium positions for a linear chain of equal mass ions against
         # known values
         posL = [-2.8708, -2.10003, -1.4504, -0.85378, -0.2821]
