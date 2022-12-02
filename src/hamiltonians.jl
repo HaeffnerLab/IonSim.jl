@@ -7,7 +7,7 @@ export hamiltonian
 
 """
     hamiltonian(
-            T::Chamber; timescale::Real=1e-6, lamb_dicke_order::Union{Vector{Int},Int}=1,
+            T::Chamber; timescale::Real=1, lamb_dicke_order::Union{Vector{Int},Int}=1,
             rwa_cutoff::Real=Inf, displacement="truncated", time_dependent_eta=false
         )
 Constructs the Hamiltonian for `T` as a function of time. Return type is a function
@@ -51,7 +51,7 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
 """
 function hamiltonian(
     T::Chamber;
-    timescale::Real = 1e-6,
+    timescale::Real = 1,
     lamb_dicke_order::Union{Vector{Int}, Int} = 1,
     rwa_cutoff::Real = Inf,
     displacement::String = "truncated",

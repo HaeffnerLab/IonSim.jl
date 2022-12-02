@@ -474,8 +474,8 @@ end
         tp = abs(51randn())
 
         # define hamiltonians.jl
-        H = hamiltonian(T, lamb_dicke_order = 101)
-        H1 = hamiltonian(T, lamb_dicke_order = 101, time_dependent_eta = true)
+        H = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 101)
+        H1 = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 101, time_dependent_eta = true)
         # test similarity at a random time input
         @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
         @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
@@ -486,12 +486,14 @@ end
             displace(mode2, im * η * exp(im * 2π * √3 * t), method = "analytic")
         H1 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 101,
             displacement = "analytic",
             time_dependent_eta = false
         )
         H = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 101,
             displacement = "analytic",
             time_dependent_eta = true
@@ -500,9 +502,10 @@ end
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 2a: full hamiltonian (w/o conj_repeated_indices)
-        H = hamiltonian(T, lamb_dicke_order = 101, rwa_cutoff = 1e10)
+        H = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 101, rwa_cutoff = 1e10)
         H1 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 101,
             time_dependent_eta = true,
             rwa_cutoff = 1e10
@@ -519,6 +522,7 @@ end
             displace(mode2, im * η * exp(im * 2π * √3 * t), method = "analytic")
         H1 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 101,
             displacement = "analytic",
             time_dependent_eta = false,
@@ -526,6 +530,7 @@ end
         )
         H = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 101,
             displacement = "analytic",
             time_dependent_eta = true,
@@ -544,21 +549,24 @@ end
         Hp(t) = ion_op(t) ⊗ one(C_b) ⊗ mode_op_a + one(C_a) ⊗ ion_op(t) ⊗ mode_op_b
         qoH(t) = Hp(t) + dagger(Hp(t))
 
-        H = hamiltonian(T, lamb_dicke_order = 0, rwa_cutoff = Inf)
+        H = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0, rwa_cutoff = Inf)
         H1 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 0,
             rwa_cutoff = Inf,
             time_dependent_eta = true
         )
         H2 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 0,
             rwa_cutoff = Inf,
             displacement = "analytic"
         )
         H3 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 0,
             rwa_cutoff = Inf,
             displacement = "analytic",
@@ -571,21 +579,24 @@ end
         @test norm((qoH(tp) - H3(tp, 0)).data) < 2
 
         # Case 4: Try a normal example with a intermediate rwa_cutoff value
-        H = hamiltonian(T, lamb_dicke_order = 30, rwa_cutoff = 3e5)
+        H = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 30, rwa_cutoff = 3e5)
         H1 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 30,
             rwa_cutoff = 3e5,
             time_dependent_eta = true
         )
         H2 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 30,
             rwa_cutoff = 3e5,
             displacement = "analytic"
         )
         H3 = hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = 30,
             rwa_cutoff = 3e5,
             displacement = "analytic",
@@ -600,6 +611,7 @@ end
         # Case 5: Invalid lamb_dicke_order parameters should fail
         @test_throws AssertionError hamiltonian(
             T,
+            timescale=1e-6,
             lamb_dicke_order = [1, 2, 3],
             rwa_cutoff = 3e5
         )

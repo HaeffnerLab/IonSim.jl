@@ -22,7 +22,7 @@ using Suppressor
         Ω00 = Ω * exp(-lambdicke(mode, L, C)^2 / 2) # Actual Rabi frequency of n=0 carrier Rabi oscillations
         Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
-        h = hamiltonian(T)
+        h = hamiltonian(T, timescale=1e-6)
         tspan = 0:1e-1:400
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -41,7 +41,7 @@ using Suppressor
         # add detuning
         Δ = (rand() + 0.5) * 10e3
         L.Δ = Δ
-        h = hamiltonian(T)
+        h = hamiltonian(T, timescale=1e-6)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
             ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
@@ -56,7 +56,7 @@ using Suppressor
         L.Δ = 0
         C.manual_shift[("S1/2", -1 / 2)] = -Δ / 2
         C.manual_shift[("D5/2", -1 / 2)] = Δ / 2
-        h = hamiltonian(T)
+        h = hamiltonian(T, timescale=1e-6)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
             ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
@@ -76,7 +76,7 @@ using Suppressor
         n̄ = rand(1:10)
         ψi_mode = thermalstate(mode, n̄)
         ψi = ψi_ion ⊗ ψi_mode
-        h = hamiltonian(T, lamb_dicke_order = 0)
+        h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tout, sol = timeevolution.schroedinger_dynamic(tspan, ψi, h)
         η = lambdicke(mode, L, C)
         ex_ionsim_cn = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
@@ -88,7 +88,7 @@ using Suppressor
         ## under an RWA, RSB transitions, when starting in motional ground state,
         ## should be suppressed
         L.Δ = -mode.ν
-        h = hamiltonian(T, rwa_cutoff = 1e3)
+        h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 1e3)
         tspan_sb = 0:1:2000
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan_sb,
@@ -101,7 +101,7 @@ using Suppressor
         ## a BSB should have a coupling strength ηΩ√(n+1)
         ## a RSB should have a coupling strength ηΩ√n
         L.Δ = -mode.ν
-        h = hamiltonian(T, rwa_cutoff = 1e3)
+        h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 1e3)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan_sb,
             ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
@@ -112,7 +112,7 @@ using Suppressor
         @test isapprox(ex_ionsim_rsb1, ex_analyt_rsb1, rtol = 1e-5)
 
         L.Δ = mode.ν
-        h = hamiltonian(T, rwa_cutoff = 1e3)
+        h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 1e3)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
             ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
@@ -147,7 +147,7 @@ using Suppressor
         Ω00 = Ω * exp(-lambdicke(mode, L, C)^2 / 2)
         Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
-        h = hamiltonian(T, lamb_dicke_order = 0)
+        h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tspan = 0:1e-3:4
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -163,7 +163,7 @@ using Suppressor
         L.ϕ = 0
         E = Efield_from_rabi_frequency(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
         L.E = t -> t < 1 ? 0 : E
-        h = hamiltonian(T, lamb_dicke_order = 0)
+        h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tspan = 0:1e-3:3
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -182,7 +182,7 @@ using Suppressor
         tspan = 0:1e-3:30
         mode.δν = t -> 20e3
         L.Δ = mode.ν + 20e3
-        h = hamiltonian(T, rwa_cutoff = 1e5)
+        h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 1e5)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
             ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
@@ -229,7 +229,7 @@ using Suppressor
         Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
         Efield_from_rabi_frequency!(Ω, T, 2, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
         ψi = ionstate(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)) ⊗ mode[0]  # initial state
-        h = hamiltonian(T, rwa_cutoff = 5e5)
+        h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 5e5)
         tspan = 0:0.25:1000
         tout, sol = timeevolution.schroedinger_dynamic(tspan, ψi, h)
         SS = expect(ionprojector(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)), sol)
