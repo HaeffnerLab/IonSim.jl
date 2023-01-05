@@ -10,7 +10,7 @@ using Suppressor
     chain = LinearChain(
         ions = [C, C],
         com_frequencies = (x = 2, y = 2, z = 1),
-        vibrational_modes = (x = [1], y = [], z = [1])
+        selected_modes = (x = [1], y = [], z = [1])
     )
     T = Chamber(iontrap = chain)
     allmodes = modes(chain)

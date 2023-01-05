@@ -55,8 +55,8 @@ interacting with laser light.
         ``ion₁ ⊗ ion₂ ⊗ ... ⊗ ion_N ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ mode_N``, where the ion bases are
         ordered according to the order in `T.iontrap.ions` and the vibrational modes
         are ordered according to the order in
-        `[T.iontrap.vibrational_modes.x, T.iontrap.vibrational_modes.y,
-        T.iontrap.vibrational_modes.z]`.
+        `[T.iontrap.selected_modes.x, T.iontrap.selected_modes.y,
+        T.iontrap.selected_modes.z]`.
     E.g. for:
 
     ```
@@ -66,8 +66,8 @@ interacting with laser light.
 
     The ordering of the basis would be
 
-    `C1.basis ⊗ C2.basis ⊗ chain.vibrational_modes.x[1].basis
-    ⊗ chain.vibrational_modes.x[2].basis ⊗ chain.vibrational_modes.z[1].basis`
+    `C1.basis ⊗ C2.basis ⊗ chain.selected_modes.x[1].basis
+    ⊗ chain.selected_modes.x[2].basis ⊗ chain.selected_modes.z[1].basis`
 
     Otherwise, the ordering is according to the form of the initial state used in the solver.
 """
@@ -121,9 +121,9 @@ mutable struct Chamber
         end
         basis = tensor(
             iontrap.ions...,
-            iontrap.vibrational_modes.x...,
-            iontrap.vibrational_modes.y...,
-            iontrap.vibrational_modes.z...,
+            iontrap.selected_modes.x...,
+            iontrap.selected_modes.y...,
+            iontrap.selected_modes.z...,
         )
         return new(iontrap, B, Bhat, ∇B, δBt, lasers, basis, _cnst_δB)
     end
@@ -146,9 +146,9 @@ function Base.setproperty!(T::Chamber, s::Symbol, v::Tv) where {Tv}
         Core.setproperty!(T, s, v)
         basis = tensor(
             v.ions...,
-            v.vibrational_modes.x...,
-            v.vibrational_modes.y...,
-            v.vibrational_modes.z...,
+            v.selected_modes.x...,
+            v.selected_modes.y...,
+            v.selected_modes.z...,
         )
         Core.setproperty!(T, :basis, basis)
     else
@@ -185,9 +185,9 @@ Returns the composite basis describing the Hilbert space for `T`.
 function basis(T::Chamber)::CompositeBasis # Isn't this already constructed as T.basis?
     return tensor(
         T.iontrap.ions...,
-        T.iontrap.vibrational_modes.x...,
-        T.iontrap.vibrational_modes.y...,
-        T.iontrap.vibrational_modes.z...,
+        T.iontrap.selected_modes.x...,
+        T.iontrap.selected_modes.y...,
+        T.iontrap.selected_modes.z...,
     )
 end
 

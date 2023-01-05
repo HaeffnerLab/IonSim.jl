@@ -122,8 +122,9 @@ _sparsify!(x, eps) = @. x[abs(x) < eps] = 0
 
 """
     LinearChain(;
-            ions::Vector{Ion}, com_frequencies::NamedTuple{(:x,:y,:z)},
-            vibrational_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
+            ions::Vector{Ion},
+            com_frequencies::NamedTuple{(:x,:y,:z)},
+            selected_modes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
         )
 
 Contains all of the information necessary to describe a collection of ions trapped in a 3D
@@ -132,14 +133,16 @@ harmonic potential and forming a linear coulomb crystal.
 **user-defined fields**
 * `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
 * `com_frequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`:
-        Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be
-        parallel to the crystal's symmetry axis.
-* `vibrational_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `vibrational_modes=(x=[1], y=[2], z=[1,2])`.
+    Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be
+    parallel to the crystal's symmetry axis.
+* `selected_modes::NamedTuple{(:x,:y,:z)}`:  e.g. `selected_modes=(x=[1], y=[2], z=[1,2])`.
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest
-    mode away from the COM for that axis. For example, `vibrational_modes=(z=[2])` would
+    mode away from the COM for that axis. For example, `selected_modes=(z=[2])` would
     specify the axial stretch mode. These are the modes that will be modeled in the chain.
-    Note: `vibrational_modes=(x=[],y=[],z=[1])`, `vibrational_modes=(y=[],z=[1])`
-    and `vibrational_modes=(;z=[1])` are all acceptable and equivalent.
+    Note: `selected_modes=(x=[],y=[],z=[1])`, `selected_modes=(y=[],z=[1])`
+    and `selected_modes=(;z=[1])` are all acceptable and equivalent.
+* `N::Int=10``:  Highest level included in the Hilbert space for all selected modes.
+    Default 10.
 **derived fields**
 * `full_normal_mode_description::NamedTuple{(:x,:y,:z)}`: For each axis, this contains an
     array of tuples where the first element is a vibrational frequency [Hz] and the second
@@ -148,10 +151,10 @@ harmonic potential and forming a linear coulomb crystal.
 struct LinearChain <: IonTrap  # Note: this is not a mutable struct
     ions::Vector{<:Ion}
     com_frequencies::NamedTuple{(:x, :y, :z)}
-    vibrational_modes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
+    selected_modes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     full_normal_mode_description::NamedTuple{(:x, :y, :z)}
-    function LinearChain(; ions, com_frequencies, vibrational_modes::NamedTuple)
-        vibrational_modes = _construct_vibrational_modes(vibrational_modes)
+    function LinearChain(; ions, com_frequencies::NamedTuple, selected_modes::NamedTuple, N=10)
+        selected_modes = _construct_vibrational_modes(selected_modes)
         warn = nothing
         for i in 1:length(ions), j in (i + 1):length(ions)
             @assert typeof(ions[i]) == typeof(ions[j]) "multispecies chains not yet supported; all ions in chain must be of same species"
@@ -163,11 +166,11 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
                 end
             end
         end
-        N = length(ions)
+        nions = length(ions)
         A = (
-            x = Anm(N, com_frequencies, x̂),
-            y = Anm(N, com_frequencies, ŷ),
-            z = Anm(N, com_frequencies, ẑ)
+            x = Anm(nions, com_frequencies, x̂),
+            y = Anm(nions, com_frequencies, ŷ),
+            z = Anm(nions, com_frequencies, ẑ)
         )
         vm = (
             x = Vector{VibrationalMode}(undef, 0),
@@ -175,8 +178,8 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
             z = Vector{VibrationalMode}(undef, 0)
         )
         r = [x̂, ŷ, ẑ]
-        for (i, modes) in enumerate(vibrational_modes), mode in modes
-            push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i]))
+        for (i, modes) in enumerate(selected_modes), mode in modes
+            push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i], N=N))
         end
         l = linear_equilibrium_positions(length(ions))
         l0 = characteristic_length_scale(mass(ions[1]), com_frequencies.z) # Needs to be changed when allowing for multi-species chains. Current workaround takes the mass of only the first ion to define the characteristic length scale.
@@ -194,24 +197,24 @@ Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
 The order is `[lc.x..., lc.y..., lc.z...]`.
 """
 function modes(lc::LinearChain)
-    return collect(Iterators.flatten(lc.vibrational_modes))
+    return collect(Iterators.flatten(lc.selected_modes))
 end
 
 """
     xmodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the x-direction in the `LinearChain`.
 """
-xmodes(lc::LinearChain) = lc.vibrational_modes.x
+xmodes(lc::LinearChain) = lc.selected_modes.x
 """
     ymodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the y-direction in the `LinearChain`.
 """
-ymodes(lc::LinearChain) = lc.vibrational_modes.y
+ymodes(lc::LinearChain) = lc.selected_modes.y
 """
     zmodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the z-direction in the `LinearChain`.
 """
-zmodes(lc::LinearChain) = lc.vibrational_modes.z
+zmodes(lc::LinearChain) = lc.selected_modes.z
 
 """
     modecutoff!(lc::LinearChain, N::Int)
@@ -226,7 +229,7 @@ end
 function Base.print(lc::LinearChain)
     println("$(length(lc.ions)) ions")
     println("com frequencies: $(lc.com_frequencies)")
-    return println("selected vibrational_modes: $(lc.vibrational_modes)")
+    return println("selected vibrational modes: $(lc.selected_modes)")
 end
 
 function Base.show(io::IO, lc::LinearChain)  # suppress long output
@@ -237,7 +240,7 @@ end
 function _construct_vibrational_modes(x)
     k = collect(keys(x))
     xyz = [:x, :y, :z]
-    @assert isnothing(findfirst(x -> x ∉ xyz, k)) "keys of `vibrational_modes` must be `:x`, `:y` or `:z`"
+    @assert isnothing(findfirst(x -> x ∉ xyz, k)) "keys of `selected_modes` must be `:x`, `:y` or `:z`"
     indxs = findall(x -> x ∉ k, xyz)
     values = []
     for i in 1:3

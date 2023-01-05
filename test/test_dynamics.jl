@@ -11,11 +11,11 @@ using Suppressor
         chain = LinearChain(
             ions = [C],
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            vibrational_modes = (; z = [1])
+            selected_modes = (; z = [1])
         )
         T = Chamber(iontrap = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
         L.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        mode = T.iontrap.vibrational_modes.z[1]
+        mode = T.iontrap.selected_modes.z[1]
         L.k = (x̂ + ẑ) / √2
         L.ϵ = (x̂ - ẑ) / √2
         Ω = (rand() + 0.2) * 1e4 # Small so that sideband transitions are suppressed
@@ -132,11 +132,11 @@ using Suppressor
         chain = LinearChain(
             ions = [C],
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            vibrational_modes = (; z = [1])
+            selected_modes = (; z = [1])
         )
         T = Chamber(iontrap = chain, B = 4e-4, Bhat = ẑ, δB = 0, lasers = [L])
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"), T)
-        mode = T.iontrap.vibrational_modes.z[1]
+        mode = T.iontrap.selected_modes.z[1]
         L.k = (x̂ + ẑ) / √2
         L.ϵ = (x̂ - ẑ) / √2 # I have no idea how this worked before; previously this was set to ŷ which gives zero coupling strength to Δm=0
         Δf =
@@ -205,12 +205,12 @@ using Suppressor
         chain = LinearChain(
             ions = [C, C],
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            vibrational_modes = (; z = [1])
+            selected_modes = (; z = [1])
         )
         T = Chamber(iontrap = chain, B = 4e-4, Bhat = (x̂ + ẑ) / √2, lasers = [L1, L2])
         L1.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         L2.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        mode = T.iontrap.vibrational_modes.z[1]
+        mode = T.iontrap.selected_modes.z[1]
         # Set the laser parameters
         ϵ = 40e3
         d = 80  # corrects for AC stark shift from single-photon coupling to sidebands

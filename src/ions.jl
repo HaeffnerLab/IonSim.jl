@@ -805,7 +805,7 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 * `sublevel_aliases::Dict{String,Tuple}`: Dict specifying aliases assigned to sublevels, in the format `alias => sublevel`
 * `shape`::Vector{Int}: Dimension of the Hilbert space
 * `manual_shift::OrderedDict`: A dictionary with keys denoting the selected levels and values, a real number for describing a shift of the level's energy. This is just a convenient way to add manual shifts to the simulation, such as Stark shifts off of energy levels not present in the Hilbert space, without additional resources
-* `ionnumber`: When the ion is added to an `IonTrap`, this value keeps track of its order in the chain
+* `ionnumber`: When the ion is added to an `IonTrap`, this value keeps track of its order
 * `position`: When the ion is added to an `IonTrap`, this value keeps track of its physical position in meters
 """
 mutable struct IonInstance{Species <: Any} <: Ion

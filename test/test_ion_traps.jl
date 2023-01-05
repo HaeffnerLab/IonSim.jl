@@ -8,12 +8,12 @@ using Suppressor
         lc = LinearChain(
             ions = [C, C, C, C],
             com_frequencies = (x = 5, y = 5, z = 1),
-            vibrational_modes = (y = [1], z = [4])
+            selected_modes = (y = [1], z = [4])
         )
         @test ions(lc) == lc.ions
         # test modes, which should return an array of the selected
         # VibrationalModes in the linear chain
-        vms = lc.vibrational_modes
+        vms = lc.selected_modes
         @test modes(lc) == [vms.x..., vms.y..., vms.z...]
 
         # make sure ion numbers are updated
@@ -31,13 +31,13 @@ using Suppressor
         @test_logs (:warn, warning) LinearChain(
             ions = [C, C],
             com_frequencies = (x = 4, y = 4, z = 1),
-            vibrational_modes = (x = [], y = [], z = [1, 2])
+            selected_modes = (x = [], y = [], z = [1, 2])
         )
         # and copies should be made of the repeated ions, so that they are no longer the same
         chain1 = LinearChain(
             ions = [C, C],
             com_frequencies = (x = 4, y = 4, z = 1),
-            vibrational_modes = (x = [], y = [], z = [1, 2])
+            selected_modes = (x = [], y = [], z = [1, 2])
         )
         @test !(chain1.ions[1] ≡ chain1.ions[2])
 
