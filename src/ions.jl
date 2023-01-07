@@ -1,6 +1,5 @@
 using WignerSymbols: wigner3j, wigner6j
 using LinearAlgebra: cross
-#using .PhysicalConstants: e, ħ, α, μB, e, eye3, c_rank1, c_rank2
 using IonSim.PhysicalConstants
 
 export Ion,
@@ -17,10 +16,10 @@ export Ion,
     charge,
     nuclearspin,
     zero_manual_shift!,
-    set_manual_shift!,
+    manual_shift!,
     alias2sublevel,
     sublevel2level,
-    set_sublevel_alias!,
+    sublevel_alias!,
     clear_sublevel_alias!,
     clear_all_sublevel_aliases!,
     levels,
@@ -58,7 +57,7 @@ sublevel_aliases(I::Ion)::Dict{String, Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
 manual_shift(I::Ion)::OrderedDict{Tuple, Real} = I.manual_shift
 ionnumber(I::Ion)::Union{Int, Missing} = I.ionnumber
-ionposition(I::Ion)::Union{Real, Missing} = I.position
+ionposition(I::Ion)::Union{Real, Missing} = I.ionposition
 
 #############################################################################################
 # General properties of species
@@ -77,36 +76,36 @@ validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, alias2sublevel(I, alias))
 
 """
-    set_sublevel_alias!(I::Ion, sublevel::Tuple{String,Real}, alias::String)
+    sublevel_alias!(I::Ion, sublevel::Tuple{String,Real}, alias::String)
 Assigns an alias `alias` to `sublevel` of `I`. This then allows one to pass `alias` in place of `sublevel` (for `I` only) into any function which accepts a sublevel as an argument.
 """
-function set_sublevel_alias!(I::Ion, sublevel::Tuple{String, Real}, alias::String)
+function sublevel_alias!(I::Ion, sublevel::Tuple{String, Real}, alias::String)
     validatesublevel(I, sublevel)
     @assert alias ∉ levels(I) "cannot make alias name identical to level name ($alias)"
     sublevel_rational = (sublevel[1], Rational(sublevel[2]))   # Force m to be Rational
     return I.sublevel_aliases[alias] = sublevel_rational
 end
 """
-    set_sublevel_alias!(I::Ion, aliasassignments)
+    sublevel_alias!(I::Ion, aliasassignments)
 `aliasassignments` specifies which aliases should be assigned to which sublevels. There are two options to do this:
 * `aliasassignments` is a Vector of Tuples, with the first element of each being the sublevel (`sublevel::Tuple{String,Real}`) and the second being its assigned alias (`alias::String`)
 * `aliasassignments` is a Dict with the format `alias::String => sublevel::Tuple{String,Real}`
-Calls `set_sublevel_alias!(I, sublevel, alias)` for each pair `sublevel, alias`.
+Calls `sublevel_alias!(I, sublevel, alias)` for each pair `sublevel, alias`.
 """
-function set_sublevel_alias!(
+function sublevel_alias!(
     I::Ion,
     pairs::Vector{Tuple{Tuple{String, R}, String}} where {R <: Real}
 )
     for (sublevel, alias) in pairs
-        set_sublevel_alias!(I, sublevel, alias)
+        sublevel_alias!(I, sublevel, alias)
     end
 end
-function set_sublevel_alias!(
+function sublevel_alias!(
     I::Ion,
     aliasdict::Dict{String, Tuple{String, R}} where {R <: Real}
 )
     for (alias, sublevel) in aliasdict
-        set_sublevel_alias!(I, sublevel, alias)
+        sublevel_alias!(I, sublevel, alias)
     end
 end
 
@@ -135,22 +134,22 @@ function clear_all_sublevel_aliases!(I::Ion)
 end
 
 """
-    set_manual_shift!(I::Ion, sublevel, shift::Real)
+    manual_shift!(I::Ion, sublevel, shift::Real)
 Applies a manual shift `shift` to the chosen `sublevel` of `I` (overwriting any previously assigned manual shift).
 """
-function set_manual_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
+function manual_shift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
     validatesublevel(I, sublevel)
     return I.manual_shift[(sublevel[1], Rational(sublevel[2]))] = shift
 end
-set_manual_shift!(I::Ion, alias::String, shift::Real) =
-    set_manual_shift!(I, alias2sublevel(I, alias), shift)
+manual_shift!(I::Ion, alias::String, shift::Real) =
+    manual_shift!(I, alias2sublevel(I, alias), shift)
 """
-    set_manual_shift!(I::Ion, manual_shift_dict::Dict)
-Applies `set_manual_shift(I, sublevel, shift)` to all pairs `sublevel => shift` of the Dict `manual_shift_dict`.
+    manual_shift!(I::Ion, manual_shift_dict::Dict)
+Applies `manual_shift(I, sublevel, shift)` to all pairs `sublevel => shift` of the Dict `manual_shift_dict`.
 """
-function set_manual_shift!(I::Ion, manual_shift_dict::Dict)
+function manual_shift!(I::Ion, manual_shift_dict::Dict)
     for sublevel in keys(manual_shift_dict)
-        set_manual_shift!(I, sublevel, manual_shift_dict[sublevel])
+        manual_shift!(I, sublevel, manual_shift_dict[sublevel])
     end
 end
 
@@ -660,7 +659,7 @@ end
 Base.getindex(I::Ion, state::Union{Tuple{String, Real}, String, Int}) = ionstate(I, state)
 
 function Base.getproperty(I::Ion, s::Symbol)
-    if s == :ionnumber || s == :position
+    if s == :ionnumber || s == :ionposition
         if typeof(getfield(I, s)) <: Missing
             @warn "ion has not been added to an iontrap"
             return missing
@@ -670,7 +669,7 @@ function Base.getproperty(I::Ion, s::Symbol)
 end
 
 function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
-    if (s == :species_properties || s == :shape || s == :number || s == :position)
+    if (s == :species_properties || s == :shape || s == :number || s == :ionposition)
         return
     elseif s == :sublevels
         Core.setproperty!(I, :sublevels, _construct_sublevels(v, speciesproperties(I)))
@@ -806,7 +805,7 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 * `shape`::Vector{Int}: Dimension of the Hilbert space
 * `manual_shift::OrderedDict`: A dictionary with keys denoting the selected levels and values, a real number for describing a shift of the level's energy. This is just a convenient way to add manual shifts to the simulation, such as Stark shifts off of energy levels not present in the Hilbert space, without additional resources
 * `ionnumber`: When the ion is added to an `IonTrap`, this value keeps track of its order
-* `position`: When the ion is added to an `IonTrap`, this value keeps track of its physical position in meters
+* `ionposition`: When the ion is added to an `IonTrap`, this value keeps track of its physical position in meters
 """
 mutable struct IonInstance{Species <: Any} <: Ion
     # fields
@@ -816,7 +815,7 @@ mutable struct IonInstance{Species <: Any} <: Ion
     shape::Vector{Int}
     manual_shift::OrderedDict{Tuple, Real}
     ionnumber::Union{Int, Missing}
-    position::Union{Real, Missing}
+    ionposition::Union{Real, Missing}
 
     # constructors (overrides default)
     function IonInstance{Species}(
@@ -844,7 +843,7 @@ mutable struct IonInstance{Species <: Any} <: Ion
         shape,
         manual_shift,
         ionnumber,
-        position
+        ionposition
     ) where {Species <: Any}
         sublevels = deepcopy(sublevels)
         sublevel_aliases = deepcopy(sublevel_aliases)
@@ -857,7 +856,7 @@ mutable struct IonInstance{Species <: Any} <: Ion
             shape,
             manual_shift,
             ionnumber,
-            position
+            ionposition
         )
     end
 end

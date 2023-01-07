@@ -21,11 +21,11 @@ using Suppressor
         @test C1 == C
 
         # test aliases
-        set_sublevel_alias!(C, ("S1/2", -1 / 2), "S")
+        sublevel_alias!(C, ("S1/2", -1 / 2), "S")
         @test sublevel_aliases(C) == Dict("S" => ("S1/2", -1 / 2))
         clear_sublevel_alias!(C, ("S1/2", -1 / 2))
 
-        set_sublevel_alias!(
+        sublevel_alias!(
             C,
             [
                 (("S1/2", -1 / 2), "S")
@@ -35,16 +35,16 @@ using Suppressor
         @test sublevel_aliases(C) == Dict("S" => ("S1/2", -1 / 2), "D" => ("D5/2", -1 / 2))
         clear_sublevel_alias!(C, ["S", "D"])
 
-        set_sublevel_alias!(C, Dict("0" => ("S1/2", 1 / 2), "1" => ("D5/2", 5 / 2)))
+        sublevel_alias!(C, Dict("0" => ("S1/2", 1 / 2), "1" => ("D5/2", 5 / 2)))
         @test sublevel_aliases(C) == Dict("0" => ("S1/2", 1 / 2), "1" => ("D5/2", 5 / 2))
         clear_all_sublevel_aliases!(C)
 
         # set some aliases for convenience
-        set_sublevel_alias!(C, ("S1/2", -1 / 2), "S")
-        set_sublevel_alias!(C, ("D5/2", -5 / 2), "D")
+        sublevel_alias!(C, ("S1/2", -1 / 2), "S")
+        sublevel_alias!(C, ("D5/2", -5 / 2), "D")
 
         #test manual shift
-        set_manual_shift!(C, "S", 10.0)
+        manual_shift!(C, "S", 10.0)
         @test manual_shift(C, "S") == 10.0
         zero_manual_shift!(C)
         @test manual_shift(C, "S") == 0.0
@@ -78,8 +78,8 @@ using Suppressor
         C = Ca40()
 
         # set some aliases for convenience
-        set_sublevel_alias!(C, ("S1/2", -1 / 2), "S")
-        set_sublevel_alias!(C, ("D5/2", -5 / 2), "D")
+        sublevel_alias!(C, ("S1/2", -1 / 2), "S")
+        sublevel_alias!(C, ("D5/2", -5 / 2), "D")
 
         # test for general species properties
         @test mass(C) ≈ 6.635943757345042e-26
@@ -110,8 +110,8 @@ using Suppressor
 
         # # test indexing
         C1 = Ca40([("S1/2", -1 / 2), ("D5/2", -5 / 2)])
-        set_sublevel_alias!(C1, ("S1/2", -1 / 2), "S")
-        set_sublevel_alias!(C1, ("D5/2", -5 / 2), "D")
+        sublevel_alias!(C1, ("S1/2", -1 / 2), "S")
+        sublevel_alias!(C1, ("D5/2", -5 / 2), "D")
         @test C1[("S1/2", -1 / 2)].data == ComplexF64[1; 0]
         @test C1[("D5/2", -5 / 2)].data == ComplexF64[0; 1]
         @test C1["S"].data == ComplexF64[1; 0]
@@ -123,6 +123,6 @@ using Suppressor
         # # test get properties
         warning = "ion has not been added to an iontrap"
         @test_logs (:warn, warning) C.ionnumber
-        @test_logs (:warn, warning) C.position
+        @test_logs (:warn, warning) C.ionposition
     end
 end  # end suppress
