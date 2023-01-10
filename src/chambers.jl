@@ -15,7 +15,6 @@ export Chamber,
     Efield_from_pi_time,
     Efield_from_pi_time!,
     transition_frequency,
-    wavelength!,
     wavelength_from_transition!,
     set_gradient!,
     Efield_from_rabi_frequency,
@@ -462,14 +461,6 @@ transitionwavelength(
     T;
     ignore_manualshift = ignore_manualshift
 )
-
-"""
-    wavelength!(laser::Laser, wavelength::Real)
-Sets the wavelength of `laser` to `wavelength`.
-"""
-function wavelength!(laser::Laser, wavelength::Real)
-    laser.λ = wavelength
-end
 
 """
     wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, Bfield::Real)

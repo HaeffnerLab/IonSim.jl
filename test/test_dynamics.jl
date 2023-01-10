@@ -160,7 +160,7 @@ using Suppressor
 
         # set Ω(t) to a step function
         L.λ = transitionwavelength(1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        L.ϕ = 0
+        phase!(L, 0)
         E = Efield_from_rabi_frequency(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
         L.E = t -> t < 1 ? 0 : E
         h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
@@ -178,7 +178,7 @@ using Suppressor
         @test isapprox(ex_ionsim_tdE, ex_analyt_tdE, rtol = 1e-5)
 
         # check that δν(t) shifts sideband frequencies appropriately
-        L.E = E
+        efield!(L, E)
         tspan = 0:1e-3:30
         mode.δν = t -> 20e3
         L.Δ = mode.ν + 20e3

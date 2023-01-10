@@ -119,10 +119,10 @@ end
         L2 = copy(L1)
 
         # _Ωmatrix
-        L1.E = 1
-        L1.ϕ = 0
-        L2.E = 2
-        L2.ϕ = 2
+        efield!(L1, 1)
+        phase!(L1, 0)
+        efield!(L2, 2)
+        phase!(L2, 2)
         chain = LinearChain(
             ions = [C, C1],
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
@@ -440,7 +440,7 @@ end
         Δ = round(randn(), digits = 5) * 1e5  # TODO: this begins to fail at below 1 Hz!
         L.Δ = Δ
         ϕ = randn()
-        L.ϕ = ϕ
+        phase!(L, ϕ)
         mode1.N = 10
         mode2.N = 9
         Ω = randn()

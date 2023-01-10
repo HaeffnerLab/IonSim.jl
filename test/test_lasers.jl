@@ -1,4 +1,5 @@
 using Test, IonSim
+using Suppressor
 
 @testset "lasers -- Laser" begin
     # should not be able to set unnormalized k-vectors or polarizations
@@ -24,11 +25,11 @@ using Test, IonSim
     @test L.ϕ.(t) == sin.(t)
 
     # test that normalization is enforced for altered L.ϵ/L.k
-    @test_throws AssertionError L.ϵ = (x = 2, y = 0, z = 0)
-    @test_throws AssertionError L.k = (x = 2, y = 0, z = 0)
+    @test_throws AssertionError polarization!(L, (x = 2, y = 0, z = 0))
+    @test_throws AssertionError wavevector!(L, (x = 2, y = 0, z = 0))
     # test that pointing constraints are enforced for altered values
-    @test_throws AssertionError L.pointing = [(1, 0.5), (1, 0.5)]
-    @test_throws AssertionError L.pointing = [(1, 2.0)]
+    @test_throws AssertionError pointing!(L, [(1, 0.5), (1, 0.5)])
+    @test_throws AssertionError pointing!(L, [(1, 2.0)])
     L.λ = 1
     @test L.λ == 1
 
@@ -43,6 +44,6 @@ using Test, IonSim
     # test comparison
     L2 = copy(L)
     @test L == L2
-    L.E = 7
+    efield!(L, 7)
     @test L ≠ L2
 end

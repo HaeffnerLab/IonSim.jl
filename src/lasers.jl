@@ -1,6 +1,20 @@
 using .PhysicalConstants: c
 
-export Laser
+export Laser,
+    wavelength,
+    efield,
+    detuning,
+    polarization,
+    wavevector,
+    phase,
+    pointing,
+    wavelength!,
+    efield!,
+    detuning!,
+    polarization!,
+    wavevector!,
+    phase!,
+    pointing!
 
 """
     Laser(;λ=nothing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
@@ -58,6 +72,79 @@ mutable struct Laser
     Laser(λ, E, Δ, ϵ, k, ϕ, pointing) = new(λ, E, Δ, ϵ, k, ϕ, pointing)
 end
 
+#############################################################################################
+# Object fields
+#############################################################################################
+
+wavelength(laser::Laser) = laser.λ
+efield(laser::Laser) = laser.E
+detuning(laser::Laser) = laser.Δ
+polarization(laser::Laser) = laser.ϵ
+wavevector(laser::Laser) = laser.k
+phase(laser::Laser) = laser.ϕ
+pointing(laser::Laser) = laser.pointing
+
+
+#############################################################################################
+# Setters
+#############################################################################################
+
+function wavelength!(laser::Laser, λ::Real)
+    laser.λ = λ
+end
+
+function efield!(laser::Laser, E::Function)
+    laser.E = E
+end
+function efield!(laser::Laser, E::Real)
+    laser.E = (t -> E)
+end
+
+function detuning(laser::Laser, Δ::Real)
+    laser.Δ = Δ
+end
+
+function polarization!(laser::Laser, ϵ::NamedTuple{(:x, :y, :z)})
+    rtol = 1e-6
+    @assert isapprox(norm(ϵ), 1, rtol = rtol) "!(|ϵ| = 1)"
+    # if ! isapprox(ndot(ϵ, laser.k), 0, rtol=rtol)
+    #     @warn "!(ϵ ⟂ k)"
+    # end 
+    laser.ϵ = ϵ
+end
+
+function wavevector!(laser::Laser, k::NamedTuple{(:x, :y, :z)})
+    rtol = 1e-6
+    @assert isapprox(norm(k), 1, rtol = rtol) "!(|k| = 1)"
+    # if ! isapprox(ndot(k, laser.ϵ), 0, rtol=rtol)
+    #     @warn "!(ϵ ⟂ k)"
+    # end
+    laser.k = k
+end
+
+function phase!(laser::Laser, ϕ::Function)
+    laser.ϕ = ϕ
+end
+function phase!(laser::Laser, ϕ::Real)
+    laser.ϕ = (t -> ϕ)
+end
+
+function pointing!(laser::Laser, p::Vector{Tuple{T1, T2}} where T1<:Int where T2<:Real)
+    (ion_num, scaling) = map(x -> getfield.(p, x), fieldnames(eltype(p)))
+    @assert length(ion_num) == length(unique(ion_num)) (
+        "a laser is pointing at the same ion twice"
+    )
+    for s in scaling
+        @assert 0 <= s <= 1 "must have s ∈ [0,1]"
+    end
+    laser.pointing = p
+end
+
+
+#############################################################################################
+# Base functions
+#############################################################################################
+
 function Base.:(==)(L1::Laser, L2::Laser)
     for field in fieldnames(Laser)
         if getfield(L1, field) != getfield(L2, field)
@@ -74,34 +161,4 @@ function Base.print(L::Laser)
     println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
     println("E(t=0): ", "$(L.E(0.0)) V/m")
     return println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
-end
-
-function Base.setproperty!(L::Laser, s::Symbol, v::Tv) where {Tv}
-    rtol = 1e-6
-    if s == :ϵ
-        @assert isapprox(norm(v), 1, rtol = rtol) "!(|ϵ| = 1)"
-        # if ! isapprox(ndot(L.k, v), 0, rtol=rtol)
-        #     @warn "!(ϵ ⟂ k)"
-        # end 
-    elseif s == :k
-        @assert isapprox(norm(v), 1, rtol = rtol) "!(|k| = 1)"
-        # if ! isapprox(ndot(v, L.ϵ), 0, rtol=rtol)
-        #     @warn "!(ϵ ⟂ k)"
-        # end 
-    elseif s == :pointing
-        b = Tv <: Vector{Tuple{Int64, Float64}} || Tv <: Vector{Tuple{Int64, Int64}}
-        @assert b "type != Vector{Tuple{Int,Real}}"
-        (ion_num, scaling) = map(x -> getfield.(v, x), fieldnames(eltype(v)))
-        @assert length(ion_num) == length(unique(ion_num)) (
-            "a laser is pointing at the same ion twice"
-        )
-        for s in scaling
-            @assert 0 <= s <= 1 "must have s ∈ [0,1]"
-        end
-    elseif s == :E || s == :ϕ
-        Tv <: Number ? vt(t) = v : vt = v
-        Core.setproperty!(L, s, vt)
-        return
-    end
-    return Core.setproperty!(L, s, v)
 end
