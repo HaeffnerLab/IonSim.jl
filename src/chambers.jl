@@ -2,9 +2,19 @@ using QuantumOptics: tensor, CompositeBasis
 using .PhysicalConstants: ħ, c
 
 export Chamber,
-    basis,
     iontrap,
+    bfield,
+    bfield_unitvector,
+    bgradient,
+    bfield_fluctuation,
     lasers,
+    basis,
+    iontrap!,
+    bfield!,
+    bfield_unitvector!,
+    bgradient!,
+    bfield_fluctuation!,
+    lasers!,
     ions,
     modes,
     xmodes,
@@ -128,41 +138,62 @@ mutable struct Chamber
     end
 end
 
-function Base.setproperty!(T::Chamber, s::Symbol, v::Tv) where {Tv}
-    if s == :δB
-        if Tv <: Number
-            _cnst_δB = true
-            vt(t) = v
-        else
-            _cnst_δB = false
-            vt = v
-        end
-        Core.setproperty!(T, s, vt)
-        Core.setproperty!(T, :_cnst_δB, _cnst_δB)
-    elseif s == :basis || s == :_cnst_δB
-        return
-    elseif s == :iontrap
-        Core.setproperty!(T, s, v)
-        basis = tensor(
-            v.ions...,
-            v.selected_modes.x...,
-            v.selected_modes.y...,
-            v.selected_modes.z...,
-        )
-        Core.setproperty!(T, :basis, basis)
-    else
-        Core.setproperty!(T, s, v)
-    end
-end
-
 Base.show(io::IO, T::Chamber) = print(io, "Chamber")  # suppress long output
 
 
 #############################################################################################
 # Object fields
 #############################################################################################
-iontrap(T::Chamber) = T.iontrap
-lasers(T::Chamber) = T.lasers
+
+iontrap(chamber::Chamber) = chamber.iontrap
+bfield(chamber::Chamber) = chamber.B
+bfield_unitvector(chamber::Chamber) = chamber.Bhat
+bgradient(chamber::Chamber) = chamber.∇B
+bfield_fluctuation(chamber::Chamber) = chamber.δB
+lasers(chamber::Chamber) = chamber.lasers
+basis(chamber::Chamber) = chamber.basis
+
+
+#############################################################################################
+# Setters
+#############################################################################################
+
+function iontrap!(chamber::Chamber, iontrap::IonTrap)
+    chamber.basis = tensor(
+        iontrap.ions...,
+        iontrap.selected_modes.x...,
+        iontrap.selected_modes.y...,
+        iontrap.selected_modes.z...,
+    )
+    chamber.iontrap = iontrap
+end
+
+function bfield!(chamber::Chamber, B::Real)
+    chamber.B = B
+end
+
+function bfield_unitvector!(chamber::Chamber, Bhat::NamedTuple{(:x, :y, :z)})
+    rtol = 1e-6
+    @assert isapprox(norm(Bhat), 1, rtol = rtol) "!(|̂B| = 1)"
+    chamber.Bhat = Bhat
+end
+
+function bgradient!(chamber::Chamber, ∇B::Real)
+    chamber.∇B = ∇B
+end
+
+function bfield_fluctuation!(chamber::Chamber, δB::Function)
+    chamber.δB = δB
+    chamber._cnst_δB = false
+end
+function bfield_fluctuation!(chamber::Chamber, δB::Real)
+    chamber.δB = (t -> δB)
+    chamber._cnst_δB = true
+end
+
+function lasers!(chamber::Chamber, lasers::Vector{Laser})
+    chamber.lasers = lasers
+end
 
 
 #############################################################################################
@@ -408,10 +439,10 @@ function Efield_from_rabi_frequency!(
 end
 
 """
-    Bfield(T::Chamber, ion::Ion)
+    bfield(T::Chamber, ion::Ion)
 Retuns the value of the magnetic field in `T` at the location of `ion`, including both the trap's overall B-field and its B-field gradient.
 """
-function Bfield(T::Chamber, ion::Ion)
+function bfield(T::Chamber, ion::Ion)
     @assert ionintrap(T, ion) "trap does not contain ion"
     return T.B + T.∇B * ionposition(ion)
 end
@@ -426,7 +457,7 @@ transitionfrequency(ion::Ion, transition::Tuple, T::Chamber; ignore_manualshift 
     transitionfrequency(
         ion,
         transition;
-        B = Bfield(T, ion),
+        B = bfield(T, ion),
         ignore_manualshift = ignore_manualshift
     )
 transitionfrequency(ion_index::Int, transition::Tuple, T::Chamber; ignore_manualshift = false) =
@@ -447,7 +478,7 @@ transitionwavelength(ion::Ion, transition::Tuple, T::Chamber; ignore_manualshift
     transitionwavelength(
         ion,
         transition;
-        B = Bfield(T, ion),
+        B = bfield(T, ion),
         ignore_manualshift = ignore_manualshift
     )
 transitionwavelength(
@@ -463,14 +494,14 @@ transitionwavelength(
 )
 
 """
-    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, Bfield::Real)
+    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, b::Real)
     wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, T::Chamber)
 Sets the wavelength of `laser` to the transition wavelength of `transition` in the ion `ion`,
-at a magnetic field value given by `Bfield` if the final argument is a `Real`, or at the magnetic
+at a magnetic field value given by `b` if the final argument is a `Real`, or at the magnetic
 field seen by `ion` if the final argument is the `Chamber` that contains it.
 """
-function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, Bfield::Real)
-    wavelength = transitionwavelength(ion, transition, B=Bfield)
+function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, b::Real)
+    wavelength = transitionwavelength(ion, transition, B=b)
     laser.λ = wavelength
     return wavelength
 end
@@ -499,7 +530,7 @@ Calls `zeeman_shift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` i
 One may alternatively replace `ion` with `ion_index`::Int, which instead specifies the index of the intended ion within `T`.
 """
 zeeman_shift(I::Ion, sublevel::Union{Tuple{String, Real}, String}, T::Chamber) =
-    zeeman_shift(I, sublevel, Bfield(T, I))
+    zeeman_shift(I, sublevel, bfield(T, I))
 zeeman_shift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Chamber) =
     zeeman_shift(T.iontrap.ions[ion_index], sublevel, T)
 

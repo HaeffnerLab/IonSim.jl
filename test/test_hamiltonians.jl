@@ -238,7 +238,7 @@ end
         @test sum(bfunc.(0:1e4)) == 0
 
         # now let's test nontrivial T.δB
-        T.δB = sin
+        bfield_fluctuation!(T, sin)
         t = 0:0.1:10
         modecutoff!(zmodes(T)[1], 3)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)

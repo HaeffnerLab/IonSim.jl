@@ -27,10 +27,10 @@ using Suppressor
         # test construction of T.δB
         t = 0:1:100
         ones = [1 for _ in t]
-        T.δB = 1
+        bfield_fluctuation!(T, 1)
         @test T.δB.(t) == ones
         @test T._cnst_δB
-        T.δB = sin
+        bfield_fluctuation!(T, sin)
         @test T.δB.(t) == sin.(t)
         @test !T._cnst_δB
 
@@ -45,12 +45,12 @@ using Suppressor
 
         # test setproperty for Chamber
         # setting T.δB to a constant
-        T.δB = 100
+        bfield_fluctuation!(T, 100)
         @test T.δB(0) == 100
-        # setting the :basis directly should have no effect
-        basis = T.basis
-        T.basis = 100
-        @test T.basis == basis
+        # # setting the :basis directly should have no effect
+        # basis = T.basis
+        # T.basis = 100
+        # @test T.basis == basis
         # changing the iontrap should also update the basis
         chain1 = LinearChain(
             ions = [C, C, C],
@@ -58,7 +58,7 @@ using Suppressor
             selected_modes = (; z = [1])
         )
         @test length(T.basis.bases) ≡ 3
-        T.iontrap = chain1
+        iontrap!(T, chain1)
         @test T.iontrap ≡ chain1
         @test length(T.basis.bases) ≡ 4
 
