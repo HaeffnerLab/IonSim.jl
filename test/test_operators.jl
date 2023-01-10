@@ -28,14 +28,14 @@ using Suppressor
         α = rand(0:1e-3:7) + im * rand(0:1e-3:7)
         @test displace(allmodes[1], α).data ≈ qo.displace(fb, α).data
         fb2 = qo.FockBasis(200)
-        allmodes[1].N = 200
+        modecutoff!(allmodes[1], 200)
         i = rand(1:5)
         j = rand(1:5)
         @test displace(allmodes[1], α, method = "analytic").data[i, j] ≈
               qo.displace(fb2, α).data[i, j] atol = 1e-6
 
         # test that mean excitation of thermalstate is as expected
-        allmodes[1].N = 500
+        modecutoff!(allmodes[1], 500)
         n̄ = abs(2randn())
         @test expect(number(allmodes[1]), thermalstate(allmodes[1], n̄)) ≈ n̄
         @test expect(number(allmodes[1]), thermalstate(allmodes[1], n̄, method = "analytic")) ≈ n̄
@@ -46,7 +46,7 @@ using Suppressor
 
         # test coherenthermalstate
         N = 500
-        allmodes[1].N = N
+        modecutoff!(allmodes[1], N)
         n̄ = rand(0:1e-6:10)
         @test coherentthermalstate(allmodes[1], n̄, 0, method = "analytic").data ≈
               thermalstate(allmodes[1], n̄).data

@@ -222,7 +222,7 @@ Sets the upper bound of the Hilbert space of all `VibrationalMode`s in `lc` to b
 """
 function modecutoff!(lc::LinearChain, N::Int)
     for mode in modes(lc)
-        mode.N = N
+        modecutoff!(mode, N)
     end
 end
 

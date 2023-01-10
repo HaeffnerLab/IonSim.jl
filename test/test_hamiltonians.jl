@@ -212,7 +212,7 @@ end
         @test η[1, 3, end - 2](0.0) != 0
         # test construction of time-dep δν. If δν = 1e6*t, then after 3e-6 seconds (and since
         # ν=1e6), √(ν+δν(t)) = √2 * √(ν) = √2 * √(ν+δν(0))
-        chain.selected_modes.z[1].δν = t -> 1e6t
+        frequency_fluctuation!(zmodes(chain)[1], t -> 1e6t)
         η = IonSim._ηmatrix(T)
         @test η[1, 1, end - 2](0.0) ≈ 2 * η[1, 1, end - 2](3)
     end
@@ -240,7 +240,7 @@ end
         # now let's test nontrivial T.δB
         T.δB = sin
         t = 0:0.1:10
-        T.iontrap.selected_modes.z[1].N = 3
+        modecutoff!(zmodes(T)[1], 3)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
         # make sure bfunc is correct
         @test bfunc.(t) == 2π .* sin.(t)
@@ -265,8 +265,8 @@ end
         @test length(δν_indices) == 0 && length(δν_functions) == 0
 
         # test output for simple case
-        T.iontrap.selected_modes.z[1].N = 3
-        T.iontrap.selected_modes.z[1].δν = 1
+        modecutoff!(zmodes(T)[1], 3)
+        frequency_fluctuation!(zmodes(T)[1], 1)
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         indxs = [[8j + i for i in 1:8] for j in 1:3]
         @test δν_indices[1] == indxs
@@ -278,16 +278,16 @@ end
             selected_modes = (y = [1], z = [1])
         )
         T = Chamber(iontrap = chain, lasers = [L], δB = 0)
-        T.iontrap.selected_modes.y[1].N = 3
-        T.iontrap.selected_modes.z[1].N = 3
-        T.iontrap.selected_modes.z[1].δν = 1
+        modecutoff!(ymodes(T)[1], 3)
+        modecutoff!(zmodes(T)[1], 3)
+        frequency_fluctuation!(zmodes(T)[1], 1)
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         indxs1 = [[8 * 4 * j + i for i in 1:(8 * 4)] for j in 1:3]
         @test δν_indices[1] == indxs1
 
         # test output when both modes have nonzero δν
-        T.iontrap.selected_modes.z[1].δν = 1
-        T.iontrap.selected_modes.y[1].δν = 1
+        frequency_fluctuation!(zmodes(T)[1], 1)
+        frequency_fluctuation!(ymodes(T)[1], 1)
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         indxs = [[8 * j + i for i in 1:(8 * 8)] for j in 1:3]
         @test δν_indices[1][1] ==
@@ -297,8 +297,8 @@ end
         @test length(δν_functions) == 2
 
         # finally, make sure δν_functions are being constructed appropriately
-        T.iontrap.selected_modes.y[1].δν = cos
-        T.iontrap.selected_modes.z[1].δν = sin
+        frequency_fluctuation!(ymodes(T)[1], cos)
+        frequency_fluctuation!(zmodes(T)[1], sin)
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         t = 0:0.1:10
         @test δν_functions[1].(t) == 2π .* cos.(t)
@@ -306,8 +306,8 @@ end
 
         # _setup_fluctuation_hamiltonian
         T = Chamber(iontrap = chain, lasers = [L], δB = 1)
-        T.iontrap.selected_modes.y[1].δν = cos
-        T.iontrap.selected_modes.z[1].δν = sin
+        frequency_fluctuation!(ymodes(T)[1], cos)
+        frequency_fluctuation!(zmodes(T)[1], sin)
         δν_indices, δν_functions = IonSim._setup_δν_hamiltonian(T, 1)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
         all_unique_indices, gbi, gbs, bfunc1, δνi, δνfuncs =
@@ -337,7 +337,7 @@ end
             lasers = [L]
         )
         mode = T.iontrap.selected_modes.z[1]
-        mode.N = rand(1:8)
+        modecutoff!(mode, rand(1:8))
         N = mode.N + 1
         Efield_from_rabi_frequency!(1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 
@@ -379,8 +379,8 @@ end
         )
         mode1 = T1.iontrap.selected_modes.z[1]
         mode2 = T1.iontrap.selected_modes.z[2]
-        mode1.N = N - 1
-        mode2.N = rand(1:8)
+        modecutoff!(mode1, N - 1)
+        modecutoff!(mode2, rand(1:8))
         M = mode2.N + 1
         NM = N * M
         Efield_from_rabi_frequency!(1e6, T1, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
@@ -441,8 +441,8 @@ end
         L.Δ = Δ
         ϕ = randn()
         phase!(L, ϕ)
-        mode1.N = 10
-        mode2.N = 9
+        modecutoff!(mode1, 10)
+        modecutoff!(mode2, 9)
         Ω = randn()
         Efield_from_rabi_frequency!(Ω * 1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
 

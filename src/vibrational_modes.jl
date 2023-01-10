@@ -1,6 +1,15 @@
 using QuantumOptics: basisstate
 
-export VibrationalMode, modecutoff!
+export VibrationalMode,
+    frequency,
+    mode_structure,
+    frequency_fluctuation,
+    modecutoff,
+    shape,
+    axis,
+    frequency!,
+    frequency_fluctuation!,
+    modecutoff!
 
 """
     VibrationalMode(
@@ -49,13 +58,48 @@ mutable struct VibrationalMode <: IonSimBasis
     end
 end
 
+#############################################################################################
+# Object fields
+#############################################################################################
+
+frequency(mode::VibrationalMode) = mode.ν
+mode_structure(mode::VibrationalMode) = mode.mode_structure
+frequency_fluctuation(mode::VibrationalMode) = mode.δν
+modecutoff(mode::VibrationalMode) = mode.N
+shape(mode::VibrationalMode) = mode.shape
+axis(mode::VibrationalMode) = mode.axis
+
+#############################################################################################
+# Setters
+#############################################################################################
+
+function frequency!(mode::VibrationalMode, ν::Real)
+    mode.ν = ν
+end
+
+function frequency_fluctuation!(mode::VibrationalMode, δν::Function)
+    mode.δν = δν
+    mode._cnst_δν = false
+end
+function frequency_fluctuation!(mode::VibrationalMode, δν::Real)
+    mode.δν = (t -> δν)
+    mode._cnst_δν = true
+end
+
 """
     modecutoff!(mode::VibrationalMode, N::Int)
 Sets the upper bound of the Hilbert space of `mode` to be the Fock state `N`.
 """
 function modecutoff!(mode::VibrationalMode, N::Int)
+    @assert N >= 0 "N must be a nonnegative integer"
     mode.N = N
+    mode.shape = Int[N + 1]
 end
+
+
+#############################################################################################
+# Base functions
+#############################################################################################
 
 function Base.:(==)(b1::T, b2::T) where {T <: VibrationalMode}
     return (
@@ -72,32 +116,6 @@ Base.show(io::IO, V::VibrationalMode) = print(
     io,
     "VibrationalMode(ν=$(round(V.ν,sigdigits=4)), axis=$(_print_axis(V.axis)), N=$(V.N))"
 )
-
-function Base.setproperty!(V::VibrationalMode, s::Symbol, v::Tv) where {Tv}
-    if s == :mode_structure || s == :axis || s == :_cnst_δν
-        return
-    end
-    if s == :N
-        @assert Tv <: Int "N must be a positive integer"
-        @assert v >= 0 "N must be a nonnegative integer"
-        Core.setproperty!(V, :N, v)
-        Core.setproperty!(V, :shape, Int[v + 1])
-    elseif s == :shape
-        return
-    elseif s == :δν
-        if Tv <: Number
-            _cnst_δν = true
-            vt(t) = v
-        else
-            _cnst_δν = false
-            vt = v
-        end
-        Core.setproperty!(V, s, vt)
-        Core.setproperty!(V, :_cnst_δν, _cnst_δν)
-        return
-    end
-    return Core.setproperty!(V, s, v)
-end
 
 function Base.getindex(V::VibrationalMode, n::Int)
     @assert 0 <= n <= V.N "n ∉ [0, $(V.N+1)]"

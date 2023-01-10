@@ -71,7 +71,7 @@ using Suppressor
         # For this test, numerical result deviates from analytical quickly as nbar grows.
         # Keeping max at 10 ensures agreement to 10^-4; if max nbar is 20, find that need rtol no less than 10^-2
         zero_manual_shift!(C)
-        mode.N = 100
+        modecutoff!(mode, 100)
         ψi_ion = C[("S1/2", -1 / 2)] ⊗ C[("S1/2", -1 / 2)]'
         n̄ = rand(1:10)
         ψi_mode = thermalstate(mode, n̄)
@@ -222,7 +222,7 @@ using Suppressor
         L2.k = ẑ
         L2.ϵ = x̂
 
-        mode.N = 15
+        modecutoff!(mode, 15)
         η = abs(lambdicke(mode, L1, C))
         Ω = √(1e3 * ϵ) / η  # This will give a 1kHz MS strength, since coupling goes like (ηΩ)^2/ϵ
 
