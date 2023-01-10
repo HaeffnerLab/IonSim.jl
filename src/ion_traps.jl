@@ -191,6 +191,15 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
     end
 end
 
+#############################################################################################
+# Object fields
+#############################################################################################
+
+com_frequencies(chain::LinearChain) = chain.com_frequencies
+selected_modes(chain::LinearChain) = chain.selected_modes
+full_normal_mode_description(chain::LinearChain) = chain.full_normal_mode_description
+
+
 """
     modes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
