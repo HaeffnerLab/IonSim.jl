@@ -122,7 +122,7 @@ using Suppressor
 
         # # test get properties
         warning = "ion has not been added to an iontrap"
-        @test_logs (:warn, warning) C.ionnumber
-        @test_logs (:warn, warning) C.ionposition
+        @test_logs (:warn, warning) ionnumber(C)
+        @test_logs (:warn, warning) ionposition(C)
     end
 end  # end suppress

@@ -56,9 +56,24 @@ sublevels(I::Ion)::Vector{Tuple{String, Real}} = I.sublevels
 sublevel_aliases(I::Ion)::Dict{String, Tuple} = I.sublevel_aliases
 shape(I::Ion)::Vector{Int} = I.shape
 manual_shift(I::Ion)::OrderedDict{Tuple, Real} = I.manual_shift
-ionnumber(I::Ion)::Union{Int, Missing} = I.ionnumber
-ionposition(I::Ion)::Union{Real, Missing} = I.ionposition
 
+function ionnumber(I::Ion)::Union{Int, Missing}
+    if typeof(I.ionnumber) <: Missing
+        @warn "ion has not been added to an IonTrap"
+        return missing
+    else
+        return I.ionnumber
+    end
+end
+
+function ionposition(I::Ion)::Union{Real, Missing}
+    if typeof(I.ionposition) <: Missing
+        @warn "ion has not been added to an IonTrap"
+        return missing
+    else
+        return I.ionposition
+    end
+end
 #############################################################################################
 # General properties of species
 #############################################################################################
@@ -417,7 +432,7 @@ function subleveltransitions(I::Ion)
     list = []
     for transition in leveltransitions(I)
         (L1, L2) = transition
-        multipole = transitionmultipole(I, L1, L2)
+        multipole = transitionmultipole(I, (L1, L2))
         sublevels1 = [sublevel for sublevel in sublevels(I) if sublevel[1] == L1]
         sublevels2 = [sublevel for sublevel in sublevels(I) if sublevel[1] == L2]
         for sl1 in sublevels1
@@ -435,24 +450,24 @@ function subleveltransitions(I::Ion)
 end
 
 """
-    einsteinA(I::Ion, Lpair::Tuple)
-Returns Einstein A coefficient corresponding to the transition `Lpair[1] -> Lpair[2]`. The first level must be the lower level and the second must be the upper level.
+    einsteinA(I::Ion, leveltransition::Tuple)
+Returns Einstein A coefficient corresponding to the transition `leveltransition[1] -> leveltransition[2]`. The first level must be the lower level and the second must be the upper level.
 """
-function einsteinA(I::Ion, L1::String, L2::String)
+function einsteinA(I::Ion, leveltransition::Tuple{String,String}) 
+    (L1, L2) = leveltransition
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
     return speciesproperties(I).full_transitions[(L1, L2)].einsteinA
 end
-einsteinA(I::Ion, Lpair::Tuple) = einsteinA(I, Lpair[1], Lpair[2])
 
 """
-    transitionmultipole(I::Ion, Lpair::Tuple)
-Returns the transition multiple (`'E1'`, `'E2'`, etc.) corresponding to the transition `Lpair[1] -> Lpair[2]`. The first level must be the lower level and the second must be the upper level.
+    transitionmultipole(I::Ion, leveltransition::Tuple)
+Returns the transition multiple (`'E1'`, `'E2'`, etc.) corresponding to the transition `leveltransition[1] -> leveltransition[2]`. The first level must be the lower level and the second must be the upper level.
 """
-function transitionmultipole(I::Ion, L1::String, L2::String)
+function transitionmultipole(I::Ion, leveltransition::Tuple{String,String})
+    (L1, L2) = leveltransition
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
     return speciesproperties(I).full_transitions[(L1, L2)].multipole
 end
-transitionmultipole(I::Ion, Lpair::Tuple) = transitionmultipole(I, Lpair[1], Lpair[2])
 
 """
     lifetime(I::Ion, level::String)
@@ -574,8 +589,8 @@ function matrix_element(
     @assert E2 > E1 "transition must be formatted (lower level, upper level)"
     qn1 = quantumnumbers(I, SL1)
     qn2 = quantumnumbers(I, SL2)
-    A12 = einsteinA(I, L1, L2)
-    multipole = transitionmultipole(I, L1, L2)
+    A12 = einsteinA(I, (L1, L2))
+    multipole = transitionmultipole(I, (L1, L2))
 
     return matrix_element(
         qn1.j,
@@ -657,46 +672,6 @@ end
 #############################################################################################
 
 Base.getindex(I::Ion, state::Union{Tuple{String, Real}, String, Int}) = ionstate(I, state)
-
-function Base.getproperty(I::Ion, s::Symbol)
-    if s == :ionnumber || s == :ionposition
-        if typeof(getfield(I, s)) <: Missing
-            @warn "ion has not been added to an iontrap"
-            return missing
-        end
-    end
-    return getfield(I, s)
-end
-
-function Base.setproperty!(I::Ion, s::Symbol, v::Tv) where {Tv}
-    if (s == :species_properties || s == :shape || s == :number || s == :ionposition)
-        return
-    elseif s == :sublevels
-        Core.setproperty!(I, :sublevels, _construct_sublevels(v, speciesproperties(I)))
-        # Also update the manual shift dict as necessary; keep old manual shift values and assign zero manual shift to new sublevels
-        manualshift_full_old = manual_shift(I)
-        manualshift_full_new = OrderedDict{Tuple, Real}()
-        for sublevel in sublevels(I)
-            manualshift_full_new[sublevel] = (
-                haskey(manualshift_full_old, sublevel) ? manualshift_full_old[sublevel] : 0.0
-            )
-        end
-        Core.setproperty!(I, :manual_shift, manualshift_full_new)
-        return
-    elseif s == :sublevel_aliases
-        for (alias, sublevel) in v
-            validatesublevel(I, sublevel)
-        end
-        Core.setproperty!(I, :sublevel_aliases, v)
-    elseif s == :manual_shift
-        manualshift_full_new = manual_shift(I) # New manual shift dict is initially identical to the old one
-        for (sublevel, shift) in v
-            validatesublevel(I, sublevel)
-            manualshift_full_new[sublevel] = shift # Change the shifts as necessary
-        end
-        Core.setproperty!(I, :manual_shift, manualshift_full_new)
-    end
-end
 
 function Base.:(==)(b1::T, b2::T) where {T <: Ion}
     # Takes two ions to be equal if they are the same species, contain the same sublevels, and have the same manual shifts
