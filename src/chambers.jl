@@ -208,19 +208,6 @@ function ionintrap(trap::Chamber, ion::Ion)
     return ion in ions(trap.iontrap)
 end
 
-"""
-    basis(T::Chamber)
-Returns the composite basis describing the Hilbert space for `T`.
-"""
-function basis(T::Chamber)::CompositeBasis # Isn't this already constructed as T.basis?
-    return tensor(
-        T.iontrap.ions...,
-        T.iontrap.selected_modes.x...,
-        T.iontrap.selected_modes.y...,
-        T.iontrap.selected_modes.z...,
-    )
-end
-
 """"
     ions(T::Chamber)
 Returns a list of the ions in the `Chamber`.
