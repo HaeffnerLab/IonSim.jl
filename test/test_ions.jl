@@ -90,22 +90,22 @@ using Suppressor
         @test landegf(C, "D") == 6 // 5
 
         # test zeeman shift using quantum numbers of the S and D states
-        @test zeeman_shift(1e-4, quantumnumbers(C, "S")) ≈ -1.3996244961550953e6
-        @test zeeman_shift(1e-4, quantumnumbers(C, "D")) ≈ -4.198873488465285e6
+        @test zeemanshift(1e-4, quantumnumbers(C, "S")) ≈ -1.3996244961550953e6
+        @test zeemanshift(1e-4, quantumnumbers(C, "D")) ≈ -4.198873488465285e6
 
         # test zeeman shift using the ion itself as an input, which will use the custom-defined g-factors
         # for the S1/2 and D5/2 states and thus give slightly different results
-        @test zeeman_shift(C, "S", 1e-4) ≈ -1.4012037204665968e6
-        @test zeeman_shift(C, "D", 1e-4) ≈ -4.200042174919575e6
+        @test zeemanshift(C, "S", 1e-4) ≈ -1.4012037204665968e6
+        @test zeemanshift(C, "D", 1e-4) ≈ -4.200042174919575e6
 
         @test leveltransitions(C) == [("S1/2", "D5/2")]
         @test length(subleveltransitions(C)) == 10
 
         @test lifetime(C, "D5/2") ≈ 1.16795141322121
 
-        @test matrix_element(C, ("S", "D"), 1e5, x̂, ŷ, ẑ) ≈ 472761.18184781645
+        @test matrixelement(C, ("S", "D"), 1e5, ŷ, x̂, ẑ) ≈ 472761.18184781645
 
-        # # make sure improper indexing of Ca40 yields an AssertionError
+        # make sure improper indexing of Ca40 yields an AssertionError
         @test_throws AssertionError C[""]
 
         # # test indexing
@@ -117,11 +117,11 @@ using Suppressor
         @test C1["S"].data == ComplexF64[1; 0]
         @test C1["D"].data == ComplexF64[0; 1]
 
-        # # test set properties
+        # test set properties
         # @test_throws AssertionError C.selected_level_structure = []
 
         # # test get properties
-        warning = "ion has not been added to an iontrap"
+        warning = "ion has not been added to an IonTrap"
         @test_logs (:warn, warning) ionnumber(C)
         @test_logs (:warn, warning) ionposition(C)
     end

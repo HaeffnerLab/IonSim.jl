@@ -74,55 +74,55 @@ using Suppressor
         # basis
         @test T.basis == basis(T)
 
-        # global_beam!
+        # globalbeam!
         L = Laser(λ = λ)
-        global_beam!(T, L)
+        globalbeam!(L, T)
         @test L.pointing == [(1, 1.0), (2, 1.0)]
 
-        # Efield_from_pi_time
+        # efield_from_pitime
         ion_index = 1
         laser_index = 1
         ion = T.iontrap.ions[ion_index]
         transition = (("S1/2", -1 / 2), ("D5/2", -1 / 2))
         # compare to specific pre-computed value for both methods
-        E1 = Efield_from_pi_time(1e-6, Bhat, L1, ion, transition)
-        E2 = Efield_from_pi_time(1e-6, T, laser_index, ion_index, transition)
+        E1 = efield_from_pitime(L1, 1e-6, ion, transition, Bhat)
+        E2 = efield_from_pitime(laser_index, 1e-6, ion_index, transition, T)
         @test E1 ≈ 118245.11 rtol = 1e-2
         @test E1 == E2
         # confirm in-place versions work
-        Efield_from_pi_time!(1e-6, Bhat, L1, ion, transition)
+        efield_from_pitime!(L1, 1e-6, ion, transition, Bhat)
         @test L1.E(0) == E1
-        Efield_from_pi_time!(1e-6, T, laser_index, ion_index, transition)
+        efield_from_pitime!(laser_index, 1e-6, ion_index, transition, T)
         @test L1.E(0) == E1
         # shouldn't be able to have a laser argument where laser.pointing = []
         L = Laser(λ = λ)
-        @test_throws AssertionError Efield_from_pi_time(1e-6, Bhat, L, ion, transition)
+        @test_throws AssertionError efield_from_pitime(L, 1e-6, ion, transition, Bhat)
         L.pointing = [(1, 1.0)]
-        @test isinf(Efield_from_pi_time(1e-6, x̂, L, ion, transition))
+        @test isinf(efield_from_pitime(L, 1e-6, ion, transition, x̂))
 
-        # Efield_from_rabi_frequency
+        # efield_from_rabifrequency
         ion_index = 1
         laser_index = 1
         ion = T.iontrap.ions[ion_index]
         transition = (("S1/2", -1 / 2), ("D5/2", -1 / 2))
         # compare to specific pre-computed value for both methods
-        E1 = Efield_from_rabi_frequency(5e5, Bhat, L1, ion, transition)
-        E2 = Efield_from_rabi_frequency(5e5, T, laser_index, ion_index, transition)
+        E1 = efield_from_rabifrequency(L1, 5e5, ion, transition, Bhat)
+        E2 = efield_from_rabifrequency(laser_index, 5e5, ion_index, transition, T)
         @test E1 ≈ 118245.11 rtol = 1e-2
         @test E1 == E2
         # confirm in-place versions work
-        Efield_from_rabi_frequency!(5e5, Bhat, L1, ion, transition)
+        efield_from_rabifrequency!(L1, 5e5, ion, transition, Bhat)
         @test L1.E(0) == E1
-        Efield_from_rabi_frequency!(5e5, T, laser_index, ion_index, transition)
+        efield_from_rabifrequency!(laser_index, 5e5, ion_index, transition, T)
         @test L1.E(0) == E1
         # shouldn't be able to have a laser argument where laser.pointing = []
         L = Laser(λ = λ)
-        @test_throws AssertionError Efield_from_rabi_frequency(
-            5e5,
-            Bhat,
+        @test_throws AssertionError efield_from_rabifrequency(
             L,
+            5e5,
             ion,
-            transition
+            transition,
+            Bhat
         )
 
         # transitionfrequency (test against pre-computed values)
@@ -133,7 +133,7 @@ using Suppressor
         @test transitionfrequency(1, transition, T) == f
 
         # set_gradient
-        set_gradient!(T, (1, 2), transition, 1e6)
+        bgradient!(T, (1, 2), transition, 1e6)
         f1 = transitionfrequency(T.iontrap.ions[1], transition, T)
         f2 = transitionfrequency(T.iontrap.ions[2], transition, T)
         @test abs(f1 - f2) ≈ 1e6
@@ -155,8 +155,8 @@ using Suppressor
         # test lambdicke
         # η = |k|cos(θ) * √(ħ / (2M ⋅ N ⋅ 2πν)); cos(θ) ≡ k̂ ⋅ mode_axis; N ≡ number of ions
         η(ν) = (2π / λ) * sqrt(ħ / (2 * mass(C) * 2 * 2π * ν))
-        @test abs(lambdicke(zmode, L, C)) ≈ η(zmode.ν)
+        @test abs(lambdicke(zmode, C, L)) ≈ η(zmode.ν)
         L.k = (x̂ + ẑ) / √2
-        @test abs(lambdicke(xmode, L, C)) ≈ η(xmode.ν) / √2
+        @test abs(lambdicke(xmode, C, L)) ≈ η(xmode.ν) / √2
     end
 end  # end suppress

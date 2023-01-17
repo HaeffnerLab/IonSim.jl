@@ -19,8 +19,8 @@ using Suppressor
         L.k = (x̂ + ẑ) / √2
         L.ϵ = (x̂ - ẑ) / √2
         Ω = (rand() + 0.2) * 1e4 # Small so that sideband transitions are suppressed
-        Ω00 = Ω * exp(-lambdicke(mode, L, C)^2 / 2) # Actual Rabi frequency of n=0 carrier Rabi oscillations
-        Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Ω00 = Ω * exp(-lambdicke(mode, C, L)^2 / 2) # Actual Rabi frequency of n=0 carrier Rabi oscillations
+        efield_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         h = hamiltonian(T, timescale=1e-6)
         tspan = 0:1e-1:400
@@ -78,9 +78,9 @@ using Suppressor
         ψi = ψi_ion ⊗ ψi_mode
         h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tout, sol = timeevolution.schroedinger_dynamic(tspan, ψi, h)
-        η = lambdicke(mode, L, C)
+        η = lambdicke(mode, C, L)
         ex_ionsim_cn = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
-        ex_analyt_cn = analytical.rabi_flop(1e-6 * tout, Ω, η, n̄)
+        ex_analyt_cn = analytical.rabiflop(1e-6 * tout, Ω, η, n̄)
         @test isapprox(ex_ionsim_cn, ex_analyt_cn, rtol = 1e-2)
 
         # sideband transitions
@@ -144,8 +144,8 @@ using Suppressor
             transitionfrequency(1, ("S1/2", "D5/2"), T)
         L.ϕ = t -> 1e-6 * 2 * pi * Δf * t
         Ω = (rand() + 0.1) * 1e6
-        Ω00 = Ω * exp(-lambdicke(mode, L, C)^2 / 2)
-        Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        Ω00 = Ω * exp(-lambdicke(mode, C, L)^2 / 2)
+        efield_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tspan = 0:1e-3:4
@@ -161,7 +161,7 @@ using Suppressor
         # set Ω(t) to a step function
         L.λ = transitionwavelength(1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         phase!(L, 0)
-        E = Efield_from_rabi_frequency(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        E = efield_from_rabifrequency(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         L.E = t -> t < 1 ? 0 : E
         h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tspan = 0:1e-3:3
@@ -188,7 +188,7 @@ using Suppressor
             ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
             h
         )
-        η = lambdicke(mode, L, C)
+        η = lambdicke(mode, C, L)
         ex_ionsim_δν = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
         ex_analyt_δν = @.(sin(2π * sqrt(2) * (η / sqrt(1.02)) * Ω00 / 2 * 1e-6 * tout)^2)
         @test isapprox(ex_ionsim_δν, ex_analyt_δν, rtol = 1e-1)
@@ -223,18 +223,18 @@ using Suppressor
         L2.ϵ = x̂
 
         modecutoff!(mode, 15)
-        η = abs(lambdicke(mode, L1, C))
+        η = abs(lambdicke(mode, C, L1))
         Ω = √(1e3 * ϵ) / η  # This will give a 1kHz MS strength, since coupling goes like (ηΩ)^2/ϵ
 
-        Efield_from_rabi_frequency!(Ω, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
-        Efield_from_rabi_frequency!(Ω, T, 2, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        efield_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        efield_from_rabifrequency!(2, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         ψi = ionstate(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)) ⊗ mode[0]  # initial state
         h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 5e5)
         tspan = 0:0.25:1000
         tout, sol = timeevolution.schroedinger_dynamic(tspan, ψi, h)
         SS = expect(ionprojector(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)), sol)
         DD = expect(ionprojector(T, ("D5/2", -1 / 2), ("D5/2", -1 / 2)), sol)
-        ex = analytical.two_ion_ms(tspan, 1e-6Ω, 1e-6mode.ν, 1e-6mode.ν + 1e-6ϵ, η, 0)
+        ex = analytical.molmersorensen2ion(tspan, 1e-6Ω, 1e-6mode.ν, 1e-6mode.ν + 1e-6ϵ, η, 0)
         @test isapprox(ex[1], SS, rtol = 1e-2)
         @test isapprox(ex[2], DD, rtol = 1e-2)
 

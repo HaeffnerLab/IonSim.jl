@@ -25,7 +25,7 @@ export Ion,
     levels,
     quantumnumbers,
     landegf,
-    zeeman_shift,
+    zeemanshift,
     energy,
     transitionfrequency,
     transitionwavelength,
@@ -34,7 +34,7 @@ export Ion,
     einsteinA,
     transitionmultipole,
     lifetime,
-    matrix_element,
+    matrixelement,
     IonInstance
 
 #############################################################################################
@@ -326,14 +326,14 @@ end
 manual_shift(I::Ion, alias::String) = manual_shift(I, alias2sublevel(I, alias))
 
 """
-    zeeman_shift(I::Ion, sublevel, B::Real)
+    zeemanshift(I::Ion, sublevel, B::Real)
 Returns the Zeeman shift at a magnetic field of `B` of `sublevel` of `I`.
 
 If `sublevel` has a custom g-factor defined, then this is used. Otherwise, `landegf` is used to compute the Landé g-factor.
 
 Zeeman shift calculated as ``ΔE = (μ_B/ħ) ⋅ g_f ⋅ B ⋅ m / 2π``
 """
-function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::Real)
+function zeemanshift(I::Ion, sublevel::Tuple{String, Real}, B::Real)
     validatesublevel(I, sublevel)
     properties = speciesproperties(I)
     if !ismissing(properties.nonlinear_zeeman) &&
@@ -342,14 +342,14 @@ function zeeman_shift(I::Ion, sublevel::Tuple{String, Real}, B::Real)
     else
         nonlinear = 0.0
     end
-    return zeeman_shift(B, landegf(I, sublevel[1]), sublevel[2]) + nonlinear
+    return zeemanshift(B, landegf(I, sublevel[1]), sublevel[2]) + nonlinear
 end
-zeeman_shift(B::Real, g::Real, m::Real) = (μB / ħ) * g * B * m / 2π
-zeeman_shift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 // 2) =
-    zeeman_shift(B, landegf(l, j, f, i, s), m)
-zeeman_shift(B::Real, qnums::NamedTuple) =
-    zeeman_shift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
-zeeman_shift(I::Ion, alias::String, B::Real) = zeeman_shift(I, alias2sublevel(I, alias), B)
+zeemanshift(B::Real, g::Real, m::Real) = (μB / ħ) * g * B * m / 2π
+zeemanshift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 // 2) =
+    zeemanshift(B, landegf(l, j, f, i, s), m)
+zeemanshift(B::Real, qnums::NamedTuple) =
+    zeemanshift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
+zeemanshift(I::Ion, alias::String, B::Real) = zeemanshift(I, alias2sublevel(I, alias), B)
 
 # This function is written to be able to accept either a level or sublevel in the second argument
 # Since both levels and aliases are strings, multidispatach can't tell the difference, so the second method distinguishes these cases with an if statement.
@@ -360,7 +360,7 @@ Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting t
 function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_manualshift = false)
     validatesublevel(I, sublevel)
     E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
-    zeeman = zeeman_shift(I, sublevel, B)
+    zeeman = zeemanshift(I, sublevel, B)
     manual = (ignore_manualshift ? 0.0 : manual_shift(I, sublevel))
     return E0 + zeeman + manual
 end
@@ -491,17 +491,17 @@ function lifetime(I::Ion, level::String)
 end
 
 """
-    matrix_element(I::Ion, transition::Tuple, Efield::Real, khat::NamedTuple, ϵhat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    matrixelement(ion::Ion, transition::Tuple, Efield::Real, ϵhat::NamedTuple, khat::NamedTuple, Bhat::NamedTuple=(;z=1))
 Computes the matrix elements (units of Hz) between two energy sublevels
 **args**
-* `I`: Ion undergoing transition
+* `ion`: Ion undergoing transition
 * `transition`: Tuple of sublevels (full names or aliases) between which the transition is being calculated. Must be formatted such that `energy(transition[2]) > energy(transition[1])`
 * `Efield`: Amplitude of driving electric field
-* `khat`: Unit vector of light wavevector
 * `ϵhat`: Unit vector of light polarization
+* `khat`: Unit vector of light wavevector
 * `Bhat`: Unit vector of magnetic field
 """
-function matrix_element(
+function matrixelement(
     j1::Real,
     j2::Real,
     f1::Real,
@@ -513,8 +513,8 @@ function matrix_element(
     A12::Real,
     multipole::String,
     Efield::Real,
-    khat::NamedTuple,
     ϵhat::NamedTuple,
+    khat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
 )
     # Level 1 *must* be the lower level and level 2 *must* be the upper level
@@ -571,41 +571,41 @@ function matrix_element(
         @error "calculation of atomic transition matrix element for transition type $multipole not currently supported"
     end
 end
-function matrix_element(
-    I::Ion,
+function matrixelement(
+    ion::Ion,
     transition::Tuple,
     Efield::Real,
-    khat::NamedTuple,
     ϵhat::NamedTuple,
+    khat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
 )
     SL1 = transition[1]
     SL2 = transition[2]
-    L1 = sublevel2level(I, SL1)
-    L2 = sublevel2level(I, SL2)
+    L1 = sublevel2level(ion, SL1)
+    L2 = sublevel2level(ion, SL2)
 
-    E1 = energy(I, L1)
-    E2 = energy(I, L2)
+    E1 = energy(ion, L1)
+    E2 = energy(ion, L2)
     @assert E2 > E1 "transition must be formatted (lower level, upper level)"
-    qn1 = quantumnumbers(I, SL1)
-    qn2 = quantumnumbers(I, SL2)
-    A12 = einsteinA(I, (L1, L2))
-    multipole = transitionmultipole(I, (L1, L2))
+    qn1 = quantumnumbers(ion, SL1)
+    qn2 = quantumnumbers(ion, SL2)
+    A12 = einsteinA(ion, (L1, L2))
+    multipole = transitionmultipole(ion, (L1, L2))
 
-    return matrix_element(
+    return matrixelement(
         qn1.j,
         qn2.j,
         qn1.f,
         qn2.f,
         qn1.m,
         qn2.m,
-        nuclearspin(I),
+        nuclearspin(ion),
         E2 - E1,
         A12,
         multipole,
         Efield,
-        khat,
         ϵhat,
+        khat,
         Bhat
     )
 end

@@ -248,7 +248,7 @@ end
         @test sort(IonSim._flattenall(global_B_indices)) == collect(1:32)
         # Not sure what this test is supposed to be; commented out for now
         # # and make sure that the susceptibilites are correct
-        # zs = [zeeman_shift(1, quantumnumbers(C, sublevel)) for sublevel in sublevels(C)]
+        # zs = [zeemanshift(1, quantumnumbers(C, sublevel)) for sublevel in sublevels(C)]
         # @test length(unique([global_B_scales; zs])) == length(zs)
 
         # test _setup_δν_hamiltonian
@@ -339,7 +339,7 @@ end
         mode = T.iontrap.selected_modes.z[1]
         modecutoff!(mode, rand(1:8))
         N = mode.N + 1
-        Efield_from_rabi_frequency!(1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        efield_from_rabifrequency!(1, 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         ## first just shine light on 1st ion
         L.pointing = [(1, 1.0)]
@@ -383,7 +383,7 @@ end
         modecutoff!(mode2, rand(1:8))
         M = mode2.N + 1
         NM = N * M
-        Efield_from_rabi_frequency!(1e6, T1, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        efield_from_rabifrequency!(1, 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T1)
 
         ridxs, cidxs = get_indices(12, [N, M], true)
         _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
@@ -444,7 +444,7 @@ end
         modecutoff!(mode1, 10)
         modecutoff!(mode2, 9)
         Ω = randn()
-        Efield_from_rabi_frequency!(Ω * 1e6, T, 1, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)))
+        efield_from_rabifrequency!(1, Ω * 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         # Case 1a: full hamiltonian (w conj_repeated_indices); controlled by not specifying rwa_cutoff
 
@@ -456,10 +456,10 @@ end
             π *
             exp(-im * (2π * Δ * t * timescale + ϕ)) *
             (C_a[("D5/2", -1 / 2)] ⊗ C_a[("S1/2", -1 / 2)]')
-        ηa1 = lambdicke(mode1, L, C_a)
-        ηa2 = lambdicke(mode2, L, C_a)
-        ηb1 = lambdicke(mode1, L, C_b)
-        ηb2 = lambdicke(mode2, L, C_b)
+        ηa1 = lambdicke(mode1, C_a, L)
+        ηa2 = lambdicke(mode2, C_a, L)
+        ηb1 = lambdicke(mode1, C_b, L)
+        ηb2 = lambdicke(mode2, C_b, L)
 
         # displacement operators for COM and stretch modes
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method = "truncated")

@@ -459,9 +459,9 @@ function _setup_global_B_hamiltonian(T, timescale)
             A = embed(basis(T), [n], [ion_op]).data
             indices = [x[1] for x in getfield.(findall(x -> x .== complex(1, 0), A), :I)]
             push!(global_B_indices, indices)
-            # zeeman_shift(ions[n], sublevel, 1]) is the Zeeman shift of
+            # zeemanshift(ions[n], sublevel, 1]) is the Zeeman shift of
             # sublevel in units of δB.
-            push!(global_B_scales, τ * zeeman_shift(ions[n], sublevel, 1))
+            push!(global_B_scales, τ * zeemanshift(ions[n], sublevel, 1))
         end
     end
     return global_B_indices, global_B_scales, bfunc
@@ -501,7 +501,7 @@ function _ηmatrix(T)
     for n in 1:N, m in 1:M, l in 1:L
         δν = vms[l].δν
         ν = vms[l].ν
-        eta = lambdicke(vms[l], lasers[m], ions[n], scaled = true)
+        eta = lambdicke(vms[l], ions[n], lasers[m], scaled = true)
         if eta == 0
             ηnml[n, m, L - l + 1] = 0
         else
@@ -560,7 +560,7 @@ function _Ωmatrix(T, timescale)
                 2π *
                 timescale *
                 s *
-                matrix_element(ions[n], t, 1.0, lasers[m].k, lasers[m].ϵ, T.Bhat) / 2.0
+                matrixelement(ions[n], t, 1.0, lasers[m].ϵ, lasers[m].k, T.Bhat) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else
