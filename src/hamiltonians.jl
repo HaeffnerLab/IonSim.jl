@@ -18,7 +18,7 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
 * `lamb_dicke_order`: Only consider terms that change the phonon number by up to this value.
     If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,
     then `lamb_dicke_order[i]` is applied to the iᵗʰ mode, according to the order in
-    `T.basis`.
+    `basis(T)`.
     Note: this isn't quite the same thing as the Lamb-Dicke approximation since setting
     `lamb_dicke_order=1` will retain, for example, terms proportional to ``a^\\dagger a ``.
 * `rwa_cutoff`: drop terms in the Hamiltonian that oscillate faster than this cutoff.

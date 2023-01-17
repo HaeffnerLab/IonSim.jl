@@ -20,9 +20,9 @@ using Suppressor
         T = Chamber(iontrap = chain, lasers = [L1, L1])
 
         # test construction of CompositeBasis
-        @test T.basis.bases[1] ≡ T.iontrap.ions[1]
-        @test T.basis.bases[2] ≡ T.iontrap.ions[2]
-        @test T.basis.bases[3] ≡ T.iontrap.selected_modes.z[1]
+        @test basis(T).bases[1] ≡ T.iontrap.ions[1]
+        @test basis(T).bases[2] ≡ T.iontrap.ions[2]
+        @test basis(T).bases[3] ≡ T.iontrap.selected_modes.z[1]
 
         # test construction of T.δB
         t = 0:1:100
@@ -48,19 +48,19 @@ using Suppressor
         bfield_fluctuation!(T, 100)
         @test T.δB(0) == 100
         # # setting the :basis directly should have no effect
-        # basis = T.basis
-        # T.basis = 100
-        # @test T.basis == basis
+        # basis = basis(T)
+        # basis(T) = 100
+        # @test basis(T) == basis
         # changing the iontrap should also update the basis
         chain1 = LinearChain(
             ions = [C, C, C],
             com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
             selected_modes = (; z = [1])
         )
-        @test length(T.basis.bases) ≡ 3
+        @test length(basis(T).bases) ≡ 3
         iontrap!(T, chain1)
         @test T.iontrap ≡ chain1
-        @test length(T.basis.bases) ≡ 4
+        @test length(basis(T).bases) ≡ 4
 
         # make sure print/show doesn't throw errors
         print(T)
@@ -70,9 +70,6 @@ using Suppressor
     @testset "chambers -- general functions" begin
         Bhat = (x̂ + ŷ + ẑ) / √3
         T = Chamber(iontrap = chain, lasers = [L1], Bhat = Bhat)
-
-        # basis
-        @test T.basis == basis(T)
 
         # globalbeam!
         L = Laser(λ = λ)

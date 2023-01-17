@@ -86,7 +86,6 @@ mutable struct Chamber
     ∇B::Real
     δB::Function
     lasers::Array{<:Laser}
-    basis::CompositeBasis
     _cnst_δB::Bool
     function Chamber(;
         iontrap::LinearChain,
@@ -127,13 +126,7 @@ mutable struct Chamber
             _cnst_δB = false
             δBt = δB
         end
-        basis = tensor(
-            iontrap.ions...,
-            iontrap.selected_modes.x...,
-            iontrap.selected_modes.y...,
-            iontrap.selected_modes.z...,
-        )
-        return new(iontrap, B, Bhat, ∇B, δBt, lasers, basis, _cnst_δB)
+        return new(iontrap, B, Bhat, ∇B, δBt, lasers, _cnst_δB)
     end
 end
 
@@ -150,7 +143,6 @@ bfield_unitvector(chamber::Chamber) = chamber.Bhat
 bgradient(chamber::Chamber) = chamber.∇B
 bfield_fluctuation(chamber::Chamber) = chamber.δB
 lasers(chamber::Chamber) = chamber.lasers
-basis(chamber::Chamber) = chamber.basis
 
 
 #############################################################################################
@@ -158,12 +150,6 @@ basis(chamber::Chamber) = chamber.basis
 #############################################################################################
 
 function iontrap!(chamber::Chamber, iontrap::IonTrap)
-    chamber.basis = tensor(
-        iontrap.ions...,
-        iontrap.selected_modes.x...,
-        iontrap.selected_modes.y...,
-        iontrap.selected_modes.z...,
-    )
     chamber.iontrap = iontrap
 end
 
@@ -198,6 +184,21 @@ end
 #############################################################################################
 # general functions
 #############################################################################################
+
+
+"""	
+    basis(T::Chamber)	
+Returns the composite basis describing the Hilbert space for `T`.	
+"""	
+function basis(T::Chamber)::CompositeBasis
+    return tensor(	
+        T.iontrap.ions...,	
+        T.iontrap.selected_modes.x...,	
+        T.iontrap.selected_modes.y...,	
+        T.iontrap.selected_modes.z...,	
+    )	
+end
+
 
 """
     ionintrap(trap::Chamber, ion::Ion)
