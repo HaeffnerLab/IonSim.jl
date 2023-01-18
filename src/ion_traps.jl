@@ -22,7 +22,7 @@ interactions of their center of mass motion.
 abstract type IonTrap end
 
 # required functions
-ions(I::IonTrap)::Vector{Ion} = I.ions
+ions(I::IonTrap) = I.ions
 
 #############################################################################################
 # LinearChain - a linear Coulomb crystal

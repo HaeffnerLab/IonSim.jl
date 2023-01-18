@@ -171,12 +171,12 @@ end
         # zero B, zero laser detuning, now add manual shift to just one of the ions
         L1.Δ = 0
         L2.Δ = 0
-        manual_shift!(C, ("S1/2", -1 / 2), 1)
+        manualshift!(C, ("S1/2", -1 / 2), 1)
         Δ = IonSim._Δmatrix(T, 1)
         @test Δ[1, 1][1] ≈ 2π && Δ[1, 2][1] ≈ 2π && Δ[2, 1][1] ≈ 0 && Δ[2, 2][1] ≈ 0
 
         # lastly let's test when resonant
-        zero_manual_shift!(C)
+        zeromanualshift!(C)
         T.B = 1e-4
         L1.λ = transitionwavelength(C, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         Δ = IonSim._Δmatrix(T, 1)

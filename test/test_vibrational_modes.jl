@@ -37,10 +37,10 @@ using Suppressor
     @suppress print(vm)
     @suppress show(vm)
 
-    # # make sure user can't directly alter :mode_structure or :axis after initialization
-    # ms = vm.mode_structure
-    # vm.mode_structure = "something"
-    # @test vm.mode_structure == ms
+    # # make sure user can't directly alter :modestructure or :axis after initialization
+    # ms = vm.modestructure
+    # vm.modestructure = "something"
+    # @test vm.modestructure == ms
     # axis = vm.axis
     # vm.axis = "something"
     # @test vm.axis == axis

@@ -2,7 +2,7 @@ using QuantumOptics: basisstate
 
 export VibrationalMode,
     frequency,
-    mode_structure,
+    modestructure,
     frequency_fluctuation,
     modecutoff,
     shape,
@@ -13,13 +13,13 @@ export VibrationalMode,
 
 """
     VibrationalMode(
-            ν::Real, mode_structure::Vector{Real}, δν::Union{Function,Real}=0.; N::Int=10,
+            ν::Real, modestructure::Vector{Real}, δν::Union{Function,Real}=0.; N::Int=10,
             axis::NamedTuple{(:x,:y,:z)}=ẑ
         )
 
 **user-defined fields**
 * `ν::Real`: frequency [Hz]
-* `mode_structure::Vector{Real}`: The normalized eigenvector describing the collective motion 
+* `modestructure::Vector{Real}`: The normalized eigenvector describing the collective motion 
         of the ions belonging to this mode.
 * `δν::Union{Function,Real}`: Either a function describing time-dependent fluctuations of `ν`
         or a real number which will be converted to the constant function `t -> δν`.
@@ -34,7 +34,7 @@ Note: the iᵗʰ Fock state (|i⟩) can be obtained by indexing as `v=Vibrationa
 """
 mutable struct VibrationalMode <: IonSimBasis
     ν::Real
-    mode_structure::Vector{Real}
+    modestructure::Vector{Real}
     δν::Function
     N::Int
     shape::Vector{Int}
@@ -42,7 +42,7 @@ mutable struct VibrationalMode <: IonSimBasis
     _cnst_δν::Bool
     function VibrationalMode(
         ν,
-        mode_structure;
+        modestructure;
         δν::Tδν = 0.0,
         N = 10,
         axis = ẑ
@@ -54,7 +54,7 @@ mutable struct VibrationalMode <: IonSimBasis
             _cnst_δν = false
             δνt = δν
         end
-        return new(ν, mode_structure, δνt, N, [N + 1], axis, _cnst_δν)
+        return new(ν, modestructure, δνt, N, [N + 1], axis, _cnst_δν)
     end
 end
 
@@ -63,7 +63,7 @@ end
 #############################################################################################
 
 frequency(mode::VibrationalMode) = mode.ν
-mode_structure(mode::VibrationalMode) = mode.mode_structure
+modestructure(mode::VibrationalMode) = mode.modestructure
 frequency_fluctuation(mode::VibrationalMode) = mode.δν
 modecutoff(mode::VibrationalMode) = mode.N
 shape(mode::VibrationalMode) = mode.shape
@@ -104,7 +104,7 @@ end
 function Base.:(==)(b1::T, b2::T) where {T <: VibrationalMode}
     return (
         b1.ν == b2.ν &&
-        b1.mode_structure == b2.mode_structure &&
+        b1.modestructure == b2.modestructure &&
         b1.N == b2.N &&
         b1.shape == b2.shape &&
         b1.axis == b2.axis

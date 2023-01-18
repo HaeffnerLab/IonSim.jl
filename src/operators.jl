@@ -156,7 +156,7 @@ function ionstate(I::Ion, sublevel::Tuple{String, Real})
     i = findall(sublevels(I) .== [sublevel])[1]
     return basisstate(I, i)
 end
-ionstate(I::Ion, sublevelalias::String) = ionstate(I, alias2sublevel(I, sublevelalias))
+ionstate(I::Ion, sublevelalias::String) = ionstate(I, sublevel(I, sublevelalias))
 ionstate(I::Ion, sublevel::Int) = basisstate(I, sublevel)
 function ionstate(IC::IonTrap, states::Union{Tuple{String, Real}, String, Int}...)
     ions = IC.ions

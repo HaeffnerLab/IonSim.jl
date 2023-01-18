@@ -52,10 +52,10 @@ using Suppressor
             @.((Ω00^2 / (Ω00^2 + Δ^2)) * sin(2π * √(Ω00^2 + Δ^2) / 2 * tout * 1e-6)^2)
         @test isapprox(ex_ionsim_d1, ex_analyt_d1, rtol = 1e-4)
 
-        # add detuning using ion's manual_shift
+        # add detuning using ion's manualshift
         L.Δ = 0
-        C.manual_shift[("S1/2", -1 / 2)] = -Δ / 2
-        C.manual_shift[("D5/2", -1 / 2)] = Δ / 2
+        C.manualshift[("S1/2", -1 / 2)] = -Δ / 2
+        C.manualshift[("D5/2", -1 / 2)] = Δ / 2
         h = hamiltonian(T, timescale=1e-6)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
@@ -70,7 +70,7 @@ using Suppressor
         # hot carrier
         # For this test, numerical result deviates from analytical quickly as nbar grows.
         # Keeping max at 10 ensures agreement to 10^-4; if max nbar is 20, find that need rtol no less than 10^-2
-        zero_manual_shift!(C)
+        zeromanualshift!(C)
         modecutoff!(mode, 100)
         ψi_ion = C[("S1/2", -1 / 2)] ⊗ C[("S1/2", -1 / 2)]'
         n̄ = rand(1:10)

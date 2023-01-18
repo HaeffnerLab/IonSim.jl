@@ -190,7 +190,7 @@ end
     basis(T::Chamber)	
 Returns the composite basis describing the Hilbert space for `T`.	
 """	
-function basis(T::Chamber)::CompositeBasis
+function basis(T::Chamber)
     return tensor(	
         T.iontrap.ions...,	
         T.iontrap.selected_modes.x...,	
@@ -609,8 +609,8 @@ function bgradient!(T::Chamber, ion_indxs::Tuple{Int, Int}, transition::Tuple, d
     separation = abs(ionposition(ionA) - ionposition(ionB))
 
     (SL1, SL2) = transition
-    L1 = sublevel2level(ionA, SL1)
-    L2 = sublevel2level(ionA, SL2)
+    L1 = level(ionA, SL1)
+    L2 = level(ionA, SL2)
     g1 = landegf(ionA, L1)
     g2 = landegf(ionA, L2)
     m1 = quantumnumbers(ionA, SL1).m
@@ -654,6 +654,6 @@ function lambdicke(V::VibrationalMode, I::Ion, L::Laser; scaled = false)
         scaled ? ν = 1 : ν = V.ν
         x0 = √(ħ / (2 * mass(I) * 2π * ν))
         cosθ = ndot(L.k, V.axis)
-        k * x0 * cosθ * V.mode_structure[ionnumber(I)]
+        k * x0 * cosθ * V.modestructure[ionnumber(I)]
     end
 end
