@@ -12,8 +12,8 @@ using Suppressor
     L2 = Laser(λ = λ)
     chain = LinearChain(
         ions = [C, C],
-        com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-        selected_modes = (; z = [1])
+        comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+        selectedmodes = (; z = [1])
     )
 
     @testset "chambers -- Chamber" begin
@@ -22,7 +22,7 @@ using Suppressor
         # test construction of CompositeBasis
         @test basis(T).bases[1] ≡ T.iontrap.ions[1]
         @test basis(T).bases[2] ≡ T.iontrap.ions[2]
-        @test basis(T).bases[3] ≡ T.iontrap.selected_modes.z[1]
+        @test basis(T).bases[3] ≡ T.iontrap.selectedmodes.z[1]
 
         # test construction of T.δB
         t = 0:1:100
@@ -54,8 +54,8 @@ using Suppressor
         # changing the iontrap should also update the basis
         chain1 = LinearChain(
             ions = [C, C, C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (; z = [1])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (; z = [1])
         )
         @test length(basis(T).bases) ≡ 3
         iontrap!(T, chain1)
@@ -138,12 +138,12 @@ using Suppressor
         # test :(==)
         chain1 = LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (x = [1], z = [1])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (x = [1], z = [1])
         )
         T = Chamber(iontrap = chain1, lasers = [L1, L2])
-        xmode = chain1.selected_modes.x[1]
-        zmode = chain1.selected_modes.z[1]
+        xmode = chain1.selectedmodes.x[1]
+        zmode = chain1.selectedmodes.z[1]
         cb = basis(T)
         @test cb == C ⊗ C ⊗ xmode ⊗ zmode
         @test cb != C ⊗ C ⊗ zmode ⊗ xmode

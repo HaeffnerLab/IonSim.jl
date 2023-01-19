@@ -9,8 +9,8 @@ using Suppressor
     C = Ca40([("S1/2", -1 // 2), ("D5/2", -1 // 2)])
     chain = LinearChain(
         ions = [C, C],
-        com_frequencies = (x = 2, y = 2, z = 1),
-        selected_modes = (x = [1], y = [], z = [1])
+        comfrequencies = (x = 2, y = 2, z = 1),
+        selectedmodes = (x = [1], y = [], z = [1])
     )
     T = Chamber(iontrap = chain)
     allmodes = modes(chain)

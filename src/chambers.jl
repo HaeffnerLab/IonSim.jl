@@ -63,19 +63,19 @@ interacting with laser light.
         ``ion₁ ⊗ ion₂ ⊗ ... ⊗ ion_N ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ mode_N``, where the ion bases are
         ordered according to the order in `T.iontrap.ions` and the vibrational modes
         are ordered according to the order in
-        `[T.iontrap.selected_modes.x, T.iontrap.selected_modes.y,
-        T.iontrap.selected_modes.z]`.
+        `[T.iontrap.selectedmodes.x, T.iontrap.selectedmodes.y,
+        T.iontrap.selectedmodes.z]`.
     E.g. for:
 
     ```
-    chain = LinearChain(ions=[C1, C2], com_frequencies=(x=2e6,y=2e6,z=1e6),
-    selected_modes=(x=[1, 2], y=[], z=[1]))
+    chain = LinearChain(ions=[C1, C2], comfrequencies=(x=2e6,y=2e6,z=1e6),
+    selectedmodes=(x=[1, 2], y=[], z=[1]))
     ```
 
     The ordering of the basis would be
 
-    `C1.basis ⊗ C2.basis ⊗ chain.selected_modes.x[1].basis
-    ⊗ chain.selected_modes.x[2].basis ⊗ chain.selected_modes.z[1].basis`
+    `C1.basis ⊗ C2.basis ⊗ chain.selectedmodes.x[1].basis
+    ⊗ chain.selectedmodes.x[2].basis ⊗ chain.selectedmodes.z[1].basis`
 
     Otherwise, the ordering is according to the form of the initial state used in the solver.
 """
@@ -193,9 +193,9 @@ Returns the composite basis describing the Hilbert space for `T`.
 function basis(T::Chamber)
     return tensor(	
         T.iontrap.ions...,	
-        T.iontrap.selected_modes.x...,	
-        T.iontrap.selected_modes.y...,	
-        T.iontrap.selected_modes.z...,	
+        T.iontrap.selectedmodes.x...,	
+        T.iontrap.selectedmodes.y...,	
+        T.iontrap.selectedmodes.z...,	
     )	
 end
 

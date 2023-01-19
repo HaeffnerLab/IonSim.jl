@@ -125,8 +125,8 @@ end
         phase!(L2, 2)
         chain = LinearChain(
             ions = [C, C1],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (; z = [1])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (; z = [1])
         )
         T = Chamber(iontrap = chain, lasers = [L1, L2])
         Ωnmkj = IonSim._Ωmatrix(T, 1)
@@ -185,8 +185,8 @@ end
         # _ηmatrix
         chain = LinearChain(
             ions = [C, C1],
-            com_frequencies = (x = 2e6, y = 2e6, z = 1e6),
-            selected_modes = (x = [1], y = [2], z = [1])
+            comfrequencies = (x = 2e6, y = 2e6, z = 1e6),
+            selectedmodes = (x = [1], y = [2], z = [1])
         )
         L1.k = (x̂ + ẑ) / √2
         L2.k = (ŷ + ẑ) / √2
@@ -226,8 +226,8 @@ end
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (; z = [1])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (; z = [1])
         )
         T = Chamber(iontrap = chain, lasers = [L], δB = 0)
         global_B_indices, global_B_scales, bfunc = IonSim._setup_global_B_hamiltonian(T, 1)
@@ -256,8 +256,8 @@ end
         # setup system
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (; z = [1])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (; z = [1])
         )
         T = Chamber(iontrap = chain, lasers = [L], δB = 0)
         # should return empty arrays if δν=0
@@ -274,8 +274,8 @@ end
         # add another mode with δν=0 and test output
         chain = LinearChain(
             ions = [C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (y = [1], z = [1])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (y = [1], z = [1])
         )
         T = Chamber(iontrap = chain, lasers = [L], δB = 0)
         modecutoff!(ymodes(T)[1], 3)
@@ -327,8 +327,8 @@ end
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (; z = [1])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (; z = [1])
         )
         T = Chamber(
             iontrap = chain,
@@ -336,7 +336,7 @@ end
             Bhat = (x̂ + ŷ + ẑ) / √3,
             lasers = [L]
         )
-        mode = T.iontrap.selected_modes.z[1]
+        mode = T.iontrap.selectedmodes.z[1]
         modecutoff!(mode, rand(1:8))
         N = mode.N + 1
         efield_from_rabifrequency!(1, 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
@@ -368,8 +368,8 @@ end
         L1.λ = transitionwavelength(C1, ("S1/2", "D5/2"))
         chain1 = LinearChain(
             ions = [C1, C1],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (; z = [1, 2])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (; z = [1, 2])
         )
         T1 = Chamber(
             iontrap = chain1,
@@ -377,8 +377,8 @@ end
             Bhat = (x̂ + ŷ + ẑ) / √3,
             lasers = [L1]
         )
-        mode1 = T1.iontrap.selected_modes.z[1]
-        mode2 = T1.iontrap.selected_modes.z[2]
+        mode1 = T1.iontrap.selectedmodes.z[1]
+        mode2 = T1.iontrap.selectedmodes.z[2]
         modecutoff!(mode1, N - 1)
         modecutoff!(mode2, rand(1:8))
         M = mode2.N + 1
@@ -425,8 +425,8 @@ end
         L.pointing = [(1, 1.0), (2, 1.0)]
         chain = LinearChain(
             ions = [C_a, C_b],
-            com_frequencies = (x = 3e6, y = 3e6, z = 1e6),
-            selected_modes = (; z = [1, 2])
+            comfrequencies = (x = 3e6, y = 3e6, z = 1e6),
+            selectedmodes = (; z = [1, 2])
         )
         T = Chamber(
             iontrap = chain,
@@ -435,8 +435,8 @@ end
             lasers = [L]
         )
         L.λ = transitionwavelength(C_a, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        mode1 = T.iontrap.selected_modes.z[1]
-        mode2 = T.iontrap.selected_modes.z[2]
+        mode1 = T.iontrap.selectedmodes.z[1]
+        mode2 = T.iontrap.selectedmodes.z[2]
         Δ = round(randn(), digits = 5) * 1e5  # TODO: this begins to fail at below 1 Hz!
         L.Δ = Δ
         ϕ = randn()
