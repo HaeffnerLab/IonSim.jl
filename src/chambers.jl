@@ -285,7 +285,7 @@ function efield_from_pitime(
     transition::Tuple,
     Bhat::NamedTuple{(:x, :y, :z)}
 )
-    p = laser.pointing
+    p = pointing(laser)
     s_indx = findall(x -> x[1] == ionnumber(ion), p)
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
     s = p[s_indx[1]][2]
@@ -486,7 +486,7 @@ Retuns the value of the magnetic field in `T` at the location of `ion`, includin
 """
 function bfield(chamber::Chamber, ion::Ion)
     @assert ionintrap(chamber, ion) "trap does not contain ion"
-    return chamber.B + chamber.∇B * ionposition(ion)
+    return bfield(chamber) + bgradient(chamber) * ionposition(ion)
 end
 function bfield(chamber::Chamber, ion_index::Int)
     return bfield(chamber, ions(chamber)[ion_index])
@@ -604,8 +604,8 @@ ions, which are assumed to be of the same species. `ion_indxs` refer to the
 ordering of the ions in the chain.
 """
 function bgradient!(T::Chamber, ion_indxs::Tuple{Int, Int}, transition::Tuple, d::Real)
-    ionA = T.iontrap.ions[ion_indxs[1]]
-    ionB = T.iontrap.ions[ion_indxs[2]]
+    ionA = ions(T)[ion_indxs[1]]
+    ionB = ions(T)[ion_indxs[2]]
     separation = abs(ionposition(ionA) - ionposition(ionB))
 
     (SL1, SL2) = transition
@@ -618,7 +618,7 @@ function bgradient!(T::Chamber, ion_indxs::Tuple{Int, Int}, transition::Tuple, d
     # Calculate Zeeman shifts with a unit B-field using a method of zeemanshift that ensures a nonlinear term is not used
     E1 = zeemanshift(1.0, g1, m1)
     E2 = zeemanshift(1.0, g2, m2)
-    return T.∇B = d / (abs(E2 - E1) * separation)
+    bgradient!(T, d / (abs(E2 - E1) * separation))
 end
 
 # In QunatumOptics.jl, this method will return true whenever the shapes of b1 and b2 match,
@@ -653,7 +653,7 @@ function lambdicke(V::VibrationalMode, I::Ion, L::Laser; scaled = false)
         k = 2π / L.λ
         scaled ? ν = 1 : ν = V.ν
         x0 = √(ħ / (2 * mass(I) * 2π * ν))
-        cosθ = ndot(L.k, V.axis)
-        k * x0 * cosθ * V.modestructure[ionnumber(I)]
+        cosθ = ndot(wavevector(L), axis(V))
+        k * x0 * cosθ * modestructure(V)[ionnumber(I)]
     end
 end

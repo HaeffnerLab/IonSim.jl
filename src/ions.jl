@@ -172,7 +172,7 @@ Sets the manual shift of all sublevels of `I` to zero.
 """
 function zeromanualshift!(I::Ion)
     for sublevel in keys(manualshift(I))
-        I.manualshift[sublevel] = 0.0
+        manualshift!(I, sublevel, 0.0)
     end
 end
 

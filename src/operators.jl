@@ -22,7 +22,7 @@ export create,
     create(v::VibrationalMode)
 returns the creation operator for `v` such that: `create(v) * v[i] = √(i+1) * v[i+1]`.
 """
-create(v::VibrationalMode) = SparseOperator(v, diagm(-1 => sqrt.(1:(v.N))))
+create(v::VibrationalMode) = SparseOperator(v, diagm(-1 => sqrt.(1:(modecutoff(v)))))
 
 """
     destroy(v::VibrationalMode)
@@ -34,7 +34,7 @@ destroy(v::VibrationalMode) = create(v)'
     number(v::VibrationalMode)
 Returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`.
 """
-number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:(v.N)))
+number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:(modecutoff(v))))
 
 """
     displace(v::VibrationalMode, α::Number; method="truncated")
@@ -42,7 +42,7 @@ Returns the displacement operator ``D(α)`` corresponding to `v`.
 
 If `method="truncated"` (default), the matrix elements are computed according to
 ``D(α) = exp[αa^† - α^*a]`` where ``a`` and ``a^†`` live in a truncated Hilbert space of
-dimension `v.N+1`.
+dimension `modecutoff(v)+1`.
 Otherwise if `method="analytic"`, the matrix elements are computed assuming an
 infinite-dimension Hilbert space. In general, this option will not return a unitary operator.
 """
@@ -51,13 +51,13 @@ function displace(v::VibrationalMode, α::Number; method = "truncated")
     # Above line commented out to allow for Hamiltonian construction even if vibrational mode N = 0.
     # May want to think of a different way to perform this check in the future.
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
-    D = zeros(ComplexF64, v.N + 1, v.N + 1)
+    D = zeros(ComplexF64, modecutoff(v) + 1, modecutoff(v) + 1)
     if α == 0
         return one(v)
     elseif method ≡ "analytic"
         @inbounds begin
-            @simd for n in 1:(v.N + 1)
-                @simd for m in 1:(v.N + 1)
+            @simd for n in 1:(modecutoff(v) + 1)
+                @simd for m in 1:(modecutoff(v) + 1)
                     D[n, m] = _Dnm(α, n, m)
                 end
             end
@@ -80,15 +80,15 @@ assuming an infinite-dimensional Hilbert space, is used:
 ``[ρ_{th}]_{ij} = δ_{ij} \\frac{nⁱ}{(n+1)^{i+1}}.``
 """
 function thermalstate(v::VibrationalMode, n̄::Real; method = "truncated")
-    @assert v.N ≥ n̄ "`n̄` must be less than `v.N`"
+    @assert modecutoff(v) ≥ n̄ "`n̄` must be less than `modecutoff(v)`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if n̄ == 0
         return v[0] ⊗ v[0]'
     elseif method ≡ "truncated"
-        d = [(n̄ / (n̄ + 1))^i for i in 0:(v.N)]
+        d = [(n̄ / (n̄ + 1))^i for i in 0:(modecutoff(v))]
         return DenseOperator(v, diagm(0 => d) ./ sum(d))
     elseif method ≡ "analytic"
-        return DenseOperator(v, diagm(0 => [(n̄ / (n̄ + 1))^i / (n̄ + 1) for i in 0:(v.N)]))
+        return DenseOperator(v, diagm(0 => [(n̄ / (n̄ + 1))^i / (n̄ + 1) for i in 0:(modecutoff(v))]))
     end
 end
 
@@ -99,10 +99,10 @@ Returns a coherent state on `v` with complex amplitude ``α``.
 function coherentstate(v::VibrationalMode, α::Number)
     # this implementation is the same as in QuantumOptics.jl, but there the function is
     # restricted to v::FockBasis, so we must reimplement here
-    @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
-    k = zeros(ComplexF64, v.N + 1)
+    @assert modecutoff(v) ≥ abs(α) "`α` must be less than `modecutoff(v)`"
+    k = zeros(ComplexF64, modecutoff(v) + 1)
     k[1] = exp(-abs2(α) / 2)
-    @inbounds for n in 1:(v.N)
+    @inbounds for n in 1:(modecutoff(v))
         k[n + 1] = k[n] * α / √n
     end
     return Ket(v, k)
@@ -118,7 +118,7 @@ complex amplitude of the displacement.
 displacement operator is computed (see: [`displace`](@ref)) .
 """
 function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method = "truncated")
-    @assert (v.N ≥ n̄ && v.N ≥ abs(α)) "`n̄`, `α` must be less than `v.N`"
+    @assert (modecutoff(v) ≥ n̄ && modecutoff(v) ≥ abs(α)) "`n̄`, `α` must be less than `modecutoff(v)`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if method ≡ "truncated"
         d = displace(v, α)
@@ -159,10 +159,10 @@ end
 ionstate(I::Ion, sublevelalias::String) = ionstate(I, sublevel(I, sublevelalias))
 ionstate(I::Ion, sublevel::Int) = basisstate(I, sublevel)
 function ionstate(IC::IonTrap, states::Union{Tuple{String, Real}, String, Int}...)
-    ions = IC.ions
-    L = length(ions)
+    allions = ions(IC)
+    L = length(allions)
     @assert L ≡ length(states) "wrong number of states"
-    return tensor([ionstate(ions[i], states[i]) for i in 1:L]...)
+    return tensor([ionstate(allions[i], states[i]) for i in 1:L]...)
 end
 ionstate(T::Chamber, states::Union{Tuple{String, Real}, String, Int}...) =
     ionstate(T.iontrap, states...)
@@ -194,11 +194,11 @@ function ionprojector(
     sublevels::Union{Tuple{String, Real}, String, Int}...;
     only_ions = false
 )
-    ions = IC.ions
-    L = length(ions)
+    allions = ions(IC)
+    L = length(allions)
     @assert L ≡ length(sublevels) "wrong number of sublevels"
     allmodes = modes(IC)
-    observable = tensor([projector(ions[i][sublevels[i]]) for i in 1:L]...)
+    observable = tensor([projector(allions[i][sublevels[i]]) for i in 1:L]...)
     if !only_ions
         for mode in allmodes
             observable = observable ⊗ one(mode)
@@ -211,7 +211,7 @@ function ionprojector(
     sublevels::Union{Tuple{String, Real}, String, Int}...;
     only_ions = false
 )
-    return ionprojector(T.iontrap, sublevels..., only_ions = only_ions)
+    return ionprojector(iontrap(T), sublevels..., only_ions = only_ions)
 end
 
 #############################################################################################

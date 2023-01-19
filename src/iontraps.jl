@@ -224,17 +224,17 @@ end
     xmodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the x-direction in the `LinearChain`.
 """
-xmodes(lc::LinearChain) = lc.selectedmodes.x
+xmodes(lc::LinearChain) = selectedmodes(lc).x
 """
     ymodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the y-direction in the `LinearChain`.
 """
-ymodes(lc::LinearChain) = lc.selectedmodes.y
+ymodes(lc::LinearChain) = selectedmodes(lc).y
 """
     zmodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the z-direction in the `LinearChain`.
 """
-zmodes(lc::LinearChain) = lc.selectedmodes.z
+zmodes(lc::LinearChain) = selectedmodes(lc).z
 
 """
     modecutoff!(lc::LinearChain, N::Int)

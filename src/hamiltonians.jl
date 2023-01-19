@@ -187,12 +187,12 @@ function _setup_base_hamiltonian(
     rwa_cutoff *= timescale
     allmodes = reverse(modes(T))
     L = length(allmodes)
-    νlist = Tuple([mode.ν for mode in allmodes])
-    mode_dims = [mode.N + 1 for mode in allmodes]
+    νlist = Tuple([frequency(mode) for mode in allmodes])
+    mode_dims = [modecutoff(mode) + 1 for mode in allmodes]
 
-    ions = reverse(T.iontrap.ions)
-    Q = prod([ion.shape[1] for ion in ions])
-    ion_arrays = [spdiagm(0 => [true for _ in 1:ion.shape[1]]) for ion in ions]
+    all_ions = reverse(ions(T))
+    Q = prod([shape(ion)[1] for ion in all_ions])
+    ion_arrays = [spdiagm(0 => [true for _ in 1:shape(ion)[1]]) for ion in all_ions]
 
     ηm, Δm, Ωm = _ηmatrix(T), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
     lamb_dicke_order = _check_lamb_dicke_order(lamb_dicke_order, L)
@@ -209,17 +209,17 @@ function _setup_base_hamiltonian(
     local ts, ion_rows, ion_cols, ion_idxs, ion_reps, rn
 
     # iterate over ions and lasers
-    for n in eachindex(ions), m in eachindex(T.lasers)
+    for n in eachindex(all_ions), m in eachindex(T.lasers)
         if m ≡ 1
-            rn = length(ions) - n + 1
-            ts = subleveltransitions(ions[n])
+            rn = length(all_ions) - n + 1
+            ts = subleveltransitions(all_ions[n])
             C = sum([
-                i * real.(sigma(ions[n], reverse(ts[i])...).data) for i in 1:length(ts)
+                i * real.(sigma(all_ions[n], reverse(ts[i])...).data) for i in 1:length(ts)
             ])
-            if length(ions) == 1
+            if length(all_ions) == 1
                 K = C
             else
-                K = kron(ion_arrays[1:(n - 1)]..., C, ion_arrays[(n + 1):length(ions)]...)
+                K = kron(ion_arrays[1:(n - 1)]..., C, ion_arrays[(n + 1):length(all_ions)]...)
             end
             ion_rows, ion_cols, ion_vals = findnz(K)
             ion_idxs = sortperm(real.(ion_vals))
@@ -444,24 +444,24 @@ end
 # the time-dependence of δB. When the system is integrated, the Hamiltonian terms will be
 # updated at each time step by by bfunc(t) times the individual susceptibilities.
 function _setup_global_B_hamiltonian(T, timescale)
-    ions = T.iontrap.ions
+    all_ions = ions(T)
     global_B_indices = Vector{Vector{Int64}}(undef, 0)
     global_B_scales = Vector{Float64}(undef, 0)
-    δB = T.δB
+    δB = bfield_fluctuation(T)
     τ = timescale
     bfunc = FunctionWrapper{Float64, Tuple{Float64}}(t -> 2π * δB(t * τ))
     if T._cnst_δB && δB(0) == 0
         return global_B_indices, global_B_scales, bfunc
     end
-    for n in eachindex(ions)
-        for sublevel in sublevels(ions[n])
-            ion_op = sigma(ions[n], sublevel)
+    for n in eachindex(all_ions)
+        for sublevel in sublevels(all_ions[n])
+            ion_op = sigma(all_ions[n], sublevel)
             A = embed(basis(T), [n], [ion_op]).data
             indices = [x[1] for x in getfield.(findall(x -> x .== complex(1, 0), A), :I)]
             push!(global_B_indices, indices)
             # zeemanshift(ions[n], sublevel, 1]) is the Zeeman shift of
             # sublevel in units of δB.
-            push!(global_B_scales, τ * zeemanshift(ions[n], sublevel, 1))
+            push!(global_B_scales, τ * zeemanshift(all_ions[n], sublevel, 1))
         end
     end
     return global_B_indices, global_B_scales, bfunc
@@ -493,15 +493,15 @@ end
 # A 3D array of Lamb-Dicke parameters for each combination of ion, laser and mode. Modes are
 # populated in reverse order.
 function _ηmatrix(T)
-    ions = T.iontrap.ions
+    all_ions = ions(T)
     vms = modes(T)
-    lasers = T.lasers
-    (N, M, L) = map(x -> length(x), [ions, lasers, vms])
+    all_lasers = lasers(T)
+    (N, M, L) = map(x -> length(x), [all_ions, all_lasers, vms])
     ηnml = Array{Any}(undef, N, M, L)
     for n in 1:N, m in 1:M, l in 1:L
-        δν = vms[l].δν
-        ν = vms[l].ν
-        eta = lambdicke(vms[l], ions[n], lasers[m], scaled = true)
+        δν = frequency_fluctuation(vms[l])
+        ν = frequency(vms[l])
+        eta = lambdicke(vms[l], all_ions[n], all_lasers[m], scaled = true)
         if eta == 0
             ηnml[n, m, L - l + 1] = 0
         else
@@ -517,18 +517,18 @@ end
 # for each ion transition. We need to separate this calculation from _Ωmatrix to implement
 # RWA easily.
 function _Δmatrix(T, timescale)
-    ions = T.iontrap.ions
-    lasers = T.lasers
-    (N, M) = length(ions), length(lasers)
-    B = T.B
-    ∇B = T.∇B
+    all_ions = ions(T)
+    all_lasers = lasers(T)
+    (N, M) = length(all_ions), length(all_lasers)
+    B = bfield(T)
+    ∇B = bgradient(T)
     Δnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
-        Btot = B + ∇B * ionposition(ions[n])
+        Btot = bfield(T, all_ions[n])
         v = Vector{Float64}(undef, 0)
-        for transition in subleveltransitions(ions[n])
-            ωa = transitionfrequency(ions[n], transition, B = Btot)
-            push!(v, 2π * timescale * ((c / lasers[m].λ) + lasers[m].Δ - ωa))
+        for transition in subleveltransitions(all_ions[n])
+            ωa = transitionfrequency(all_ions[n], transition, B = Btot)
+            push!(v, 2π * timescale * ((c / wavelength(all_lasers[m])) + detuning(all_lasers[m]) - ωa))
         end
         Δnmkj[n, m] = v
     end
@@ -539,20 +539,20 @@ end
 # respectively. For each row/column we have a vector of coupling strengths between the laser
 # and all allowed electronic ion transitions.
 function _Ωmatrix(T, timescale)
-    ions = T.iontrap.ions
-    lasers = T.lasers
-    (N, M) = length(ions), length(lasers)
+    all_ions = ions(T)
+    all_lasers = lasers(T)
+    (N, M) = length(all_ions), length(all_lasers)
     Ωnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
-        E = lasers[m].E
-        phase = lasers[m].ϕ
-        transitions = subleveltransitions(ions[n])
-        s_indx = findall(x -> x[1] == n, lasers[m].pointing)
+        E = efield(all_lasers[m])
+        ϕ = phase(all_lasers[m])
+        transitions = subleveltransitions(all_ions[n])
+        s_indx = findall(x -> x[1] == n, all_lasers[m].pointing)
         if length(s_indx) == 0
             Ωnmkj[n, m] = [0 for _ in 1:length(transitions)]
             continue
         else
-            s = lasers[m].pointing[s_indx[1]][2]
+            s = pointing(all_lasers[m])[s_indx[1]][2]
         end
         v = []
         for t in transitions
@@ -560,14 +560,14 @@ function _Ωmatrix(T, timescale)
                 2π *
                 timescale *
                 s *
-                matrixelement(ions[n], t, 1.0, lasers[m].ϵ, lasers[m].k, T.Bhat) / 2.0
+                matrixelement(all_ions[n], t, 1.0, polarization(all_lasers[m]), wavevector(all_lasers[m]), bfield_unitvector(T)) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else
                 push!(
                     v,
                     FunctionWrapper{ComplexF64, Tuple{Float64}}(
-                        t -> Ω0 * E(t) * exp(-im * phase(t))
+                        t -> Ω0 * E(t) * exp(-im * ϕ(t))
                     )
                 )
             end
