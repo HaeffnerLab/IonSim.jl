@@ -547,7 +547,7 @@ function _Ωmatrix(T, timescale)
         E = efield(all_lasers[m])
         ϕ = phase(all_lasers[m])
         transitions = subleveltransitions(all_ions[n])
-        s_indx = findall(x -> x[1] == n, all_lasers[m].pointing)
+        s_indx = findall(x -> x[1] == n, pointing(all_lasers[m]))
         if length(s_indx) == 0
             Ωnmkj[n, m] = [0 for _ in 1:length(transitions)]
             continue

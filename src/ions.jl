@@ -640,7 +640,7 @@ function _construct_sublevels(selected_sublevels, properties)
         selectedms = manifold[2]
         if length(manifold) == 3
             @assert typeof(selectedms) <: Real "$manifold: sublevel aliases may only be assigned to a single sublevel"
-            sl = (level, selectedms)
+            sl = (level, Rational(selectedms))
             alias = manifold[3]
             aliases[alias] = sl
         end
@@ -843,10 +843,15 @@ mutable struct IonInstance{Species <: Any} <: Ion
     end
 end
 
-function Base.print(I::IonInstance)
-    println(I.speciesproperties.shortname)
-    for sublevel in sublevels(I)
-        println(sublevel)
+function Base.print(ion::IonInstance)
+    println(ion.speciesproperties.shortname)
+    for sublevel in sublevels(ion)
+        if sublevel in values(sublevelaliases(ion))
+            alias = sublevelalias(ion, sublevel)
+            println("$sublevel: \"$alias\"")
+        else
+            println(sublevel)
+        end
     end
 end
 
