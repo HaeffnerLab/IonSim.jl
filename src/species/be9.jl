@@ -43,7 +43,7 @@ const properties_be9 = IonProperties(
 
 # boilerplate code
 IonInstance{:Be9}(
-    selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
+    selected_sublevels = nothing,
     manualshift = Dict()
 ) = IonInstance{:Be9}(properties_be9, selected_sublevels, manualshift)
 

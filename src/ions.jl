@@ -628,15 +628,24 @@ function _construct_sublevels(selected_sublevels, properties)
 
     # Construct the list of sublevels
     sublevels = []
+    aliases = Dict()
     for manifold in selected_sublevels
         # Ensure that the string is a valid level
         level = manifold[1]
         @assert level in keys(full_level_structure) "invalid level $level"
-        @assert level ∉ [k[1] for k in keys(sublevels)] "multiple instances of level $level in ion constructor call"
+        #@assert level ∉ [k[1] for k in sublevels] "multiple instances of level $level in ion constructor call"
         level_structure = full_level_structure[level]
 
-        # Add chosen sublevels
+        # Create aliases, if applicable
         selectedms = manifold[2]
+        if length(manifold) == 3
+            @assert typeof(selectedms) <: Real "$manifold: sublevel aliases may only be assigned to a single sublevel"
+            sl = (level, selectedms)
+            alias = manifold[3]
+            aliases[alias] = sl
+        end
+
+        # Add chosen sublevels
         f = level_structure.f
 
         m_allowed = Array((-f):f)
@@ -653,7 +662,7 @@ function _construct_sublevels(selected_sublevels, properties)
         end
     end
 
-    return sublevels
+    return (sublevels, aliases)
 end
 
 function _construct_manualshift(manualshift, sublevels)
@@ -793,16 +802,16 @@ mutable struct IonInstance{Species <: Any} <: Ion
     # constructors (overrides default)
     function IonInstance{Species}(
         properties,
-        selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
+        selected_sublevels = nothing,
         manualshift = Dict()
     ) where {Species <: Any}
-        sublevels = _construct_sublevels(selected_sublevels, properties)
+        (sublevels, aliases) = _construct_sublevels(selected_sublevels, properties)
         shape = [length(sublevels)]
         manualshift_full = _construct_manualshift(manualshift, sublevels)
         return new{Species}(
             properties,
             sublevels,
-            Dict(),
+            aliases,
             shape,
             manualshift_full,
             missing,

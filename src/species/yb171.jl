@@ -92,7 +92,7 @@ const properties_yb171 = IonProperties(
 
 # boilerplate code
 IonInstance{:Yb171}(
-    selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
+    selected_sublevels = nothing,
     manualshift = Dict()
 ) = IonInstance{:Yb171}(properties_yb171, selected_sublevels, manualshift)
 

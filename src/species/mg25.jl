@@ -42,7 +42,7 @@ const properties_mg25 = IonProperties(
 
 # boilerplate code
 IonInstance{:Mg25}(
-    selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
+    selected_sublevels = nothing,
     manualshift = Dict()
 ) = IonInstance{:Mg25}(properties_mg25, selected_sublevels, manualshift)
 
