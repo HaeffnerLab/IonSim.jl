@@ -844,9 +844,9 @@ mutable struct IonInstance{Species <: Any} <: Ion
 end
 
 function Base.print(I::IonInstance)
-    println(I.speciesproperties.shortname + "\n")
-    for (k, v) in I.selected_sublevel_structure
-        println(k, ": ", v)
+    println(I.speciesproperties.shortname)
+    for sublevel in sublevels(I)
+        println(sublevel)
     end
 end
 
