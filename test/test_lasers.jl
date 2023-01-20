@@ -13,15 +13,15 @@ using Suppressor
     # pointing magnitude must be within [0,1]
     @test_throws AssertionError Laser(pointing = [(1, 2.0)])
 
-    # should be able to set L.E, L.ϕ to a constant Real value 
+    # should be able to set L.I, L.ϕ to a constant Real value 
     t = 0:1:100
-    L = Laser(E = 1, ϕ = 1)
+    L = Laser(I = 1, ϕ = 1)
     ones = [1 for _ in t]
-    # should be able to set L.E, L.ϕ to a function of time
-    @test L.E.(t) == ones
+    # should be able to set L.I, L.ϕ to a function of time
+    @test L.I.(t) == ones
     @test L.ϕ.(t) == ones
-    L = Laser(E = sin, ϕ = sin)
-    @test L.E.(t) == sin.(t)
+    L = Laser(I = sin, ϕ = sin)
+    @test L.I.(t) == sin.(t)
     @test L.ϕ.(t) == sin.(t)
 
     # test that normalization is enforced for altered L.ϵ/L.k
@@ -44,6 +44,6 @@ using Suppressor
     # test comparison
     L2 = copy(L)
     @test L == L2
-    efield!(L, 7)
+    intensity!(L, 7)
     @test L ≠ L2
 end

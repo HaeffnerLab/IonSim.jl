@@ -22,10 +22,10 @@ export Chamber,
     zmodes,
     modecutoff!,
     groundstate,
-    efield_from_pitime,
-    efield_from_pitime!,
-    efield_from_rabifrequency,
-    efield_from_rabifrequency!,
+    intensity_from_pitime,
+    intensity_from_pitime!,
+    intensity_from_rabifrequency,
+    intensity_from_rabifrequency!,
     transition_frequency,
     wavelength_from_transition!,
     globalbeam!,
@@ -271,14 +271,14 @@ end
 
 
 """
-    efield_from_pitime(
+    intensity_from_pitime(
         laser::Laser, pi_time::Real, ion::Ion, transition::Tuple,
         Bhat::NamedTuple{(:x,:y,:z)}
     )
-Compute the E-field needed to get a certain `pi_time` with a certain resonant `laser`-`ion`
+Compute the intensity needed to get a certain `pi_time` with a certain resonant `laser`-`ion`
 `transition`, in the presence of a magnetic field pointing in the direction `Bhat`.
 """
-function efield_from_pitime(
+function intensity_from_pitime(
     laser::Laser,
     pi_time::Real,
     ion::Ion,
@@ -290,41 +290,41 @@ function efield_from_pitime(
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
     s = p[s_indx[1]][2]
     Ω = s * matrixelement(ion, transition, 1.0, polarization(laser), wavevector(laser), Bhat)
-    if Ω < 1e-15
+    if Ω < 3e-14    # After change from Efield to intensity: This inequality changed so that it serves the same function but now for intensity = 1.0 rather than efield = 1.0 (specificially, increased by a factor of √(2/(cϵ₀)) ∼ 30 in SI units)
         # even when coupling strength is zero, numerical error causes it to be finite
-        # (on order 1e-16), this is a band-aid to prevent users from unknowingly setting
-        # the E-field to something absurd (like 1e20 V/m)
+        # (on order 1e-14), this is a band-aid to prevent users from unknowingly setting
+        # the intensity to something absurd (like 1e20 V/m)
         return Inf
     end
-    return 1 / (2Ω * pi_time)
+    return (1 / (2Ω * pi_time))^2
 end
 
 """
-    efield_from_pitime(
+    intensity_from_pitime(
         laser, pi_time::Real, ion, transition::Tuple, chamber::Chamber
         )
-Compute the E-field needed to get a certain `pi_time` with a certain resonant `laser`-`ion`
+Compute the intensity needed to get a certain `pi_time` with a certain resonant `laser`-`ion`
 `transition` within `chamber`, which defines the magnetic field direction.
 `laser` may be either a Laser or an Int indicating the desired laser's index within `chamber`.
 `ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
 """
-function efield_from_pitime(
+function intensity_from_pitime(
     laser::Laser,
     pi_time::Real,
     ion::Ion,
     transition::Tuple,
     chamber::Chamber
 )
-    return efield_from_pitime(laser, pi_time, ion, transition, bfield_unitvector(chamber))
+    return intensity_from_pitime(laser, pi_time, ion, transition, bfield_unitvector(chamber))
 end
-function efield_from_pitime(
+function intensity_from_pitime(
     laser_index::Int,
     pi_time::Real,
     ion_index::Int,
     transition::Tuple,
     chamber::Chamber
 )
-    return efield_from_pitime(
+    return intensity_from_pitime(
         lasers(chamber)[laser_index],
         pi_time,
         ions(chamber)[ion_index],
@@ -334,97 +334,97 @@ end
 
 
 """
-    efield_from_pitime!(
+    intensity_from_pitime!(
         laser::Laser, pi_time::Real, ion::Ion, transition::Tuple,
         Bhat::NamedTuple{(:x,:y,:z)}
     )
-    efield_from_pitime!(
+    intensity_from_pitime!(
         laser, pi_time::Real, ion, transition::Tuple, chamber::Chamber
     )
-Same as `efield_from_pitime`, but updates `laser[:E]` in-place.
+Same as `intensity_from_pitime`, but updates `laser[:I]` in-place.
 """
-function efield_from_pitime!(
+function intensity_from_pitime!(
     laser::Laser,
     pi_time::Real,
     ion::Ion,
     transition::Tuple,
     Bhat::NamedTuple{(:x, :y, :z)}
 )
-    Efield::Float64 = efield_from_pitime(laser, pi_time, ion, transition, Bhat)
-    efield!(laser, Efield)
-    return Efield
+    I::Float64 = intensity_from_pitime(laser, pi_time, ion, transition, Bhat)
+    intensity!(laser, I)
+    return I
 end
-function efield_from_pitime!(
+function intensity_from_pitime!(
     laser::Laser,
     pi_time::Real,
     ion::Ion,
     transition::Tuple,
     chamber::Chamber
 )
-    Efield::Float64 = efield_from_pitime(laser, pi_time, ion, transition, chamber)
-    efield!(laser, Efield)
-    return Efield
+    I::Float64 = intensity_from_pitime(laser, pi_time, ion, transition, chamber)
+    intensity!(laser, I)
+    return I
 end
-function efield_from_pitime!(
+function intensity_from_pitime!(
     laser_index::Int,
     pi_time::Real,
     ion_index::Int,
     transition::Tuple,
     chamber::Chamber
 )
-    Efield::Float64 = efield_from_pitime(laser_index, pi_time, ion_index, transition, chamber)
+    I::Float64 = intensity_from_pitime(laser_index, pi_time, ion_index, transition, chamber)
     laser = lasers(chamber)[laser_index]
-    efield!(laser, Efield)
-    return Efield
+    intensity!(laser, I)
+    return I
 end
 
 ##############################################################################################
 
 """
-    efield_from_rabifrequency(
+    intensity_from_rabifrequency(
         laser::Laser, rabi_frequency::Real, ion::Ion, transition::Tuple,
         Bhat::NamedTuple{(:x,:y,:z)}
     )
-Compute the E-field needed to get a certain `rabi_frequency` with a certain resonant `laser`-`ion`
+Compute the intensity needed to get a certain `rabi_frequency` with a certain resonant `laser`-`ion`
 `transition`, in the presence of a magnetic field pointing in the direction `Bhat`.
 """
-function efield_from_rabifrequency(
+function intensity_from_rabifrequency(
     laser::Laser,
     rabi_frequency::Real,
     ion::Ion,
     transition::Tuple,
     Bhat::NamedTuple{(:x, :y, :z)}
 )
-    return efield_from_pitime(laser, 1/(2*rabi_frequency), ion, transition, Bhat)
+    return intensity_from_pitime(laser, 1/(2*rabi_frequency), ion, transition, Bhat)
 end
 
 """
-efield_from_rabifrequency(
+intensity_from_rabifrequency(
         laser, rabi_frequency::Real, ion, transition::Tuple, chamber::Chamber
         )
-Compute the E-field needed to get a certain `rabi_frequency` with a certain resonant `laser`-`ion`
+Compute the intensity needed to get a certain `rabi_frequency` with a certain resonant `laser`-`ion`
 `transition` within `chamber`, which defines the magnetic field direction.
 `laser` may be either a Laser or an Int indicating the desired laser's index within `chamber`.
 `ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
 `laser` and `ion` must either both be indices or both their respective Structs.
 """
-function efield_from_rabifrequency(
+function intensity_from_rabifrequency(
     laser::Laser,
     rabi_frequency::Real,
     ion::Ion,
     transition::Tuple,
     chamber::Chamber
 )
-    return efield_from_rabifrequency(laser, rabi_frequency, ion, transition, bfield_unitvector(chamber))
+    return intensity_from_rabifrequency(laser, rabi_frequency, ion, transition, bfield_unitvector(chamber))
 end
-function efield_from_rabifrequency(
+function intensity_from_rabifrequency(
     laser_index::Int,
     rabi_frequency::Real,
     ion_index::Int,
     transition::Tuple,
     chamber::Chamber
 )
-    return efield_from_rabifrequency(
+    return intensity_from_rabifrequency(
         lasers(chamber)[laser_index],
         rabi_frequency,
         ions(chamber)[ion_index],
@@ -434,48 +434,48 @@ end
 
 
 """
-    efield_from_rabifrequency!(
+    intensity_from_rabifrequency!(
         laser::Laser, rabi_frequency::Real, ion::Ion, transition::Tuple,
         Bhat::NamedTuple{(:x,:y,:z)}
     )
-    efield_from_rabifrequency!(
+    intensity_from_rabifrequency!(
         laser, rabi_frequency::Real, ion, transition::Tuple, chamber::Chamber
     )
-Same as `efield_from_rabifrequency!`, but updates `laser[:E]` in-place.
+Same as `intensity_from_rabifrequency!`, but updates `laser[:I]` in-place.
 """
-function efield_from_rabifrequency!(
+function intensity_from_rabifrequency!(
     laser::Laser,
     rabi_frequency::Real,
     ion::Ion,
     transition::Tuple,
     Bhat::NamedTuple{(:x, :y, :z)}
 )
-    Efield::Float64 = efield_from_rabifrequency(laser, rabi_frequency, ion, transition, Bhat)
-    efield!(laser, Efield)
-    return Efield
+    I::Float64 = intensity_from_rabifrequency(laser, rabi_frequency, ion, transition, Bhat)
+    intensity!(laser, I)
+    return I
 end
-function efield_from_rabifrequency!(
+function intensity_from_rabifrequency!(
     laser::Laser,
     rabi_frequency::Real,
     ion::Ion,
     transition::Tuple,
     chamber::Chamber
 )
-    Efield::Float64 = efield_from_rabifrequency(laser, rabi_frequency, ion, transition, chamber)
-    efield!(laser, Efield)
-    return Efield
+    I::Float64 = intensity_from_rabifrequency(laser, rabi_frequency, ion, transition, chamber)
+    intensity!(laser, I)
+    return I
 end
-function efield_from_rabifrequency!(
+function intensity_from_rabifrequency!(
     laser_index::Int,
     rabi_frequency::Real,
     ion_index::Int,
     transition::Tuple,
     chamber::Chamber
 )
-    Efield::Float64 = efield_from_rabifrequency(laser_index, rabi_frequency, ion_index, transition, chamber)
+    I::Float64 = intensity_from_rabifrequency(laser_index, rabi_frequency, ion_index, transition, chamber)
     laser = lasers(chamber)[laser_index]
-    efield!(laser, Efield)
-    return Efield
+    intensity!(laser, I)
+    return I
 end
 
 
@@ -567,7 +567,7 @@ end
 
 """
     matrixelement(ion, transition::Tuple, laser, chamber::Chamber, time::Real)
-Calls `matrixelement(ion, transition, Efield, ϵhat, khat, Bhat)` with `Efield`, `ϵhat`, and
+Calls `matrixelement(ion, transition, I, ϵhat, khat, Bhat)` with `I`, `ϵhat`, and
 `khat` evaluated for `laser` at time `time`, and `Bhat` evaluated for `chamber`.
 
 `ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
@@ -577,7 +577,7 @@ Calls `matrixelement(ion, transition, Efield, ϵhat, khat, Bhat)` with `Efield`,
 matrixelement(ion::Ion, transition::Tuple, laser::Laser, chamber::Chamber, time::Real) =
     matrixelement(ion,
         transition,
-        efield(laser)(time),
+        intensity(laser)(time),
         polarization(laser),
         wavevector(laser),
         bfield_unitvector(chamber)

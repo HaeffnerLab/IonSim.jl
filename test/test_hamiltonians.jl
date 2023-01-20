@@ -119,9 +119,9 @@ end
         L2 = copy(L1)
 
         # _Ωmatrix
-        efield!(L1, 1)
+        intensity!(L1, 1)
         phase!(L1, 0)
-        efield!(L2, 2)
+        intensity!(L2, 2)
         phase!(L2, 2)
         chain = LinearChain(
             ions = [C, C1],
@@ -138,12 +138,12 @@ end
         @test [resolve(i, t) for i in Ωnmkj[1, 1]] == [resolve(i, t) for i in Ωnmkj[2, 1]]
 
         # coupling strength between ion1-laser1 and ion1-laser2 should be proportional according
-        # to the factor 2exp(-2im) due to the differences we've set in L2.E and L2.ϕ
+        # to the factor 2exp(-2im) due to the differences we've set in L2.I and L2.ϕ
         @test [2exp(-2im) * resolve(i, t) for i in Ωnmkj[1, 1]] == [resolve(i, t) for i in Ωnmkj[1, 2]]
         @test [2exp(-2im) * resolve(i, t) for i in Ωnmkj[2, 1]] == [resolve(i, t) for i in Ωnmkj[2, 2]]
 
-        # make sure time-dep L.E and L.ϕ propagate appropriately
-        L1.E = cos
+        # make sure time-dep L.I and L.ϕ propagate appropriately
+        L1.I = cos
         L1.ϕ = t -> t^2
         Ωnmkj = IonSim._Ωmatrix(T, 1)
         t = 0:1e-3:100
@@ -151,7 +151,7 @@ end
             if typeof(Ω) <: Number
                 continue
             end
-            @test Ω.(t) ≈ @.(Ω(0) * cos(t) * exp(-im * t^2))
+            @test Ω.(t) ≈ @.(√Ω(0) * cos(t) * exp(-im * t^2))
         end
 
         # _Δmatrix
@@ -339,7 +339,7 @@ end
         mode = T.iontrap.selectedmodes.z[1]
         modecutoff!(mode, rand(1:8))
         N = mode.N + 1
-        efield_from_rabifrequency!(1, 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        intensity_from_rabifrequency!(1, 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         ## first just shine light on 1st ion
         L.pointing = [(1, 1.0)]
@@ -383,7 +383,7 @@ end
         modecutoff!(mode2, rand(1:8))
         M = mode2.N + 1
         NM = N * M
-        efield_from_rabifrequency!(1, 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T1)
+        intensity_from_rabifrequency!(1, 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T1)
 
         ridxs, cidxs = get_indices(12, [N, M], true)
         _, r, c = IonSim._setup_base_hamiltonian(T, 1e-6, 100, Inf, "analytic", true)
@@ -444,7 +444,7 @@ end
         modecutoff!(mode1, 10)
         modecutoff!(mode2, 9)
         Ω = randn()
-        efield_from_rabifrequency!(1, Ω * 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        intensity_from_rabifrequency!(1, Ω * 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         # Case 1a: full hamiltonian (w conj_repeated_indices); controlled by not specifying rwa_cutoff
 

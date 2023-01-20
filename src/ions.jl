@@ -489,12 +489,12 @@ function lifetime(I::Ion, level::String)
 end
 
 """
-    matrixelement(ion::Ion, transition::Tuple, Efield::Real, ϵhat::NamedTuple, khat::NamedTuple, Bhat::NamedTuple=(;z=1))
+    matrixelement(ion::Ion, transition::Tuple, I::Real, ϵhat::NamedTuple, khat::NamedTuple, Bhat::NamedTuple=(;z=1))
 Computes the matrix elements (units of Hz) between two energy sublevels
 **args**
 * `ion`: Ion undergoing transition
 * `transition`: Tuple of sublevels (full names or aliases) between which the transition is being calculated. Must be formatted such that `energy(transition[2]) > energy(transition[1])`
-* `Efield`: Amplitude of driving electric field
+* `I`: Intensity of the driving field
 * `ϵhat`: Unit vector of light polarization
 * `khat`: Unit vector of light wavevector
 * `Bhat`: Unit vector of magnetic field
@@ -506,17 +506,17 @@ function matrixelement(
     f2::Real,
     m1::Real,
     m2::Real,
-    I::Real,
+    i::Real,
     ΔE::Real,
     A12::Real,
     multipole::String,
-    Efield::Real,
+    I::Real,
     ϵhat::NamedTuple,
     khat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
 )
     # Level 1 *must* be the lower level and level 2 *must* be the upper level
-    # Note that in this function, I is the nuclear spin, not an ion
+    # Note that in this function, i is the nuclear spin
 
     k = 2π * ΔE / c
     q = Int(m2 - m1)
@@ -541,28 +541,30 @@ function matrixelement(
         if abs(q) > 1
             return 0
         else
+            E = efield(I)
             hyperfine_factor =
-                abs(sqrt((2 * f1 + 1) * (2 * f2 + 1)) * wigner6j(j2, I, f2, f1, 1, j1))
+                abs(sqrt((2 * f1 + 1) * (2 * f2 + 1)) * wigner6j(j2, i, f2, f1, 1, j1))
             geometric_factor = abs(
                 sqrt(2j2 + 1) *
                 wigner3j(f2, 1, f1, -m2, q, m1) *
                 (transpose(c_rank1[q + 2, :]) * ϵhat_rotated)
             )
-            units_factor = abs(e * Efield / (2ħ) * sqrt(3 * A12 / (α * c * k^3)))
+            units_factor = abs(e * E / (2ħ) * sqrt(3 * A12 / (α * c * k^3)))
             return units_factor * hyperfine_factor * geometric_factor / 2π
         end
     elseif multipole == "E2"
         if abs(q) > 2
             return 0
         else
+            E = efield(I)
             hyperfine_factor =
-                abs(sqrt((2 * f1 + 1) * (2 * f2 + 1)) * wigner6j(j2, I, f2, f1, 2, j1))
+                abs(sqrt((2 * f1 + 1) * (2 * f2 + 1)) * wigner6j(j2, i, f2, f1, 2, j1))
             geometric_factor = abs(
                 sqrt(2j2 + 1) *
                 wigner3j(f2, 2, f1, -m2, q, m1) *
                 (transpose(khat_rotated) * c_rank2[:, :, q + 3] * ϵhat_rotated)
             )
-            units_factor = abs(e * Efield / (2ħ) * sqrt(15 * A12 / (α * c * k^3)))
+            units_factor = abs(e * E / (2ħ) * sqrt(15 * A12 / (α * c * k^3)))
             return units_factor * hyperfine_factor * geometric_factor / 2π
         end
     else
@@ -572,7 +574,7 @@ end
 function matrixelement(
     ion::Ion,
     transition::Tuple,
-    Efield::Real,
+    I::Real,
     ϵhat::NamedTuple,
     khat::NamedTuple,
     Bhat::NamedTuple = (; z = 1)
@@ -601,7 +603,7 @@ function matrixelement(
         E2 - E1,
         A12,
         multipole,
-        Efield,
+        I,
         ϵhat,
         khat,
         Bhat

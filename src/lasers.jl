@@ -1,20 +1,21 @@
-using .PhysicalConstants: c
+using .PhysicalConstants: c, ϵ₀
 
 export Laser,
     wavelength,
-    efield,
+    intensity,
     detuning,
     polarization,
     wavevector,
     phase,
     pointing,
     wavelength!,
-    efield!,
+    intensity!,
     detuning!,
     polarization!,
     wavevector!,
     phase!,
-    pointing!
+    pointing!,
+    efield
 
 """
     Laser(;λ=nothing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
@@ -22,7 +23,7 @@ export Laser,
 The physical parameters defining laser light.
 **args**
 * `λ::Union{Real,Nothing}`: the wavelength of the laser in meters
-* `E::Union{Function,Real}`: magnitude of the E-field in V/m
+* `I::Union{Function,Real}`: laser intensity in W/m²
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
 * `k::NamedTuple`: (k.x, k.y, k.z), propagation direction, requires norm of 1
@@ -36,7 +37,7 @@ The physical parameters defining laser light.
 """
 mutable struct Laser
     λ::Union{Real, Nothing}
-    E::Function
+    I::Function
     Δ::Real
     ϵ::NamedTuple{(:x, :y, :z)}
     k::NamedTuple{(:x, :y, :z)}
@@ -44,13 +45,13 @@ mutable struct Laser
     pointing::Vector
     function Laser(;
         λ = nothing,
-        E::TE = 0,
+        I::TI = 0,
         Δ = 0,
         ϵ = (x̂ + ŷ) / √2,
         k = ẑ,
         ϕ::Tϕ = 0,
         pointing = Array{Tuple{Int, <:Real}}(undef, 0)
-    ) where {TE, Tϕ}
+    ) where {TI, Tϕ}
         rtol = 1e-6
         @assert isapprox(norm(ϵ), 1, rtol = rtol) "!(|ϵ| = 1)"
         @assert isapprox(norm(k), 1, rtol = rtol) "!(|k| = 1)"
@@ -64,12 +65,12 @@ mutable struct Laser
         for s in scaling
             @assert 0 <= s <= 1 "must have s ∈ [0,1]"
         end
-        TE <: Number ? Et(t) = E : Et = E
+        TI <: Number ? It(t) = I : It = I
         Tϕ <: Number ? ϕt(t) = ϕ : ϕt = ϕ
-        return new(λ, Et, Δ, ϵ, k, ϕt, pointing)
+        return new(λ, It, Δ, ϵ, k, ϕt, pointing)
     end
     # for copying
-    Laser(λ, E, Δ, ϵ, k, ϕ, pointing) = new(λ, E, Δ, ϵ, k, ϕ, pointing)
+    Laser(λ, I, Δ, ϵ, k, ϕ, pointing) = new(λ, I, Δ, ϵ, k, ϕ, pointing)
 end
 
 #############################################################################################
@@ -77,7 +78,7 @@ end
 #############################################################################################
 
 wavelength(laser::Laser) = laser.λ
-efield(laser::Laser) = laser.E
+intensity(laser::Laser) = laser.I
 detuning(laser::Laser) = laser.Δ
 polarization(laser::Laser) = laser.ϵ
 wavevector(laser::Laser) = laser.k
@@ -93,11 +94,11 @@ function wavelength!(laser::Laser, λ::Real)
     laser.λ = λ
 end
 
-function efield!(laser::Laser, E::Function)
-    laser.E = E
+function intensity!(laser::Laser, I::Function)
+    laser.I = I
 end
-function efield!(laser::Laser, E::Real)
-    laser.E = (t -> E)
+function intensity!(laser::Laser, I::Real)
+    laser.I = (t -> I)
 end
 
 function detuning(laser::Laser, Δ::Real)
@@ -140,6 +141,8 @@ function pointing!(laser::Laser, p::Vector{Tuple{T1, T2}} where T1<:Int where T2
     laser.pointing = p
 end
 
+efield(I::Real) = √(2I/(c*ϵ₀))
+efield(laser::Laser) = efield(intensity(laser))
 
 #############################################################################################
 # Base functions
@@ -159,6 +162,6 @@ function Base.print(L::Laser)
     println("Δ: ", L.Δ, " Hz")
     println("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
     println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
-    println("E(t=0): ", "$(L.E(0.0)) V/m")
+    println("I(t=0): ", "$(L.I(0.0)) W/m²")
     return println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
 end

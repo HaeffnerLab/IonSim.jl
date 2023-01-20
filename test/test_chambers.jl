@@ -76,45 +76,45 @@ using Suppressor
         globalbeam!(L, T)
         @test L.pointing == [(1, 1.0), (2, 1.0)]
 
-        # efield_from_pitime
+        # intensity_from_pitime
         ion_index = 1
         laser_index = 1
         ion = T.iontrap.ions[ion_index]
         transition = (("S1/2", -1 / 2), ("D5/2", -1 / 2))
         # compare to specific pre-computed value for both methods
-        E1 = efield_from_pitime(L1, 1e-6, ion, transition, Bhat)
-        E2 = efield_from_pitime(laser_index, 1e-6, ion_index, transition, T)
-        @test E1 ≈ 118245.11 rtol = 1e-2
-        @test E1 == E2
+        I1 = intensity_from_pitime(L1, 1e-6, ion, transition, Bhat)
+        I2 = intensity_from_pitime(laser_index, 1e-6, ion_index, transition, T)
+        @test I1 ≈ 1.8556916e7 rtol = 1e-2
+        @test I1 == I2
         # confirm in-place versions work
-        efield_from_pitime!(L1, 1e-6, ion, transition, Bhat)
-        @test L1.E(0) == E1
-        efield_from_pitime!(laser_index, 1e-6, ion_index, transition, T)
-        @test L1.E(0) == E1
+        intensity_from_pitime!(L1, 1e-6, ion, transition, Bhat)
+        @test L1.I(0) == I1
+        intensity_from_pitime!(laser_index, 1e-6, ion_index, transition, T)
+        @test L1.I(0) == I1
         # shouldn't be able to have a laser argument where laser.pointing = []
         L = Laser(λ = λ)
-        @test_throws AssertionError efield_from_pitime(L, 1e-6, ion, transition, Bhat)
+        @test_throws AssertionError intensity_from_pitime(L, 1e-6, ion, transition, Bhat)
         L.pointing = [(1, 1.0)]
-        @test isinf(efield_from_pitime(L, 1e-6, ion, transition, x̂))
+        @test isinf(intensity_from_pitime(L, 1e-6, ion, transition, x̂))
 
-        # efield_from_rabifrequency
+        # intensity_from_rabifrequency
         ion_index = 1
         laser_index = 1
         ion = T.iontrap.ions[ion_index]
         transition = (("S1/2", -1 / 2), ("D5/2", -1 / 2))
         # compare to specific pre-computed value for both methods
-        E1 = efield_from_rabifrequency(L1, 5e5, ion, transition, Bhat)
-        E2 = efield_from_rabifrequency(laser_index, 5e5, ion_index, transition, T)
-        @test E1 ≈ 118245.11 rtol = 1e-2
-        @test E1 == E2
+        I1 = intensity_from_rabifrequency(L1, 5e5, ion, transition, Bhat)
+        I2 = intensity_from_rabifrequency(laser_index, 5e5, ion_index, transition, T)
+        @test I1 ≈ 1.8556916e7 rtol = 1e-2
+        @test I1 == I2
         # confirm in-place versions work
-        efield_from_rabifrequency!(L1, 5e5, ion, transition, Bhat)
-        @test L1.E(0) == E1
-        efield_from_rabifrequency!(laser_index, 5e5, ion_index, transition, T)
-        @test L1.E(0) == E1
+        intensity_from_rabifrequency!(L1, 5e5, ion, transition, Bhat)
+        @test L1.I(0) == I1
+        intensity_from_rabifrequency!(laser_index, 5e5, ion_index, transition, T)
+        @test L1.I(0) == I1
         # shouldn't be able to have a laser argument where laser.pointing = []
         L = Laser(λ = λ)
-        @test_throws AssertionError efield_from_rabifrequency(
+        @test_throws AssertionError intensity_from_rabifrequency(
             L,
             5e5,
             ion,

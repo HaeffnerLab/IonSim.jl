@@ -544,7 +544,7 @@ function _Ωmatrix(T, timescale)
     (N, M) = length(all_ions), length(all_lasers)
     Ωnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
-        E = efield(all_lasers[m])
+        I = intensity(all_lasers[m])
         ϕ = phase(all_lasers[m])
         transitions = subleveltransitions(all_ions[n])
         s_indx = findall(x -> x[1] == n, pointing(all_lasers[m]))
@@ -567,7 +567,7 @@ function _Ωmatrix(T, timescale)
                 push!(
                     v,
                     FunctionWrapper{ComplexF64, Tuple{Float64}}(
-                        t -> Ω0 * E(t) * exp(-im * ϕ(t))
+                        t -> Ω0 * √I(t) * exp(-im * ϕ(t))
                     )
                 )
             end

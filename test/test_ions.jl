@@ -103,7 +103,7 @@ using Suppressor
 
         @test lifetime(C, "D5/2") ≈ 1.16795141322121
 
-        @test matrixelement(C, ("S", "D"), 1e5, ŷ, x̂, ẑ) ≈ 472761.18184781645
+        @test matrixelement(C, ("S", "D"), 1.327209365e7, ŷ, x̂, ẑ) ≈ 472761.18184781645
 
         # make sure improper indexing of Ca40 yields an AssertionError
         @test_throws AssertionError C[""]

@@ -20,7 +20,7 @@ using Suppressor
         L.ϵ = (x̂ - ẑ) / √2
         Ω = (rand() + 0.2) * 1e4 # Small so that sideband transitions are suppressed
         Ω00 = Ω * exp(-lambdicke(mode, C, L)^2 / 2) # Actual Rabi frequency of n=0 carrier Rabi oscillations
-        efield_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        intensity_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         h = hamiltonian(T, timescale=1e-6)
         tspan = 0:1e-1:400
@@ -145,7 +145,7 @@ using Suppressor
         L.ϕ = t -> 1e-6 * 2 * pi * Δf * t
         Ω = (rand() + 0.1) * 1e6
         Ω00 = Ω * exp(-lambdicke(mode, C, L)^2 / 2)
-        efield_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        intensity_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tspan = 0:1e-3:4
@@ -161,8 +161,8 @@ using Suppressor
         # set Ω(t) to a step function
         L.λ = transitionwavelength(1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         phase!(L, 0)
-        E = efield_from_rabifrequency(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        L.E = t -> t < 1 ? 0 : E
+        I = intensity_from_rabifrequency(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        L.I = t -> t < 1 ? 0 : I
         h = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 0)
         tspan = 0:1e-3:3
         tout, sol = timeevolution.schroedinger_dynamic(
@@ -178,7 +178,7 @@ using Suppressor
         @test isapprox(ex_ionsim_tdE, ex_analyt_tdE, rtol = 1e-5)
 
         # check that δν(t) shifts sideband frequencies appropriately
-        efield!(L, E)
+        intensity!(L, I)
         tspan = 0:1e-3:30
         mode.δν = t -> 20e3
         L.Δ = mode.ν + 20e3
@@ -226,8 +226,8 @@ using Suppressor
         η = abs(lambdicke(mode, C, L1))
         Ω = √(1e3 * ϵ) / η  # This will give a 1kHz MS strength, since coupling goes like (ηΩ)^2/ϵ
 
-        efield_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        efield_from_rabifrequency!(2, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        intensity_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
+        intensity_from_rabifrequency!(2, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         ψi = ionstate(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)) ⊗ mode[0]  # initial state
         h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 5e5)
         tspan = 0:0.25:1000
