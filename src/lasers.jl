@@ -142,7 +142,7 @@ function pointing!(laser::Laser, p::Vector{Tuple{T1, T2}} where T1<:Int where T2
 end
 
 efield(I::Real) = √(2I/(c*ϵ₀))
-efield(laser::Laser) = efield(intensity(laser))
+efield(laser::Laser) = t -> efield(intensity(laser)(t))
 
 #############################################################################################
 # Base functions
@@ -163,5 +163,5 @@ function Base.print(L::Laser)
     println("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
     println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
     println("I(t=0): ", "$(L.I(0.0)) W/m²")
-    return println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π")
+    return println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π") # Should the 2π be here?
 end
