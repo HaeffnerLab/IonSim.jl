@@ -443,7 +443,7 @@ end
         phase!(L, ϕ)
         modecutoff!(mode1, 10)
         modecutoff!(mode2, 9)
-        Ω = randn()
+        Ω = abs(randn()) # absolute value ensures QO hamiltonian will match, since IonSim will always have positive Rabi frequency owing to using laser intensity rather than amplitude
         intensity_from_rabifrequency!(1, Ω * 1e6, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
 
         # Case 1a: full hamiltonian (w conj_repeated_indices); controlled by not specifying rwa_cutoff
