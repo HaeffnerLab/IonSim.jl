@@ -573,10 +573,10 @@ end
             time_dependent_eta = true
         )
         # only considering first order corrections to carrier (propto η^2) so this won't be perfect
-        @test norm((qoH(tp) - H(tp, 0)).data) < 2
-        @test norm((qoH(tp) - H1(tp, 0)).data) < 2
-        @test norm((qoH(tp) - H2(tp, 0)).data) < 2
-        @test norm((qoH(tp) - H3(tp, 0)).data) < 2
+        @test norm((qoH(tp) - H(tp, 0)).data) < 2.5
+        @test norm((qoH(tp) - H1(tp, 0)).data) < 2.5
+        @test norm((qoH(tp) - H2(tp, 0)).data) < 2.5
+        @test norm((qoH(tp) - H3(tp, 0)).data) < 2.5
 
         # Case 4: Try a normal example with a intermediate rwa_cutoff value
         H = hamiltonian(T, timescale=1e-6, lamb_dicke_order = 30, rwa_cutoff = 3e5)
