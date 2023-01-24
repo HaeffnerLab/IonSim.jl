@@ -139,33 +139,36 @@ fockstate(v::VibrationalMode, N::Int) = v[N]
 #############################################################################################
 
 """
-    ionstate(object, sublevel)
-For `object<:Ion` and `sublevel<:Tuple{String,Real}` (full sublevel name) or `sublevel<:String`
-(alias), this returns the ket corresponding to the `Ion` being in the state ``|index⟩``. The
-object can also be an `IonTrap` or `Chamber` instance, in which case ``N`` arguments
-should be given in place of `index`, where ``N`` equals the number of ions in the
-`IonTrap` or `Chamber`. This will return the state
-``|index₁⟩⊗|index₂⟩⊗...⊗|index\\_N⟩``.
-
-One may also specify `sublevel<:Int`. If `object<:Ion`, this will return the ket given by
-``|index⟩ = (0 ... 1 ... 0)ᵀ`` where the nonzero element in the  column vector is located at
-`index`.
+    ionstate(ion::Ion, sublevel)
+Retuns the ket corresponding to the `Ion` being in state ``|sublevel⟩``. Options:
+sublevel <: Tuple{String,Real}: Specifies full sublevel name
+sublevel <: String: Specifies sublevel alias
+sublevel <: Int: Returns the `sublevel`th eigenstate
 """
-function ionstate(I::Ion, sublevel::Tuple{String, Real})
-    validatesublevel(I, sublevel)
-    i = findall(sublevels(I) .== [sublevel])[1]
-    return basisstate(I, i)
+function ionstate(ion::Ion, sublevel::Tuple{String, Real})
+    validatesublevel(ion, sublevel)
+    i = findall(sublevels(ion) .== [sublevel])[1]
+    return basisstate(ion, i)
 end
-ionstate(I::Ion, sublevelalias::String) = ionstate(I, sublevel(I, sublevelalias))
-ionstate(I::Ion, sublevel::Int) = basisstate(I, sublevel)
-function ionstate(IC::IonTrap, states::Union{Tuple{String, Real}, String, Int}...)
-    allions = ions(IC)
+ionstate(ion::Ion, sublevelalias::String) = ionstate(ion, sublevel(ion, sublevelalias))
+ionstate(ion::Ion, sublevel::Int) = basisstate(ion, sublevel)
+
+"""
+    ionstate(object::Union{IonTrap, Chamber}, sublevels)
+If `N = length(ions(object))`, returns N-dimensional ket corresponding to the ions being in
+the state ``|sublevel₁⟩⊗|sublevel₂⟩⊗...⊗|sublevel\\_N⟩``.
+
+`sublevels` must be an length-`N` Vector, with each element specifying its corresponding
+ion's sublevel, using the same syntax as in `ionstate(ion::Ion, sublevel)`.
+"""
+function ionstate(iontrap::IonTrap, states::Vector)
+    allions = ions(iontrap)
     L = length(allions)
     @assert L ≡ length(states) "wrong number of states"
-    return tensor([ionstate(allions[i], states[i]) for i in 1:L]...)
+    return tensor([ionstate(allions[i], states[i]) for i in 1:L])
 end
-ionstate(T::Chamber, states::Union{Tuple{String, Real}, String, Int}...) =
-    ionstate(T.iontrap, states...)
+ionstate(chamber::Chamber, states::Vector) =
+    ionstate(iontrap(chamber), states)
 
 """
     sigma(ion::Ion, ψ1::sublevel[, ψ2::sublevel])

@@ -70,12 +70,12 @@ using Suppressor
         @test ionstate(C, ("D5/2", -1 // 2)).data == ionstate(C, 2).data == ComplexF64[0; 1]
 
         # test ionstate for an IonTrap input
-        @test ionstate(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2)).data ==
+        @test ionstate(chain, [("S1/2", -1 // 2), ("D5/2", -1 // 2)]).data ==
               kron(ComplexF64[0; 1], ComplexF64[1; 0])
         @test ionstate(chain, 1, 2).data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
 
         # test ionstate for an Chamber input
-        @test ionstate(T, ("S1/2", -1 // 2), ("D5/2", -1 // 2)).data ==
+        @test ionstate(T, [("S1/2", -1 // 2), ("D5/2", -1 // 2)]).data ==
               kron(ComplexF64[0; 1], ComplexF64[1; 0])
 
         # test sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}}

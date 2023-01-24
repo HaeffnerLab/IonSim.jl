@@ -228,7 +228,7 @@ using Suppressor
 
         intensity_from_rabifrequency!(1, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
         intensity_from_rabifrequency!(2, Ω, 1, (("S1/2", -1 / 2), ("D5/2", -1 / 2)), T)
-        ψi = ionstate(T, ("S1/2", -1 / 2), ("S1/2", -1 / 2)) ⊗ mode[0]  # initial state
+        ψi = ionstate(T, [("S1/2", -1 / 2), ("S1/2", -1 / 2)]) ⊗ mode[0]  # initial state
         h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 5e5)
         tspan = 0:0.25:1000
         tout, sol = timeevolution.schroedinger_dynamic(tspan, ψi, h)
