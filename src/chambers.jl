@@ -537,14 +537,14 @@ transitionwavelength(
 )
 
 """
-    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, b::Real)
+    wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, B::Real)
 Sets the wavelength of `laser` to the transition wavelength of `transition` in the ion `ion`,
-at a magnetic field value given by `b`.
+at a magnetic field value given by `B`.
 """
-function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, b::Real)
-    λ = transitionwavelength(ion, transition, B=b)
+function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, B::Real)
+    λ = transitionwavelength(ion, transition, B=B)
     wavelength!(laser, λ)
-    return wavelength
+    return λ
 end
 
 """
@@ -556,13 +556,13 @@ at the magnetic field seen by `ion` in `chamber`.
 function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, chamber::Chamber)
     λ = transitionwavelength(ion, transition, chamber)
     wavelength!(laser, λ)
-    return wavelength
+    return λ
 end
 function wavelength_from_transition!(laser::Laser, ion_index::Int, transition::Tuple, chamber::Chamber)
     ion = ions(chamber)[ion_index]
     λ = transitionwavelength(ion, transition, chamber)
     wavelength!(laser, λ)
-    return wavelength
+    return λ
 end
 
 """

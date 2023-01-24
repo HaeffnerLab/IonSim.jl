@@ -18,11 +18,11 @@ export Laser,
     efield
 
 """
-    Laser(;λ=nothing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
+    Laser(;λ=missing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
         
 The physical parameters defining laser light.
 **args**
-* `λ::Union{Real,Nothing}`: the wavelength of the laser in meters
+* `λ::Union{Real,Missing}`: the wavelength of the laser in meters
 * `I::Union{Function,Real}`: laser intensity in W/m²
 * `Δ`: static detuning from f = c/λ in [Hz]
 * `ϵ::NamedTuple`: (ϵ.x, ϵ.y, ϵ.z), polarization direction, requires norm of 1
@@ -36,7 +36,7 @@ The physical parameters defining laser light.
     factor for the laser's Efield which must be between 0 and 1).
 """
 mutable struct Laser
-    λ::Union{Real, Nothing}
+    λ::Union{Real, Missing}
     I::Function
     Δ::Real
     ϵ::NamedTuple{(:x, :y, :z)}
@@ -44,7 +44,7 @@ mutable struct Laser
     ϕ::Function
     pointing::Vector
     function Laser(;
-        λ = nothing,
+        λ = missing,
         I::TI = 0,
         Δ = 0,
         ϵ = (x̂ + ŷ) / √2,
@@ -101,7 +101,7 @@ function intensity!(laser::Laser, I::Real)
     laser.I = (t -> I)
 end
 
-function detuning(laser::Laser, Δ::Real)
+function detuning!(laser::Laser, Δ::Real)
     laser.Δ = Δ
 end
 
@@ -160,8 +160,8 @@ end
 function Base.print(L::Laser)
     println("λ: ", L.λ, " m")
     println("Δ: ", L.Δ, " Hz")
-    println("ϵ̂: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
+    println("̂ϵ: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
     println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
     println("I(t=0): ", "$(L.I(0.0)) W/m²")
-    return println("ϕ(t=0): ", "$(L.ϕ(0.0)) ⋅ 2π") # Should the 2π be here?
+    return println("ϕ(t=0): ", "$(L.ϕ(0.0)/(2π)) ⋅ 2π")
 end

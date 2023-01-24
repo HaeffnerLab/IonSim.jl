@@ -51,9 +51,17 @@ abstract type Ion <: IonSimBasis end
 #############################################################################################
 
 speciesproperties(I::Ion) = I.speciesproperties
+
 sublevels(I::Ion) = I.sublevels
+"""
+    sublevelaliases(ion::Ion)
+Returns a `Dict` specifying all aliases assigned to sublevels of `ion`, in the format
+`alias => sublevel`.
+"""
 sublevelaliases(I::Ion) = I.sublevelaliases
+
 shape(I::Ion) = I.shape
+
 manualshift(I::Ion) = I.manualshift
 
 function ionnumber(I::Ion)
@@ -771,14 +779,13 @@ Ion instance of some species
 
 `selected_sublevels` specifies which energy sublevels will be present in the Hilbert space of this Ion instance, as a subset of all possible sublevels.
 
-Each element of `selected_sublevels` is a 2-element Tuple (level, sublevels), with the first element being the name of a level and the second specifying which sublevels should be included.
+Each element of `selected_sublevels` is a 2-element Tuple `(level::String, sublevels)`, with the first element being the name of a level and the second specifying which sublevels should be included.
 Allowed sublevels are those whose magnetic quantum number `m` is in the set {`-f`, `-f+1`, `-f+2`, ... `f-1`, `f`}, where `f` is the total angular momentum quantum number of `level`.
 For each `level` specified there are three allowed options to specify the set of `sublevels` to include:
 * `sublevels::Real`: Includes only one `m = sublevels`
 * `sublevels::Vector{Real}`: Includes all sublevels whose magnetic quantum number `m` is in `sublevels`
 * `sublevels = "all"`: Includes all allowed sublevels
-
-If instead `selected_sublevels = "all"`, then all sublevels of all levels are included.
+If an element of `selected_sublevels` utilizes the first option, specifying a single `m`, one may optionally may this a 3-element tuple instead: `(level::String, m::Real, alias::String)`, assinging this particular sublevel the alias `alias`.
 
 Omission of a level in `selected_sublevels` will exclude all sublevels.
 

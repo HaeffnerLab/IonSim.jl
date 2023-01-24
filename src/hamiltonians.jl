@@ -7,10 +7,10 @@ export hamiltonian
 
 """
     hamiltonian(
-            T::Chamber; timescale::Real=1, lamb_dicke_order::Union{Vector{Int},Int}=1,
+            chamber::Chamber; timescale::Real=1, lamb_dicke_order::Union{Vector{Int},Int}=1,
             rwa_cutoff::Real=Inf, displacement="truncated", time_dependent_eta=false
         )
-Constructs the Hamiltonian for `T` as a function of time. Return type is a function
+Constructs the Hamiltonian for `chamber` as a function of time. Return type is a function
 `h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
 
 **args**
@@ -18,7 +18,7 @@ Constructs the Hamiltonian for `T` as a function of time. Return type is a funct
 * `lamb_dicke_order`: Only consider terms that change the phonon number by up to this value.
     If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,
     then `lamb_dicke_order[i]` is applied to the iᵗʰ mode, according to the order in
-    `basis(T)`.
+    `basis(chamber)`.
     Note: this isn't quite the same thing as the Lamb-Dicke approximation since setting
     `lamb_dicke_order=1` will retain, for example, terms proportional to ``a^\\dagger a ``.
 * `rwa_cutoff`: drop terms in the Hamiltonian that oscillate faster than this cutoff.
