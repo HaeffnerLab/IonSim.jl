@@ -53,6 +53,7 @@ abstract type Ion <: IonSimBasis end
 speciesproperties(I::Ion) = I.speciesproperties
 
 sublevels(I::Ion) = I.sublevels
+
 """
     sublevelaliases(ion::Ion)
 Returns a `Dict` specifying all aliases assigned to sublevels of `ion`, in the format

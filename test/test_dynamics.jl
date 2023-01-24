@@ -26,7 +26,7 @@ using Suppressor
         tspan = 0:1e-1:400
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[0],
             h
         )
         ex_ionsim_c0 = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
@@ -44,7 +44,7 @@ using Suppressor
         h = hamiltonian(T, timescale=1e-6)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[0],
             h
         )
         ex_ionsim_d1 = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
@@ -59,7 +59,7 @@ using Suppressor
         h = hamiltonian(T, timescale=1e-6)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[0],
             h
         )
         ex_ionsim_d2 = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
@@ -92,7 +92,7 @@ using Suppressor
         tspan_sb = 0:1:2000
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan_sb,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[0],
             h
         )
         ex_ionsim_rsb0 = expect(ionprojector(T, ("D5/2", -1 / 2)), sol)
@@ -104,7 +104,7 @@ using Suppressor
         h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 1e3)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan_sb,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[1],
             h
         )
         ex_ionsim_rsb1 = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
@@ -115,7 +115,7 @@ using Suppressor
         h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 1e3)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[1],
             h
         )
         ex_ionsim_bsb1 = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
@@ -151,7 +151,7 @@ using Suppressor
         tspan = 0:1e-3:4
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[0],
             h
         )
         ex_ionsim_tdphi = real.(expect(ionprojector(T, ("D5/2", -1 / 2)), sol))
@@ -167,7 +167,7 @@ using Suppressor
         tspan = 0:1e-3:3
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[0],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[0],
             h
         )
         ex = expect(ionprojector(T, ("D5/2", -1 / 2)), sol)
@@ -185,7 +185,7 @@ using Suppressor
         h = hamiltonian(T, timescale=1e-6, rwa_cutoff = 1e5)
         tout, sol = timeevolution.schroedinger_dynamic(
             tspan,
-            ionstate(T, ("S1/2", -1 / 2)) ⊗ mode[1],
+            ionstate(T, [("S1/2", -1 / 2)]) ⊗ mode[1],
             h
         )
         η = lambdicke(mode, C, L)
