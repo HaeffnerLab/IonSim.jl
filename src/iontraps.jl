@@ -200,7 +200,6 @@ For each axis, this contains an array of tuples where the first element is a vib
 frequency [Hz] and the second element is a vector describing the corresponding normalized
 normal mode structure.
 """
-
 function full_normal_mode_description(chain::LinearChain)
     nions = length(ions(chain))
     com_freqs = comfrequencies(chain)
@@ -244,6 +243,18 @@ function modecutoff!(lc::LinearChain, N::Int)
     for mode in modes(lc)
         modecutoff!(mode, N)
     end
+end
+
+"""	
+    basis(chain::LinearChain)::CompositeBasis
+Returns the composite basis describing the Hilbert space for `chain`.
+
+Order is ``ion₁ ⊗ ion₂ ⊗ ... ⊗ ion_N ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ mode_N``, where the ion
+bases are ordered according to the order in `ions(chain)` and the vibrational modes are
+ordered according to the order in `[xmodes(chain), ymodes(chain), zmodes(chain)]`.
+"""	
+function basis(chain::LinearChain)
+    return tensor(ions(chain)..., xmodes(chain)..., ymodes(chain)..., zmodes(chain))
 end
 
 function Base.print(lc::LinearChain)

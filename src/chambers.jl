@@ -187,8 +187,9 @@ end
 
 
 """	
-    basis(T::Chamber)	
-Returns the composite basis describing the Hilbert space for `T`.	
+    basis(chamber::Chamber)	
+Returns the composite basis describing the Hilbert space for `chamber`.
+This is the same as basis(iontrap(chain)).
 """	
 function basis(T::Chamber)
     return tensor(	
