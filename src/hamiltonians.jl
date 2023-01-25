@@ -50,7 +50,7 @@ Constructs the Hamiltonian for `chamber` as a function of time. Return type is a
 
 """
 function hamiltonian(
-    T::Chamber;
+    chamber::Chamber;
     timescale::Real = 1,
     lamb_dicke_order::Union{Vector{Int}, Int} = 1,
     rwa_cutoff::Real = Inf,
@@ -58,8 +58,8 @@ function hamiltonian(
     time_dependent_eta::Bool = false
 )
     return hamiltonian(
-        T,
-        T.iontrap,
+        chamber,
+        iontrap(chamber),
         timescale,
         lamb_dicke_order,
         rwa_cutoff,
@@ -75,7 +75,7 @@ end
 # At each time step, this function updates in-place the 2D array describing the full system
 # Hamiltonian.
 function hamiltonian(
-    T::Chamber,
+    chamber::Chamber,
     iontrap::LinearChain,
     timescale::Real,
     lamb_dicke_order::Union{Vector{Int}, Int},
@@ -84,15 +84,15 @@ function hamiltonian(
     time_dependent_eta::Bool
 )
     b, indxs, cindxs = _setup_base_hamiltonian(
-        T,
+        chamber,
         timescale,
         lamb_dicke_order,
         rwa_cutoff,
         displacement,
         time_dependent_eta
     )
-    aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(T, timescale)
-    S = SparseOperator(basis(T))
+    aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(chamber, timescale)
+    S = SparseOperator(basis(chamber))
     function f(t, ψ)  # a two argument function is required in the QuantumOptics solvers
         @inbounds begin
             @simd for i in 1:length(indxs)
@@ -177,7 +177,7 @@ Finally, since we require the Hamiltonian to be Hermitian, h[i, j] = conj(h[j, i
 function does not keeps track of only one of these pairs.
 =#
 function _setup_base_hamiltonian(
-    T,
+    chamber,
     timescale,
     lamb_dicke_order,
     rwa_cutoff,
@@ -185,16 +185,16 @@ function _setup_base_hamiltonian(
     time_dependent_eta
 )
     rwa_cutoff *= timescale
-    allmodes = reverse(modes(T))
+    allmodes = reverse(modes(chamber))
     L = length(allmodes)
     νlist = Tuple([frequency(mode) for mode in allmodes])
     mode_dims = [modecutoff(mode) + 1 for mode in allmodes]
 
-    all_ions = reverse(ions(T))
+    all_ions = reverse(ions(chamber))
     Q = prod([shape(ion)[1] for ion in all_ions])
     ion_arrays = [spdiagm(0 => [true for _ in 1:shape(ion)[1]]) for ion in all_ions]
 
-    ηm, Δm, Ωm = _ηmatrix(T), _Δmatrix(T, timescale), _Ωmatrix(T, timescale)
+    ηm, Δm, Ωm = _ηmatrix(chamber), _Δmatrix(chamber, timescale), _Ωmatrix(chamber, timescale)
     lamb_dicke_order = _check_lamb_dicke_order(lamb_dicke_order, L)
     ld_array, rows, vals = _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     if displacement == "truncated" && time_dependent_eta
@@ -209,7 +209,7 @@ function _setup_base_hamiltonian(
     local ts, ion_rows, ion_cols, ion_idxs, ion_reps, rn
 
     # iterate over ions and lasers
-    for n in eachindex(all_ions), m in eachindex(T.lasers)
+    for n in eachindex(all_ions), m in eachindex(lasers(chamber))
         if m ≡ 1
             rn = length(all_ions) - n + 1
             ts = subleveltransitions(all_ions[n])
@@ -408,14 +408,14 @@ end
 # of arrays of indices, δν_indices, such that δν_indices[i][j] lists all diagonal elements
 # of the full 2D system matrix upon which have been mapped the jth diagonal element of the
 # ith mode.
-function _setup_δν_hamiltonian(T, timescale)
-    N = length(ions(T))
-    allmodes = modes(T)
+function _setup_δν_hamiltonian(chamber, timescale)
+    N = length(ions(chamber))
+    allmodes = modes(chamber)
     δν_indices = Vector{Vector{Vector{Int64}}}(undef, 0)
     δν_functions = FunctionWrapper[]
     τ = timescale
     for l in eachindex(allmodes)
-        δν = allmodes[l].δν
+        δν = frequency_fluctuation(allmodes[l])
         mode = allmodes[l]
         (mode._cnst_δν && δν(0) == 0) && continue
         push!(
@@ -424,7 +424,7 @@ function _setup_δν_hamiltonian(T, timescale)
         )
         δν_indices_l = Vector{Vector{Int64}}(undef, 0)
         mode_op = number(mode)
-        A = embed(basis(T), [N + l], [mode_op]).data
+        A = embed(basis(chamber), [N + l], [mode_op]).data
         mode_dim = mode.shape[1]
         for i in 1:(mode_dim - 1)
             indices = [x[1] for x in getfield.(findall(x -> x .== complex(i, 0), A), :I)]
@@ -443,20 +443,20 @@ end
 # corresponding to the energy of each level. Finally it returns a function (bfunc) encoding
 # the time-dependence of δB. When the system is integrated, the Hamiltonian terms will be
 # updated at each time step by by bfunc(t) times the individual susceptibilities.
-function _setup_global_B_hamiltonian(T, timescale)
-    all_ions = ions(T)
+function _setup_global_B_hamiltonian(chamber, timescale)
+    all_ions = ions(chamber)
     global_B_indices = Vector{Vector{Int64}}(undef, 0)
     global_B_scales = Vector{Float64}(undef, 0)
-    δB = bfield_fluctuation(T)
+    δB = bfield_fluctuation(chamber)
     τ = timescale
     bfunc = FunctionWrapper{Float64, Tuple{Float64}}(t -> 2π * δB(t * τ))
-    if T._cnst_δB && δB(0) == 0
+    if chamber._cnst_δB && δB(0) == 0
         return global_B_indices, global_B_scales, bfunc
     end
     for n in eachindex(all_ions)
         for sublevel in sublevels(all_ions[n])
             ion_op = sigma(all_ions[n], sublevel)
-            A = embed(basis(T), [n], [ion_op]).data
+            A = embed(basis(chamber), [n], [ion_op]).data
             indices = [x[1] for x in getfield.(findall(x -> x .== complex(1, 0), A), :I)]
             push!(global_B_indices, indices)
             # zeemanshift(ions[n], sublevel, 1]) is the Zeeman shift of
@@ -471,9 +471,9 @@ end
 # _setup_δν_hamiltonian for use in the hamiltonian function. The one additional task
 # performed is the creation of an array of indices (all_unique_indices), which keeps track
 # of all the diagonal indices affected by δν and/or δB, which is useful in hamiltonian().
-function _setup_fluctuation_hamiltonian(T, timescale)
-    gbi, gbs, bfunc = _setup_global_B_hamiltonian(T, timescale)
-    δνi, δνfuncs = _setup_δν_hamiltonian(T, timescale)
+function _setup_fluctuation_hamiltonian(chamber, timescale)
+    gbi, gbs, bfunc = _setup_global_B_hamiltonian(chamber, timescale)
+    δνi, δνfuncs = _setup_δν_hamiltonian(chamber, timescale)
     all_unique_indices = convert(Vector{Int64}, _flattenall(unique([gbi; δνi])))
     return all_unique_indices, gbi, gbs, bfunc, δνi, δνfuncs
 end
@@ -516,15 +516,15 @@ end
 # respectively. For each row/column we have a vector of detunings from the laser frequency
 # for each ion transition. We need to separate this calculation from _Ωmatrix to implement
 # RWA easily.
-function _Δmatrix(T, timescale)
-    all_ions = ions(T)
-    all_lasers = lasers(T)
+function _Δmatrix(chamber, timescale)
+    all_ions = ions(chamber)
+    all_lasers = lasers(chamber)
     (N, M) = length(all_ions), length(all_lasers)
-    B = bfield(T)
-    ∇B = bgradient(T)
+    B = bfield(chamber)
+    ∇B = bgradient(chamber)
     Δnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
-        Btot = bfield(T, all_ions[n])
+        Btot = bfield(chamber, all_ions[n])
         v = Vector{Float64}(undef, 0)
         for transition in subleveltransitions(all_ions[n])
             ωa = transitionfrequency(all_ions[n], transition, B = Btot)
@@ -538,9 +538,9 @@ end
 # Returns an array of vectors. the rows and columns of the array refer to ions and lasers,
 # respectively. For each row/column we have a vector of coupling strengths between the laser
 # and all allowed electronic ion transitions.
-function _Ωmatrix(T, timescale)
-    all_ions = ions(T)
-    all_lasers = lasers(T)
+function _Ωmatrix(chamber, timescale)
+    all_ions = ions(chamber)
+    all_lasers = lasers(chamber)
     (N, M) = length(all_ions), length(all_lasers)
     Ωnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
@@ -560,7 +560,7 @@ function _Ωmatrix(T, timescale)
                 2π *
                 timescale *
                 s *
-                matrixelement(all_ions[n], t, 1.0, polarization(all_lasers[m]), wavevector(all_lasers[m]), bfield_unitvector(T)) / 2.0
+                matrixelement(all_ions[n], t, 1.0, polarization(all_lasers[m]), wavevector(all_lasers[m]), bfield_unitvector(chamber)) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else
