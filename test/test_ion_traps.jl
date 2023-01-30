@@ -3,18 +3,18 @@ using Test, IonSim
 using Suppressor
 
 @suppress_err begin
-    @testset "ion_configurations -- LinearChain" begin
+    @testset "ion_traps -- LinearChain" begin
         C = Ca40()
         lc = LinearChain(
             ions = [C, C, C, C],
-            com_frequencies = (x = 5, y = 5, z = 1),
-            vibrational_modes = (y = [1], z = [4])
+            comfrequencies = (x = 5, y = 5, z = 1),
+            selectedmodes = (y = [1], z = [4])
         )
         @test ions(lc) == lc.ions
-        # test get_vibrational_modes, which should return an array of the selected
+        # test modes, which should return an array of the selected
         # VibrationalModes in the linear chain
-        vms = lc.vibrational_modes
-        @test get_vibrational_modes(lc) == [vms.x..., vms.y..., vms.z...]
+        vms = lc.selectedmodes
+        @test modes(lc) == [vms.x..., vms.y..., vms.z...]
 
         # make sure ion numbers are updated
         @test [ionnumber(I) for I in lc.ions] == [1, 2, 3, 4]
@@ -30,14 +30,14 @@ using Suppressor
         warning = "Some ions point to the same thing. Making copies."
         @test_logs (:warn, warning) LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 4, y = 4, z = 1),
-            vibrational_modes = (x = [], y = [], z = [1, 2])
+            comfrequencies = (x = 4, y = 4, z = 1),
+            selectedmodes = (x = [], y = [], z = [1, 2])
         )
         # and copies should be made of the repeated ions, so that they are no longer the same
         chain1 = LinearChain(
             ions = [C, C],
-            com_frequencies = (x = 4, y = 4, z = 1),
-            vibrational_modes = (x = [], y = [], z = [1, 2])
+            comfrequencies = (x = 4, y = 4, z = 1),
+            selectedmodes = (x = [], y = [], z = [1, 2])
         )
         @test !(chain1.ions[1] ≡ chain1.ions[2])
 
@@ -46,7 +46,7 @@ using Suppressor
         show(lc)
     end
 
-    @testset "ion_configurations -- general" begin
+    @testset "ion_traps -- general" begin
         # test calculation of equilibrium positions for a linear chain of equal mass ions against
         # known values
         posL = [-2.8708, -2.10003, -1.4504, -0.85378, -0.2821]

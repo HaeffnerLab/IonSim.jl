@@ -1,4 +1,3 @@
-using .PhysicalConstants: PhysicalConstant
 export Ca40
 
 const properties_ca40 = IonProperties(;
@@ -33,8 +32,8 @@ const properties_ca40 = IonProperties(;
 
 # boilerplate code
 IonInstance{:Ca40}(
-    selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
-    starkshift = Dict()
-) = IonInstance{:Ca40}(properties_ca40, selected_sublevels, starkshift)
+    selected_sublevels = nothing,
+    manualshift = Dict()
+) = IonInstance{:Ca40}(properties_ca40, selected_sublevels, manualshift)
 
 Ca40 = IonInstance{:Ca40}

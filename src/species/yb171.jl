@@ -1,5 +1,3 @@
-using .PhysicalConstants: PhysicalConstant
-
 export Yb171
 
 const properties_yb171 = IonProperties(
@@ -94,8 +92,8 @@ const properties_yb171 = IonProperties(
 
 # boilerplate code
 IonInstance{:Yb171}(
-    selected_sublevels::Union{Vector{Tuple{String, T}}, String, Nothing} where {T} = nothing,
-    starkshift = Dict()
-) = IonInstance{:Yb171}(properties_yb171, selected_sublevels, starkshift)
+    selected_sublevels = nothing,
+    manualshift = Dict()
+) = IonInstance{:Yb171}(properties_yb171, selected_sublevels, manualshift)
 
 Yb171 = IonInstance{:Yb171}
