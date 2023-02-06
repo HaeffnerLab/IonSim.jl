@@ -46,7 +46,7 @@ where ``s`` is the order of the (blue) sideband that we are driving and ``L_{n}^
 associated Laguerre polynomial. [ref](https://doi.org/10.1103/RevModPhys.75.281)
 
 """
-function rabiflop(tspan, Ω::Real, η::Real, n̄::Real; s::Int = 0)
+function rabiflop(tspan, Ω::Real, η::Real, n̄::Real; s::Int=0)
     n̄ *= 1.0
     Ω *= 2π
     p = Vector{Float64}(undef, 0)
@@ -59,7 +59,7 @@ function rabiflop(tspan, Ω::Real, η::Real, n̄::Real; s::Int = 0)
                     Ω / 2 *
                     exp(-η^2 / 2) *
                     η^s *
-                    sqrt(1 / prod((n + 1):(n + s))) *
+                    sqrt(1 / prod((n+1):(n+s))) *
                     _alaguerre(η^2, n, s) *
                     t
                 )^2
@@ -72,7 +72,7 @@ end
 function _laguerre(x, n)
     L = 1.0, -x + 1
     if n < 2
-        return L[n + 1]
+        return L[n+1]
     end
     for i in 2:n
         L = L[2], ((2i - 1 - x) * L[2] - (i - 1) * L[1]) / i

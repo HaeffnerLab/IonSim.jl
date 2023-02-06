@@ -46,15 +46,15 @@ using Test, IonSim, IonSim.PhysicalConstants, Suppressor
     @test IonSim._print_axis(x̂) == "x̂"
     @test IonSim._print_axis(ŷ) == "ŷ"
     @test IonSim._print_axis(ẑ) == "ẑ"
-    @test IonSim._print_axis((x = 1, y = 1, z = 1)) == string((x = 1, y = 1, z = 1))
+    @test IonSim._print_axis((x=1, y=1, z=1)) == string((x=1, y=1, z=1))
 end
 
 @testset "constants -- other constants" begin
-    @test x̂ / 2 == (x = 1 / 2, y = 0, z = 0)
-    @test 2x̂ == (x = 2, y = 0, z = 0)
-    @test x̂ * 2 == (x = 2, y = 0, z = 0)
-    @test x̂ + x̂ == (x = 2, y = 0, z = 0)
-    @test x̂ - x̂ == (x = 0, y = 0, z = 0)
+    @test x̂ / 2 == (x=1 / 2, y=0, z=0)
+    @test 2x̂ == (x=2, y=0, z=0)
+    @test x̂ * 2 == (x=2, y=0, z=0)
+    @test x̂ + x̂ == (x=2, y=0, z=0)
+    @test x̂ - x̂ == (x=0, y=0, z=0)
     @test ndot(x̂, x̂) == 1
     @test ndot(x̂, ŷ) == 0
 end

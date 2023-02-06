@@ -8,11 +8,11 @@ using Suppressor
     # setup system
     C = Ca40([("S1/2", -1 // 2), ("D5/2", -1 // 2)])
     chain = LinearChain(
-        ions = [C, C],
-        comfrequencies = (x = 2, y = 2, z = 1),
-        selectedmodes = (x = [1], y = [], z = [1])
+        ions=[C, C],
+        comfrequencies=(x=2, y=2, z=1),
+        selectedmodes=(x=[1], y=[], z=[1])
     )
-    T = Chamber(iontrap = chain)
+    T = Chamber(iontrap=chain)
     allmodes = modes(chain)
 
     @testset "operators -- VibrationalMode operators" begin
@@ -31,14 +31,17 @@ using Suppressor
         modecutoff!(allmodes[1], 200)
         i = rand(1:5)
         j = rand(1:5)
-        @test displace(allmodes[1], α, method = "analytic").data[i, j] ≈
+        @test displace(allmodes[1], α, method="analytic").data[i, j] ≈
               qo.displace(fb2, α).data[i, j] atol = 1e-6
 
         # test that mean excitation of thermalstate is as expected
         modecutoff!(allmodes[1], 500)
         n̄ = abs(2randn())
         @test expect(number(allmodes[1]), thermalstate(allmodes[1], n̄)) ≈ n̄
-        @test expect(number(allmodes[1]), thermalstate(allmodes[1], n̄, method = "analytic")) ≈ n̄
+        @test expect(
+            number(allmodes[1]),
+            thermalstate(allmodes[1], n̄, method="analytic")
+        ) ≈ n̄
 
         # test coherentstate matches QO results
         α = 10 * (randn() + im * randn())
@@ -48,11 +51,12 @@ using Suppressor
         N = 500
         modecutoff!(allmodes[1], N)
         n̄ = rand(0:1e-6:10)
-        @test coherentthermalstate(allmodes[1], n̄, 0, method = "analytic").data ≈
+        @test coherentthermalstate(allmodes[1], n̄, 0, method="analytic").data ≈
               thermalstate(allmodes[1], n̄).data
-        @test coherentthermalstate(allmodes[1], 0, α, method = "analytic").data ≈
+        @test coherentthermalstate(allmodes[1], 0, α, method="analytic").data ≈
               dm(coherentstate(allmodes[1], α)).data rtol = 1e-3 * N^2
-        @test coherentthermalstate(allmodes[1], n̄, 0).data ≈ thermalstate(allmodes[1], n̄).data
+        @test coherentthermalstate(allmodes[1], n̄, 0).data ≈
+              thermalstate(allmodes[1], n̄).data
         @test coherentthermalstate(allmodes[1], 0, α).data ≈
               dm(coherentstate(allmodes[1], α)).data rtol = 1e-3 * N^2
 
@@ -86,14 +90,14 @@ using Suppressor
         @test sigma(C, ("S1/2", -1 // 2)).data == sigma(C, 1).data == ComplexF64[1 0; 0 0]
 
         # test ionprojector for IonTrap input
-        ψ = ionprojector(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions = true)
+        ψ = ionprojector(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions=true)
         @test ψ.data == kron(
             ComplexF64[0; 1] * ComplexF64[0; 1]',
             ComplexF64[1; 0] * ComplexF64[1; 0]'
         )
         @test ionprojector(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2)) ==
               ψ ⊗ one(allmodes[1]) ⊗ one(allmodes[2])
-        @test ψ == ionprojector(T, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions = true)
+        @test ψ == ionprojector(T, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions=true)
     end
 
     @testset "operators -- internal functions" begin

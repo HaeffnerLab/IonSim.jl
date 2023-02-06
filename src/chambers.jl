@@ -89,11 +89,11 @@ mutable struct Chamber
     _cnst_δB::Bool
     function Chamber(;
         iontrap::LinearChain,
-        B = 0,
-        Bhat = ẑ,
-        ∇B = 0,
-        δB::TδB = 0,
-        lasers = Laser[]
+        B=0,
+        Bhat=ẑ,
+        ∇B=0,
+        δB::TδB=0,
+        lasers=Laser[]
     ) where {TδB}
         warn = nothing
         for i in 1:length(lasers)
@@ -102,7 +102,7 @@ mutable struct Chamber
                     push!(lasers[i].pointing, (n, 1.0))
                 end
             end
-            for j in (i + 1):length(lasers)
+            for j in (i+1):length(lasers)
                 if lasers[j] ≡ lasers[i]
                     lasers[j] = copy(lasers[i])
                     if isnothing(warn)
@@ -112,7 +112,7 @@ mutable struct Chamber
                 end
             end
         end
-        @assert isapprox(norm(Bhat), 1, rtol = 1e-6) "!(|$Bhat| = 1)"
+        @assert isapprox(norm(Bhat), 1, rtol=1e-6) "!(|$Bhat| = 1)"
         for (li, l) in enumerate(lasers), p in l.pointing
             @assert p[1] <= length(iontrap.ions) (
                 """lasers[$li] points at iontrap.ions[$(p[1])], but there are only
@@ -200,7 +200,7 @@ Sets `chamber.Bhat` to `Bhat`
 """
 function bfield_unitvector!(chamber::Chamber, Bhat::NamedTuple{(:x, :y, :z)})
     rtol = 1e-6
-    @assert isapprox(norm(Bhat), 1, rtol = rtol) "!(|̂B| = 1)"
+    @assert isapprox(norm(Bhat), 1, rtol=rtol) "!(|̂B| = 1)"
     chamber.Bhat = Bhat
 end
 
@@ -247,14 +247,14 @@ end
     basis(chamber::Chamber)	
 Returns the composite basis describing the Hilbert space for `chamber`.
 This is the same as basis(iontrap(chain)).
-"""	
+"""
 function basis(T::Chamber)
-    return tensor(	
-        T.iontrap.ions...,	
-        T.iontrap.selectedmodes.x...,	
-        T.iontrap.selectedmodes.y...,	
-        T.iontrap.selectedmodes.z...,	
-    )	
+    return tensor(
+        T.iontrap.ions...,
+        T.iontrap.selectedmodes.x...,
+        T.iontrap.selectedmodes.y...,
+        T.iontrap.selectedmodes.z...,
+    )
 end
 
 
@@ -347,7 +347,9 @@ function intensity_from_pitime(
     s_indx = findall(x -> x[1] == ionnumber(ion), p)
     @assert length(s_indx) > 0 "This laser doesn't shine on this ion"
     s = p[s_indx[1]][2]
-    Ω = s * matrixelement(ion, transition, 1.0, polarization(laser), wavevector(laser), Bhat)
+    Ω =
+        s *
+        matrixelement(ion, transition, 1.0, polarization(laser), wavevector(laser), Bhat)
     if Ω < 3e-14    # After change from Efield to intensity: This inequality changed so that it serves the same function but now for intensity = 1.0 rather than efield = 1.0 (specificially, increased by a factor of √(2/(cϵ₀)) ∼ 30 in SI units)
         # even when coupling strength is zero, numerical error causes it to be finite
         # (on order 1e-14), this is a band-aid to prevent users from unknowingly setting
@@ -373,7 +375,13 @@ function intensity_from_pitime(
     transition::Tuple,
     chamber::Chamber
 )
-    return intensity_from_pitime(laser, pi_time, ion, transition, bfield_unitvector(chamber))
+    return intensity_from_pitime(
+        laser,
+        pi_time,
+        ion,
+        transition,
+        bfield_unitvector(chamber)
+    )
 end
 function intensity_from_pitime(
     laser_index::Int,
@@ -387,7 +395,8 @@ function intensity_from_pitime(
         pi_time,
         ions(chamber)[ion_index],
         transition,
-        bfield_unitvector(chamber))
+        bfield_unitvector(chamber)
+    )
 end
 
 
@@ -453,7 +462,7 @@ function intensity_from_rabifrequency(
     transition::Tuple,
     Bhat::NamedTuple{(:x, :y, :z)}
 )
-    return intensity_from_pitime(laser, 1/(2*rabi_frequency), ion, transition, Bhat)
+    return intensity_from_pitime(laser, 1 / (2 * rabi_frequency), ion, transition, Bhat)
 end
 
 """
@@ -473,7 +482,13 @@ function intensity_from_rabifrequency(
     transition::Tuple,
     chamber::Chamber
 )
-    return intensity_from_rabifrequency(laser, rabi_frequency, ion, transition, bfield_unitvector(chamber))
+    return intensity_from_rabifrequency(
+        laser,
+        rabi_frequency,
+        ion,
+        transition,
+        bfield_unitvector(chamber)
+    )
 end
 function intensity_from_rabifrequency(
     laser_index::Int,
@@ -487,7 +502,8 @@ function intensity_from_rabifrequency(
         rabi_frequency,
         ions(chamber)[ion_index],
         transition,
-        bfield_unitvector(chamber))
+        bfield_unitvector(chamber)
+    )
 end
 
 
@@ -519,7 +535,8 @@ function intensity_from_rabifrequency!(
     transition::Tuple,
     chamber::Chamber
 )
-    I::Float64 = intensity_from_rabifrequency(laser, rabi_frequency, ion, transition, chamber)
+    I::Float64 =
+        intensity_from_rabifrequency(laser, rabi_frequency, ion, transition, chamber)
     intensity!(laser, I)
     return I
 end
@@ -530,7 +547,13 @@ function intensity_from_rabifrequency!(
     transition::Tuple,
     chamber::Chamber
 )
-    I::Float64 = intensity_from_rabifrequency(laser_index, rabi_frequency, ion_index, transition, chamber)
+    I::Float64 = intensity_from_rabifrequency(
+        laser_index,
+        rabi_frequency,
+        ion_index,
+        transition,
+        chamber
+    )
     laser = lasers(chamber)[laser_index]
     intensity!(laser, I)
     return I
@@ -555,43 +578,55 @@ end
 Returns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 `ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
 """
-transitionfrequency(ion::Ion, transition::Tuple, chamber::Chamber; ignore_manualshift = false) =
-    transitionfrequency(
-        ion,
-        transition;
-        B = bfield(chamber, ion),
-        ignore_manualshift = ignore_manualshift
-    )
-transitionfrequency(ion_index::Int, transition::Tuple, chamber::Chamber; ignore_manualshift = false) =
-    transitionfrequency(
-        ions(chamber)[ion_index],
-        transition,
-        chamber,
-        ignore_manualshift = ignore_manualshift
-    )
+transitionfrequency(
+    ion::Ion,
+    transition::Tuple,
+    chamber::Chamber;
+    ignore_manualshift=false
+) = transitionfrequency(
+    ion,
+    transition;
+    B=bfield(chamber, ion),
+    ignore_manualshift=ignore_manualshift
+)
+transitionfrequency(
+    ion_index::Int,
+    transition::Tuple,
+    chamber::Chamber;
+    ignore_manualshift=false
+) = transitionfrequency(
+    ions(chamber)[ion_index],
+    transition,
+    chamber,
+    ignore_manualshift=ignore_manualshift
+)
 
 """
     transitionwavelength(ion, transition::Tuple, chamber::Chamber; ignore_manualshift=false)
 Returns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
 `ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
 """
-transitionwavelength(ion::Ion, transition::Tuple, chamber::Chamber; ignore_manualshift = false) =
-    transitionwavelength(
-        ion,
-        transition;
-        B = bfield(chamber, ion),
-        ignore_manualshift = ignore_manualshift
-    )
+transitionwavelength(
+    ion::Ion,
+    transition::Tuple,
+    chamber::Chamber;
+    ignore_manualshift=false
+) = transitionwavelength(
+    ion,
+    transition;
+    B=bfield(chamber, ion),
+    ignore_manualshift=ignore_manualshift
+)
 transitionwavelength(
     ion_index::Int,
     transition::Tuple,
     chamber::Chamber;
-    ignore_manualshift = false
+    ignore_manualshift=false
 ) = transitionwavelength(
     ions(chamber)[ion_index],
     transition,
     chamber;
-    ignore_manualshift = ignore_manualshift
+    ignore_manualshift=ignore_manualshift
 )
 
 """
@@ -611,12 +646,22 @@ Sets the wavelength of `laser` to the transition wavelength of `transition` in t
 at the magnetic field seen by `ion` in `chamber`.
 `ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
 """
-function wavelength_from_transition!(laser::Laser, ion::Ion, transition::Tuple, chamber::Chamber)
+function wavelength_from_transition!(
+    laser::Laser,
+    ion::Ion,
+    transition::Tuple,
+    chamber::Chamber
+)
     λ = transitionwavelength(ion, transition, chamber)
     wavelength!(laser, λ)
     return λ
 end
-function wavelength_from_transition!(laser::Laser, ion_index::Int, transition::Tuple, chamber::Chamber)
+function wavelength_from_transition!(
+    laser::Laser,
+    ion_index::Int,
+    transition::Tuple,
+    chamber::Chamber
+)
     ion = ions(chamber)[ion_index]
     λ = transitionwavelength(ion, transition, chamber)
     wavelength!(laser, λ)
@@ -633,7 +678,8 @@ Calls `matrixelement(ion, transition, I, ϵhat, khat, Bhat)` with `I`, `ϵhat`, 
 `ion` and `laser` must either both be indices or both their respective Structs.
 """
 matrixelement(ion::Ion, transition::Tuple, laser::Laser, chamber::Chamber, time::Real) =
-    matrixelement(ion,
+    matrixelement(
+        ion,
         transition,
         intensity(laser)(time),
         polarization(laser),
@@ -706,7 +752,7 @@ The Lamb-Dicke parameter:
 ``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
 for a given vibrational mode, ion and laser.
 """
-function lambdicke(V::VibrationalMode, I::Ion, L::Laser; scaled = false)
+function lambdicke(V::VibrationalMode, I::Ion, L::Laser; scaled=false)
     @fastmath begin
         k = 2π / L.λ
         scaled ? ν = 1 : ν = V.ν

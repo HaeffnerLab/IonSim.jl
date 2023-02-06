@@ -44,17 +44,17 @@ mutable struct Laser
     ϕ::Function
     pointing::Vector
     function Laser(;
-        λ = missing,
-        I::TI = 0,
-        Δ = 0,
-        ϵ = (x̂ + ŷ) / √2,
-        k = ẑ,
-        ϕ::Tϕ = 0,
-        pointing = Array{Tuple{Int, <:Real}}(undef, 0)
+        λ=missing,
+        I::TI=0,
+        Δ=0,
+        ϵ=(x̂ + ŷ) / √2,
+        k=ẑ,
+        ϕ::Tϕ=0,
+        pointing=Array{Tuple{Int, <:Real}}(undef, 0)
     ) where {TI, Tϕ}
         rtol = 1e-6
-        @assert isapprox(norm(ϵ), 1, rtol = rtol) "!(|ϵ| = 1)"
-        @assert isapprox(norm(k), 1, rtol = rtol) "!(|k| = 1)"
+        @assert isapprox(norm(ϵ), 1, rtol=rtol) "!(|ϵ| = 1)"
+        @assert isapprox(norm(k), 1, rtol=rtol) "!(|k| = 1)"
         # @assert isapprox(ndot(ϵ, k), 0, rtol=rtol) "!(ϵ ⟂ k)"
         # Above commented out until we figure out a better place to put this warning
         a = pointing
@@ -157,7 +157,7 @@ Sets the polarization of `laser` to `ϵ`.
 """
 function polarization!(laser::Laser, ϵ::NamedTuple{(:x, :y, :z)})
     rtol = 1e-6
-    @assert isapprox(norm(ϵ), 1, rtol = rtol) "!(|ϵ| = 1)"
+    @assert isapprox(norm(ϵ), 1, rtol=rtol) "!(|ϵ| = 1)"
     # if ! isapprox(ndot(ϵ, laser.k), 0, rtol=rtol)
     #     @warn "!(ϵ ⟂ k)"
     # end 
@@ -170,7 +170,7 @@ Sets the wavevector of `laser` to `k`.
 """
 function wavevector!(laser::Laser, k::NamedTuple{(:x, :y, :z)})
     rtol = 1e-6
-    @assert isapprox(norm(k), 1, rtol = rtol) "!(|k| = 1)"
+    @assert isapprox(norm(k), 1, rtol=rtol) "!(|k| = 1)"
     # if ! isapprox(ndot(k, laser.ϵ), 0, rtol=rtol)
     #     @warn "!(ϵ ⟂ k)"
     # end
@@ -193,7 +193,10 @@ end
 Sets the pointing of `laser` with `p`.
 `length(p)` should be equal to the number of ions in the `Chamber` containing `laser`.
 """
-function pointing!(laser::Laser, p::Vector{Tuple{T1, T2}} where T1<:Int where T2<:Real)
+function pointing!(
+    laser::Laser,
+    p::Vector{Tuple{T1, T2}} where {T1 <: Int} where {T2 <: Real}
+)
     (ion_num, scaling) = map(x -> getfield.(p, x), fieldnames(eltype(p)))
     @assert length(ion_num) == length(unique(ion_num)) (
         "a laser is pointing at the same ion twice"
@@ -209,7 +212,7 @@ end
 Returns the electric field (in V/m) corresponding to a light intensity of `I` (in W/m²)
 `E = √(2I/(cϵ₀))`
 """
-efield(I::Real) = √(2I/(c*ϵ₀))
+efield(I::Real) = √(2I / (c * ϵ₀))
 
 """
     efield(laser::Laser)::Function

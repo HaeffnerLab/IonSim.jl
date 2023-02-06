@@ -166,10 +166,7 @@ function sublevelalias!(
         sublevelalias!(I, sublevel, alias)
     end
 end
-function sublevelalias!(
-    I::Ion,
-    aliasdict::Dict{String, Tuple{String, R}} where {R <: Real}
-)
+function sublevelalias!(I::Ion, aliasdict::Dict{String, Tuple{String, R}} where {R <: Real})
     for (alias, sublevel) in aliasdict
         sublevelalias!(I, sublevel, alias)
     end
@@ -335,7 +332,7 @@ Landé g-factor of fine structure energy level
 * `j`: electron total angular momentum quantum number
 * `s`: electronic spin angular momentum quantum number (defaults to 1/2)
 """
-landegj(l::Real, j::Real, s::Real = 1 // 2) =
+landegj(l::Real, j::Real, s::Real=1 // 2) =
     3 // 2 + (s * (s + 1) - l * (l + 1)) / (2j * (j + 1))
 
 """
@@ -349,7 +346,7 @@ Landé g-factor of hyperfine energy level
 * `i`: nuclear spin angular momentum quantum number
 * `s`: electronic spin angular momentum quantum number (defaults to 1/2)
 """
-landegf(l::Real, j::Real, f::Real, i::Real, s::Real = 1 // 2) =
+landegf(l::Real, j::Real, f::Real, i::Real, s::Real=1 // 2) =
     landegj(l, j, s) / 2 * (1 + ((j * (j + 1) - i * (i + 1)) / (f * (f + 1))))
 landegf(qnums::NamedTuple) = landegf(qnums.l, qnums.j, qnums.f, qnums.i, qnums.s)
 """
@@ -395,7 +392,7 @@ function zeemanshift(I::Ion, sublevel::Tuple{String, Real}, B::Real)
     return zeemanshift(B, landegf(I, sublevel[1]), sublevel[2]) + nonlinear
 end
 zeemanshift(B::Real, g::Real, m::Real) = (μB / ħ) * g * B * m / 2π
-zeemanshift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real = 1 // 2) =
+zeemanshift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real=1 // 2) =
     zeemanshift(B, landegf(l, j, f, i, s), m)
 zeemanshift(B::Real, qnums::NamedTuple) =
     zeemanshift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
@@ -407,7 +404,7 @@ zeemanshift(I::Ion, alias::String, B::Real) = zeemanshift(I, sublevel(I, alias),
     energy(I::Ion, sublevel; B=0, ignore_manualshift=false)
 Returns energy of `sublevel` of `I`. A Zeeman shift may be included by setting the value of the magnetic field `B`. The manual shift may be omitted by setting `ignore_manualshift=true`.
 """
-function energy(I::Ion, sublevel::Tuple{String, Real}; B = 0, ignore_manualshift = false)
+function energy(I::Ion, sublevel::Tuple{String, Real}; B=0, ignore_manualshift=false)
     validatesublevel(I, sublevel)
     E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
     zeeman = zeemanshift(I, sublevel, B)
@@ -418,7 +415,7 @@ end
     energy(I::Ion, level::String)
 Returns the energy of `level` of `I`.
 """
-function energy(I::Ion, level_or_alias::String; B = 0, ignore_manualshift = false)
+function energy(I::Ion, level_or_alias::String; B=0, ignore_manualshift=false)
     # If the second argument is a String, it could be either a level name or the alias of a sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Return the bare energy of that level.
@@ -428,8 +425,8 @@ function energy(I::Ion, level_or_alias::String; B = 0, ignore_manualshift = fals
         return energy(
             I,
             sublevel(I, level_or_alias),
-            B = B,
-            ignore_manualshift = ignore_manualshift
+            B=B,
+            ignore_manualshift=ignore_manualshift
         )
     end
 end
@@ -442,11 +439,11 @@ Computes the absolute values of the difference in energies between `transition[1
 
 If between sublevels, then the Zeeman shift may be included by setting the value of the magnetic field `B`, and manual shifts may be omitted by setting `ignore_manualshift=true`.
 """
-function transitionfrequency(I::Ion, transition::Tuple; B = 0, ignore_manualshift = false)
+function transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)
     # Multidispatch of the function energy should make this work regardless of whether the transition is between levels or sublevels, and regardless of whether or not aliases are used
     return abs(
-        energy(I, transition[1], B = B, ignore_manualshift = ignore_manualshift) -
-        energy(I, transition[2], B = B, ignore_manualshift = ignore_manualshift)
+        energy(I, transition[1], B=B, ignore_manualshift=ignore_manualshift) -
+        energy(I, transition[2], B=B, ignore_manualshift=ignore_manualshift)
     )
 end
 
@@ -454,9 +451,9 @@ end
     transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)
 Returns the wavelength corresponding to `transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)`.
 """
-function transitionwavelength(I::Ion, transition::Tuple; B = 0, ignore_manualshift = false)
+function transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)
     return c /
-           transitionfrequency(I, transition, B = B, ignore_manualshift = ignore_manualshift)
+           transitionfrequency(I, transition, B=B, ignore_manualshift=ignore_manualshift)
 end
 
 """
@@ -503,7 +500,7 @@ end
     einsteinA(I::Ion, leveltransition::Tuple)
 Returns Einstein A coefficient corresponding to the transition `leveltransition[1] -> leveltransition[2]`. The first level must be the lower level and the second must be the upper level.
 """
-function einsteinA(I::Ion, leveltransition::Tuple{String,String}) 
+function einsteinA(I::Ion, leveltransition::Tuple{String, String})
     (L1, L2) = leveltransition
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
     return speciesproperties(I).full_transitions[(L1, L2)].einsteinA
@@ -513,7 +510,7 @@ end
     transitionmultipole(I::Ion, leveltransition::Tuple)
 Returns the transition multiple (`'E1'`, `'E2'`, etc.) corresponding to the transition `leveltransition[1] -> leveltransition[2]`. The first level must be the lower level and the second must be the upper level.
 """
-function transitionmultipole(I::Ion, leveltransition::Tuple{String,String})
+function transitionmultipole(I::Ion, leveltransition::Tuple{String, String})
     (L1, L2) = leveltransition
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
     return speciesproperties(I).full_transitions[(L1, L2)].multipole
@@ -565,7 +562,7 @@ function matrixelement(
     I::Real,
     ϵhat::NamedTuple,
     khat::NamedTuple,
-    Bhat::NamedTuple = (; z = 1)
+    Bhat::NamedTuple=(; z=1)
 )
     # Level 1 *must* be the lower level and level 2 *must* be the upper level
     # Note that in this function, i is the nuclear spin
@@ -599,7 +596,7 @@ function matrixelement(
             geometric_factor = abs(
                 sqrt(2j2 + 1) *
                 wigner3j(f2, 1, f1, -m2, q, m1) *
-                (transpose(c_rank1[q + 2, :]) * ϵhat_rotated)
+                (transpose(c_rank1[q+2, :]) * ϵhat_rotated)
             )
             units_factor = abs(e * E / (2ħ) * sqrt(3 * A12 / (α * c * k^3)))
             return units_factor * hyperfine_factor * geometric_factor / 2π
@@ -614,7 +611,7 @@ function matrixelement(
             geometric_factor = abs(
                 sqrt(2j2 + 1) *
                 wigner3j(f2, 2, f1, -m2, q, m1) *
-                (transpose(khat_rotated) * c_rank2[:, :, q + 3] * ϵhat_rotated)
+                (transpose(khat_rotated) * c_rank2[:, :, q+3] * ϵhat_rotated)
             )
             units_factor = abs(e * E / (2ħ) * sqrt(15 * A12 / (α * c * k^3)))
             return units_factor * hyperfine_factor * geometric_factor / 2π
@@ -629,7 +626,7 @@ function matrixelement(
     I::Real,
     ϵhat::NamedTuple,
     khat::NamedTuple,
-    Bhat::NamedTuple = (; z = 1)
+    Bhat::NamedTuple=(; z=1)
 )
     SL1 = transition[1]
     SL2 = transition[2]
@@ -787,9 +784,9 @@ IonProperties(;
     nuclearspin,
     full_level_structure,
     full_transitions,
-    default_sublevel_selection = missing,
-    gfactors = missing,
-    nonlinear_zeeman = missing
+    default_sublevel_selection=missing,
+    gfactors=missing,
+    nonlinear_zeeman=missing
 ) = IonProperties(
     shortname,
     mass,
@@ -855,8 +852,8 @@ mutable struct IonInstance{Species <: Any} <: Ion
     # constructors (overrides default)
     function IonInstance{Species}(
         properties,
-        selected_sublevels = nothing,
-        manualshift = Dict()
+        selected_sublevels=nothing,
+        manualshift=Dict()
     ) where {Species <: Any}
         (sublevels, aliases) = _construct_sublevels(selected_sublevels, properties)
         shape = [length(sublevels)]

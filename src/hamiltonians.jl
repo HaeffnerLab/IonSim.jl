@@ -51,11 +51,11 @@ Constructs the Hamiltonian for `chamber` as a function of time. Return type is a
 """
 function hamiltonian(
     chamber::Chamber;
-    timescale::Real = 1,
-    lamb_dicke_order::Union{Vector{Int}, Int} = 1,
-    rwa_cutoff::Real = Inf,
-    displacement::String = "truncated",
-    time_dependent_eta::Bool = false
+    timescale::Real=1,
+    lamb_dicke_order::Union{Vector{Int}, Int}=1,
+    rwa_cutoff::Real=Inf,
+    displacement::String="truncated",
+    time_dependent_eta::Bool=false
 )
     return hamiltonian(
         chamber,
@@ -104,7 +104,7 @@ function hamiltonian(
                         S.data[i2, i1] = conj(bt_i)
                         if length(cindxs[i]) != 0
                             flag = cindxs[i][1][1]
-                            i3, i4 = cindxs[i][j + 1]
+                            i3, i4 = cindxs[i][j+1]
                             if flag == -1
                                 S.data[i3, i4] = -conj_bt_i
                                 S.data[i4, i3] = -conj(conj_bt_i)
@@ -194,7 +194,8 @@ function _setup_base_hamiltonian(
     Q = prod([shape(ion)[1] for ion in all_ions])
     ion_arrays = [spdiagm(0 => [true for _ in 1:shape(ion)[1]]) for ion in all_ions]
 
-    ηm, Δm, Ωm = _ηmatrix(chamber), _Δmatrix(chamber, timescale), _Ωmatrix(chamber, timescale)
+    ηm, Δm, Ωm =
+        _ηmatrix(chamber), _Δmatrix(chamber, timescale), _Ωmatrix(chamber, timescale)
     lamb_dicke_order = _check_lamb_dicke_order(lamb_dicke_order, L)
     ld_array, rows, vals = _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     if displacement == "truncated" && time_dependent_eta
@@ -219,7 +220,7 @@ function _setup_base_hamiltonian(
             if length(all_ions) == 1
                 K = C
             else
-                K = kron(ion_arrays[1:(n - 1)]..., C, ion_arrays[(n + 1):length(all_ions)]...)
+                K = kron(ion_arrays[1:(n-1)]..., C, ion_arrays[(n+1):length(all_ions)]...)
             end
             ion_rows, ion_cols, ion_vals = findnz(K)
             ion_idxs = sortperm(real.(ion_vals))
@@ -245,7 +246,7 @@ function _setup_base_hamiltonian(
             Δ, Ω = Δm[rn, m][ti], Ωm[rn, m][ti]
             Δ_2π = Δ / 2π
             typeof(Ω) <: Number && continue  # e.g. the laser doesn't shine on this ion
-            locs = view(ion_idxs, ((ti - 1) * ion_reps + 1):(ti * ion_reps))
+            locs = view(ion_idxs, ((ti-1)*ion_reps+1):(ti*ion_reps))
             for j in 1:prod(mode_dims)
                 for i in nzrange(ld_array, j)
                     ri = rows[i]
@@ -426,7 +427,7 @@ function _setup_δν_hamiltonian(chamber, timescale)
         mode_op = number(mode)
         A = embed(basis(chamber), [N + l], [mode_op]).data
         mode_dim = mode.shape[1]
-        for i in 1:(mode_dim - 1)
+        for i in 1:(mode_dim-1)
             indices = [x[1] for x in getfield.(findall(x -> x .== complex(i, 0), A), :I)]
             push!(δν_indices_l, indices)
         end
@@ -501,11 +502,11 @@ function _ηmatrix(T)
     for n in 1:N, m in 1:M, l in 1:L
         δν = frequency_fluctuation(vms[l])
         ν = frequency(vms[l])
-        eta = lambdicke(vms[l], all_ions[n], all_lasers[m], scaled = true)
+        eta = lambdicke(vms[l], all_ions[n], all_lasers[m], scaled=true)
         if eta == 0
-            ηnml[n, m, L - l + 1] = 0
+            ηnml[n, m, L-l+1] = 0
         else
-            ηnml[n, m, L - l + 1] =
+            ηnml[n, m, L-l+1] =
                 FunctionWrapper{Float64, Tuple{Float64}}(t -> eta / √(ν + δν(t)))
         end
     end
@@ -527,8 +528,13 @@ function _Δmatrix(chamber, timescale)
         Btot = bfield(chamber, all_ions[n])
         v = Vector{Float64}(undef, 0)
         for transition in subleveltransitions(all_ions[n])
-            ωa = transitionfrequency(all_ions[n], transition, B = Btot)
-            push!(v, 2π * timescale * ((c / wavelength(all_lasers[m])) + detuning(all_lasers[m]) - ωa))
+            ωa = transitionfrequency(all_ions[n], transition, B=Btot)
+            push!(
+                v,
+                2π *
+                timescale *
+                ((c / wavelength(all_lasers[m])) + detuning(all_lasers[m]) - ωa)
+            )
         end
         Δnmkj[n, m] = v
     end
@@ -560,7 +566,14 @@ function _Ωmatrix(chamber, timescale)
                 2π *
                 timescale *
                 s *
-                matrixelement(all_ions[n], t, 1.0, polarization(all_lasers[m]), wavevector(all_lasers[m]), bfield_unitvector(chamber)) / 2.0
+                matrixelement(
+                    all_ions[n],
+                    t,
+                    1.0,
+                    polarization(all_lasers[m]),
+                    wavevector(all_lasers[m]),
+                    bfield_unitvector(chamber)
+                ) / 2.0
             if Ω0 == 0
                 push!(v, 0)
             else
@@ -607,11 +620,11 @@ end
 function _get_kron_indxs(indxs::Vector{Tuple{Int64, Int64}}, dims::Vector{Int64})
     L = length(indxs)
     rowcol = Int64[0, 0]
-    @simd for i in 0:(L - 1)
+    @simd for i in 0:(L-1)
         if i == 0
-            @inbounds rowcol .+= indxs[L - i]
+            @inbounds rowcol .+= indxs[L-i]
         else
-            @inbounds rowcol .+= (indxs[L - i] .- 1) .* prod(view(dims, 1:i))
+            @inbounds rowcol .+= (indxs[L-i] .- 1) .* prod(view(dims, 1:i))
         end
     end
     return rowcol
@@ -653,7 +666,7 @@ function _Dnm_cnst_eta(ξ::Number, n::Int, m::Int)
     n -= 1
     m -= 1
     s = 1.0
-    for i in (m + 1):n
+    for i in (m+1):n
         s *= i
     end
     ret = sqrt(1 / s) * ξ^(n - m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n - m)

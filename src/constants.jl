@@ -57,7 +57,7 @@ const c_rank2 = cat(
     1 / 3 * [[-1, 0, 0] [0, -1, 0] [0, 0, 2]], #q=0
     1 / sqrt(6) * [[0, 0, -1] [0, 0, im] [-1, im, 0]], #q=1
     1 / sqrt(6) * [[1, -im, 0] [-im, -1, 0] [0, 0, 0]];
-    dims = 3
+    dims=3
 ) #q=2
 
 Base.print(pc::PhysicalConstant) = print("$(pc.x) [$(pc.units)]")
@@ -83,9 +83,9 @@ end  # module
 
 export x̂, ŷ, ẑ, ndot
 
-const x̂ = (x = 1, y = 0, z = 0)
-const ŷ = (x = 0, y = 1, z = 0)
-const ẑ = (x = 0, y = 0, z = 1)
+const x̂ = (x=1, y=0, z=0)
+const ŷ = (x=0, y=1, z=0)
+const ẑ = (x=0, y=0, z=1)
 
 function _print_axis(a::NamedTuple{(:x, :y, :z)})
     if a == x̂
@@ -102,11 +102,11 @@ end
 ndot(a::NamedTuple{(:x, :y, :z)}, b::NamedTuple{(:x, :y, :z)}) =
     a.x * b.x + a.y * b.y + a.z * b.z
 function Base.:+(a::NamedTuple{(:x, :y, :z)}, b::NamedTuple{(:x, :y, :z)})
-    return (x = a.x + b.x, y = a.y + b.y, z = a.z + b.z)
+    return (x=a.x + b.x, y=a.y + b.y, z=a.z + b.z)
 end
 function Base.:-(a::NamedTuple{(:x, :y, :z)}, b::NamedTuple{(:x, :y, :z)})
-    return (x = a.x - b.x, y = a.y - b.y, z = a.z - b.z)
+    return (x=a.x - b.x, y=a.y - b.y, z=a.z - b.z)
 end
-Base.:/(a::NamedTuple{(:x, :y, :z)}, b::Number) = (x = a.x / b, y = a.y / b, z = a.z / b)
-Base.:*(a::NamedTuple{(:x, :y, :z)}, b::Number) = (x = a.x * b, y = a.y * b, z = a.z * b)
-Base.:*(b::Number, a::NamedTuple{(:x, :y, :z)}) = (x = a.x * b, y = a.y * b, z = a.z * b)
+Base.:/(a::NamedTuple{(:x, :y, :z)}, b::Number) = (x=a.x / b, y=a.y / b, z=a.z / b)
+Base.:*(a::NamedTuple{(:x, :y, :z)}, b::Number) = (x=a.x * b, y=a.y * b, z=a.z * b)
+Base.:*(b::Number, a::NamedTuple{(:x, :y, :z)}) = (x=a.x * b, y=a.y * b, z=a.z * b)

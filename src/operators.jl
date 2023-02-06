@@ -46,7 +46,7 @@ dimension `modecutoff(v)+1`.
 Otherwise if `method="analytic"`, the matrix elements are computed assuming an
 infinite-dimension Hilbert space. In general, this option will not return a unitary operator.
 """
-function displace(v::VibrationalMode, α::Number; method = "truncated")
+function displace(v::VibrationalMode, α::Number; method="truncated")
     # @assert v.N ≥ abs(α) "`α` must be less than `v.N`"
     # Above line commented out to allow for Hamiltonian construction even if vibrational mode N = 0.
     # May want to think of a different way to perform this check in the future.
@@ -56,8 +56,8 @@ function displace(v::VibrationalMode, α::Number; method = "truncated")
         return one(v)
     elseif method ≡ "analytic"
         @inbounds begin
-            @simd for n in 1:(modecutoff(v) + 1)
-                @simd for m in 1:(modecutoff(v) + 1)
+            @simd for n in 1:(modecutoff(v)+1)
+                @simd for m in 1:(modecutoff(v)+1)
                     D[n, m] = _Dnm(α, n, m)
                 end
             end
@@ -79,7 +79,7 @@ the thermal density matrix is generated according to the formula:
 assuming an infinite-dimensional Hilbert space, is used:
 ``[ρ_{th}]_{ij} = δ_{ij} \\frac{nⁱ}{(n+1)^{i+1}}.``
 """
-function thermalstate(v::VibrationalMode, n̄::Real; method = "truncated")
+function thermalstate(v::VibrationalMode, n̄::Real; method="truncated")
     @assert modecutoff(v) ≥ n̄ "`n̄` must be less than `modecutoff(v)`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if n̄ == 0
@@ -88,7 +88,10 @@ function thermalstate(v::VibrationalMode, n̄::Real; method = "truncated")
         d = [(n̄ / (n̄ + 1))^i for i in 0:(modecutoff(v))]
         return DenseOperator(v, diagm(0 => d) ./ sum(d))
     elseif method ≡ "analytic"
-        return DenseOperator(v, diagm(0 => [(n̄ / (n̄ + 1))^i / (n̄ + 1) for i in 0:(modecutoff(v))]))
+        return DenseOperator(
+            v,
+            diagm(0 => [(n̄ / (n̄ + 1))^i / (n̄ + 1) for i in 0:(modecutoff(v))])
+        )
     end
 end
 
@@ -103,7 +106,7 @@ function coherentstate(v::VibrationalMode, α::Number)
     k = zeros(ComplexF64, modecutoff(v) + 1)
     k[1] = exp(-abs2(α) / 2)
     @inbounds for n in 1:(modecutoff(v))
-        k[n + 1] = k[n] * α / √n
+        k[n+1] = k[n] * α / √n
     end
     return Ket(v, k)
 end
@@ -117,13 +120,13 @@ complex amplitude of the displacement.
 `method` can be either `"truncated"` or `"analytic"` and this argument determines how the
 displacement operator is computed (see: [`displace`](@ref)) .
 """
-function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method = "truncated")
+function coherentthermalstate(v::VibrationalMode, n̄::Real, α::Number; method="truncated")
     @assert (modecutoff(v) ≥ n̄ && modecutoff(v) ≥ abs(α)) "`n̄`, `α` must be less than `modecutoff(v)`"
     @assert method in ["truncated", "analytic"] "method ∉ [truncated, analytic]"
     if method ≡ "truncated"
         d = displace(v, α)
     elseif method ≡ "analytic"
-        d = displace(v, α, method = "analytic")
+        d = displace(v, α, method="analytic")
     end
     return d * thermalstate(v, n̄) * d'
 end
@@ -167,8 +170,7 @@ function ionstate(iontrap::IonTrap, states::Vector)
     @assert L ≡ length(states) "wrong number of states"
     return tensor([ionstate(allions[i], states[i]) for i in 1:L])
 end
-ionstate(chamber::Chamber, states::Vector) =
-    ionstate(iontrap(chamber), states)
+ionstate(chamber::Chamber, states::Vector) = ionstate(iontrap(chamber), states)
 
 """
     sigma(ion::Ion, ψ1::sublevel[, ψ2::sublevel])
@@ -195,7 +197,7 @@ If instead `obj<:Chamber`, then this is the same as `obj = Chamber.iontrap`.
 function ionprojector(
     IC::IonTrap,
     sublevels::Union{Tuple{String, Real}, String, Int}...;
-    only_ions = false
+    only_ions=false
 )
     allions = ions(IC)
     L = length(allions)
@@ -212,9 +214,9 @@ end
 function ionprojector(
     T::Chamber,
     sublevels::Union{Tuple{String, Real}, String, Int}...;
-    only_ions = false
+    only_ions=false
 )
-    return ionprojector(iontrap(T), sublevels..., only_ions = only_ions)
+    return ionprojector(iontrap(T), sublevels..., only_ions=only_ions)
 end
 
 #############################################################################################
@@ -228,7 +230,7 @@ function _pf(s::Int, n::Int, m::Int)
     s -= 1
     @assert n <= s && m <= s
     val = 1.0 / (s + 1)
-    for i in 0:(s - 2)
+    for i in 0:(s-2)
         if (m - i > 0) && (n - i > 0)
             val *= (s - i) / (√((m - i) * (n - i)))
         elseif m - i > 0
@@ -248,14 +250,14 @@ function _He(n::Int)
     a[1, 1] = 1
     a[2, 1] = 0
     a[2, 2] = 1
-    for i in 2:(n + 1), j in 1:(n + 1)
+    for i in 2:(n+1), j in 1:(n+1)
         if j ≡ 1
-            a[i + 1, j] = -(i - 1) * a[i - 1, j]
+            a[i+1, j] = -(i - 1) * a[i-1, j]
         else
-            a[i + 1, j] = a[i, j - 1] - (i - 1) * a[i - 1, j]
+            a[i+1, j] = a[i, j-1] - (i - 1) * a[i-1, j]
         end
     end
-    return [a[n + 1, k + 1] for k in 0:n]
+    return [a[n+1, k+1] for k in 0:n]
 end
 
 # computes He_n(x) (nth order Hermite polynomial)
@@ -263,7 +265,7 @@ function _fHe(x::Real, n::Int)
     n -= 1
     He = 1.0, x
     if n < 2
-        return He[n + 1]
+        return He[n+1]
     end
     for i in 2:n
         He = He[2], x * He[2] - (i - 1) * He[1]
@@ -297,7 +299,7 @@ end
 function _alaguerre(x::Real, n::Int, k::Int)
     L = 1.0, -x + k + 1
     if n < 2
-        return L[n + 1]
+        return L[n+1]
     end
     for i in 2:n
         L = L[2], ((k + 2i - 1 - x) * L[2] - (k + i - 1) * L[1]) / i
@@ -314,7 +316,7 @@ function _Dnm(ξ::Number, n::Int, m::Int)
     n -= 1
     m -= 1
     s = 1.0
-    for i in (m + 1):n
+    for i in (m+1):n
         s *= i
     end
     ret = sqrt(1 / s) * ξ^(n - m) * exp(-abs2(ξ) / 2.0) * _alaguerre(abs2(ξ), m, n - m)

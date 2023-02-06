@@ -41,7 +41,7 @@ function linear_equilibrium_positions(N::Int)
     function f!(F, x, N)
         for i in 1:N
             F[i] = (
-                x[i] - sum([1 / (x[i] - x[j])^2 for j in 1:(i - 1)]) + sum([1 / (x[i] - x[j])^2 for j in (i + 1):N])
+                x[i] - sum([1 / (x[i] - x[j])^2 for j in 1:(i-1)]) + sum([1 / (x[i] - x[j])^2 for j in (i+1):N])
             )
         end
     end
@@ -50,23 +50,23 @@ function linear_equilibrium_positions(N::Int)
         for i in 1:N, j in 1:N
             if i ≡ j
                 J[i, j] = (
-                    1 + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    1 + 2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i-1)]) - 2 * sum([1 / (x[i] - x[j])^3 for j in (i+1):N])
                 )
             else
                 J[i, j] = (
-                    -2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i - 1)]) + 2 * sum([1 / (x[i] - x[j])^3 for j in (i + 1):N])
+                    -2 * sum([1 / (x[i] - x[j])^3 for j in 1:(i-1)]) + 2 * sum([1 / (x[i] - x[j])^3 for j in (i+1):N])
                 )
             end
         end
     end
     # see eq.8 in the ref to see where (2.018/N^0.559) comes from
     if isodd(N)
-        initial_x = [(2.018 / N^0.559) * i for i in (-N ÷ 2):(N ÷ 2)]
+        initial_x = [(2.018 / N^0.559) * i for i in (-N÷2):(N÷2)]
     else
         initial_x =
-            [(2.018 / N^0.559) * i for i in filter(x -> x ≠ 0, collect((-N ÷ 2):(N ÷ 2)))]
+            [(2.018 / N^0.559) * i for i in filter(x -> x ≠ 0, collect((-N÷2):(N÷2)))]
     end
-    sol = nlsolve((F, x) -> f!(F, x, N), (J, x) -> j!(J, x, N), initial_x, method = :newton)
+    sol = nlsolve((F, x) -> f!(F, x, N), (J, x) -> j!(J, x, N), initial_x, method=:newton)
     return sol.zero
 end
 
@@ -121,7 +121,7 @@ function Anm(N::Int, com::NamedTuple{(:x, :y, :z)}, axis::NamedTuple{(:x, :y, :z
     end
 end
 
-_sparsify!(x, eps) = @. x[abs(x) < eps] = 0
+_sparsify!(x, eps) = @. x[abs(x)<eps] = 0
 
 """
     LinearChain(;
@@ -149,10 +149,15 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
     ions::Vector{<:Ion}
     comfrequencies::NamedTuple{(:x, :y, :z)}
     selectedmodes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
-    function LinearChain(; ions, comfrequencies::NamedTuple, selectedmodes::NamedTuple, N=10)
+    function LinearChain(;
+        ions,
+        comfrequencies::NamedTuple,
+        selectedmodes::NamedTuple,
+        N=10
+    )
         selectedmodes = _construct_vibrational_modes(selectedmodes)
         warn = nothing
-        for i in 1:length(ions), j in (i + 1):length(ions)
+        for i in 1:length(ions), j in (i+1):length(ions)
             @assert typeof(ions[i]) == typeof(ions[j]) "multispecies chains not yet supported; all ions in chain must be of same species"
             if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
@@ -164,18 +169,18 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
         end
         nions = length(ions)
         A = (
-            x = Anm(nions, comfrequencies, x̂),
-            y = Anm(nions, comfrequencies, ŷ),
-            z = Anm(nions, comfrequencies, ẑ)
+            x=Anm(nions, comfrequencies, x̂),
+            y=Anm(nions, comfrequencies, ŷ),
+            z=Anm(nions, comfrequencies, ẑ)
         )
         vm = (
-            x = Vector{VibrationalMode}(undef, 0),
-            y = Vector{VibrationalMode}(undef, 0),
-            z = Vector{VibrationalMode}(undef, 0)
+            x=Vector{VibrationalMode}(undef, 0),
+            y=Vector{VibrationalMode}(undef, 0),
+            z=Vector{VibrationalMode}(undef, 0)
         )
         r = [x̂, ŷ, ẑ]
         for (i, modes) in enumerate(selectedmodes), mode in modes
-            push!(vm[i], VibrationalMode(A[i][mode]..., axis = r[i], N=N))
+            push!(vm[i], VibrationalMode(A[i][mode]..., axis=r[i], N=N))
         end
         l = linear_equilibrium_positions(length(ions))
         l0 = characteristic_length_scale(mass(ions[1]), comfrequencies.z) # Needs to be changed when allowing for multi-species chains. Current workaround takes the mass of only the first ion to define the characteristic length scale.
@@ -212,9 +217,10 @@ normal mode structure.
 function full_normal_mode_description(chain::LinearChain)
     nions = length(ions(chain))
     com_freqs = comfrequencies(chain)
-    A = (x = Anm(nions, com_freqs, x̂),
-        y = Anm(nions, com_freqs, ŷ),
-        z = Anm(nions, com_freqs, ẑ)
+    A = (
+        x=Anm(nions, com_freqs, x̂),
+        y=Anm(nions, com_freqs, ŷ),
+        z=Anm(nions, com_freqs, ẑ)
     )
     return A
 end
@@ -261,7 +267,7 @@ Returns the composite basis describing the Hilbert space for `chain`.
 Order is ``ion₁ ⊗ ion₂ ⊗ ... ⊗ ion_N ⊗ mode₁ ⊗ mode₂ ⊗ ... ⊗ mode_N``, where the ion
 bases are ordered according to the order in `ions(chain)` and the vibrational modes are
 ordered according to the order in `[xmodes(chain), ymodes(chain), zmodes(chain)]`.
-"""	
+"""
 function basis(chain::LinearChain)
     return tensor(ions(chain)..., xmodes(chain)..., ymodes(chain)..., zmodes(chain))
 end

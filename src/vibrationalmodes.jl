@@ -40,13 +40,7 @@ mutable struct VibrationalMode <: IonSimBasis
     shape::Vector{Int}
     axis::NamedTuple{(:x, :y, :z)}
     _cnst_δν::Bool
-    function VibrationalMode(
-        ν,
-        modestructure;
-        δν::Tδν = 0.0,
-        N = 10,
-        axis = ẑ
-    ) where {Tδν}
+    function VibrationalMode(ν, modestructure; δν::Tδν=0.0, N=10, axis=ẑ) where {Tδν}
         if Tδν <: Number
             _cnst_δν = true
             δνt(t) = δν
@@ -134,7 +128,7 @@ Sets the upper bound of the Hilbert space of `mode` to be the Fock state `N`.
 function modecutoff!(mode::VibrationalMode, N::Int)
     @assert N >= 0 "N must be a nonnegative integer"
     mode.N = N
-    mode.shape = Int[N + 1]
+    mode.shape = Int[N+1]
 end
 
 

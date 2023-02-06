@@ -62,7 +62,7 @@ using Suppressor
         @test quantumnumbers(C, ("D5/2", 1 / 2)).m == 1 // 2
 
         @test energy(C, "S1/2") == energy(C, "S")
-        @test energy(C, "S1/2") != energy(C, "S", B = 1e-4)
+        @test energy(C, "S1/2") != energy(C, "S", B=1e-4)
         @test transitionwavelength(C, ("S", "D")) ≈ 7.29147e-7
     end
 

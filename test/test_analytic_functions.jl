@@ -44,5 +44,5 @@ end
 
     # test bluesideband, Ω̃ ≈ ηΩ
     η = 0.1
-    @test rabiflop(t, Ω, η, n̄, s = 1) ≈ @.(sin(2π * η * t / 2)^2) rtol = 1e-2
+    @test rabiflop(t, Ω, η, n̄, s=1) ≈ @.(sin(2π * η * t / 2)^2) rtol = 1e-2
 end
