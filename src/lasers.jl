@@ -77,12 +77,46 @@ end
 # Object fields
 #############################################################################################
 
+"""
+    wavelength(laser::Laser)::Real
+Returns the laser's wavelength `laser.λ` (in m)
+"""
 wavelength(laser::Laser) = laser.λ
+
+"""
+    intensity(laser::Laser)::Function
+Returns the laser's intensity `laser.I` (in W/m²) as a function of time
+"""
 intensity(laser::Laser) = laser.I
+
+"""
+    detuning(laser::Laser)::Real
+Returns the laser's detuning `laser.Δ` (in Hz)
+"""
 detuning(laser::Laser) = laser.Δ
+
+"""
+    polarization(laser::Laser)::NamedTuple{(:x, :y, :z)}
+Returns the laser's polarization unit vector `laser.ϵ`
+"""
 polarization(laser::Laser) = laser.ϵ
+
+"""
+    wavevector(laser::Laser)::NamedTuple{(:x, :y, :z)}
+Returns the laser's wavevector unit vector `laser.k`
+"""
 wavevector(laser::Laser) = laser.k
+
+"""
+    phase(laser::Laser)::Function
+Returns the laser's phase `laser.ϕ` in (in radians) as a function of time
+"""
 phase(laser::Laser) = laser.ϕ
+
+"""
+    pointing(laser::Laser)::Vector
+Return's the laser's pointing information `laser.pointing` if `laser` has been added to a `Chamber`.
+"""
 pointing(laser::Laser) = laser.pointing
 
 
@@ -90,10 +124,18 @@ pointing(laser::Laser) = laser.pointing
 # Setters
 #############################################################################################
 
+"""
+    wavelength!(laser::Laser, λ::Real)
+Sets the wavelength of `laser` to `λ`.
+"""
 function wavelength!(laser::Laser, λ::Real)
     laser.λ = λ
 end
 
+"""
+    intensity(laser::Laser, I::Union{Function,Real})
+Sets the intensity of `laser` to `I`.
+"""
 function intensity!(laser::Laser, I::Function)
     laser.I = I
 end
@@ -101,10 +143,18 @@ function intensity!(laser::Laser, I::Real)
     laser.I = (t -> I)
 end
 
+"""
+    wavelength!(laser::Laser, Δ::Real)
+Sets the detuning of `laser` to `Δ`.
+"""
 function detuning!(laser::Laser, Δ::Real)
     laser.Δ = Δ
 end
 
+"""
+    polarization!(laser::Laser, ϵ::ReNamedTuple{(:x, :y, :z)})
+Sets the polarization of `laser` to `ϵ`.
+"""
 function polarization!(laser::Laser, ϵ::NamedTuple{(:x, :y, :z)})
     rtol = 1e-6
     @assert isapprox(norm(ϵ), 1, rtol = rtol) "!(|ϵ| = 1)"
@@ -114,6 +164,10 @@ function polarization!(laser::Laser, ϵ::NamedTuple{(:x, :y, :z)})
     laser.ϵ = ϵ
 end
 
+"""
+    wavevector!(laser::Laser, k::ReNamedTuple{(:x, :y, :z)})
+Sets the wavevector of `laser` to `k`.
+"""
 function wavevector!(laser::Laser, k::NamedTuple{(:x, :y, :z)})
     rtol = 1e-6
     @assert isapprox(norm(k), 1, rtol = rtol) "!(|k| = 1)"
@@ -123,6 +177,10 @@ function wavevector!(laser::Laser, k::NamedTuple{(:x, :y, :z)})
     laser.k = k
 end
 
+"""
+    phase!(laser::Laser, ϕ::Union{Function,Real})
+Sets the phase of `laser` to `ϕ`.
+"""
 function phase!(laser::Laser, ϕ::Function)
     laser.ϕ = ϕ
 end
@@ -130,6 +188,11 @@ function phase!(laser::Laser, ϕ::Real)
     laser.ϕ = (t -> ϕ)
 end
 
+"""
+    pointing!(laser::Laser, p::Vector{Tuple{T1, T2}} where T1<:Int where T2<:Real)
+Sets the pointing of `laser` with `p`.
+`length(p)` should be equal to the number of ions in the `Chamber` containing `laser`.
+"""
 function pointing!(laser::Laser, p::Vector{Tuple{T1, T2}} where T1<:Int where T2<:Real)
     (ion_num, scaling) = map(x -> getfield.(p, x), fieldnames(eltype(p)))
     @assert length(ion_num) == length(unique(ion_num)) (
@@ -141,7 +204,17 @@ function pointing!(laser::Laser, p::Vector{Tuple{T1, T2}} where T1<:Int where T2
     laser.pointing = p
 end
 
+"""
+    efield(I::Real)::Real
+Returns the electric field (in V/m) corresponding to a light intensity of `I` (in W/m²)
+`E = √(2I/(cϵ₀))`
+"""
 efield(I::Real) = √(2I/(c*ϵ₀))
+
+"""
+    efield(laser::Laser)::Function
+Returns the electric field amplitude (in V/m) of `laser` as a function of time.
+"""
 efield(laser::Laser) = t -> efield(intensity(laser)(t))
 
 #############################################################################################
@@ -161,7 +234,7 @@ function Base.print(L::Laser)
     println("λ: ", L.λ, " m")
     println("Δ: ", L.Δ, " Hz")
     println("̂ϵ: ", "(x=$(L.ϵ.x), y=$(L.ϵ.y), z=$(L.ϵ.z))")
-    println("k̂: ", "(z=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
+    println("k̂: ", "(x=$(L.k.x), y=$(L.k.y), z=$(L.k.z))")
     println("I(t=0): ", "$(L.I(0.0)) W/m²")
     return println("ϕ(t=0): ", "$(L.ϕ(0.0)/(2π)) ⋅ 2π")
 end

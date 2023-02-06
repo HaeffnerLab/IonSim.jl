@@ -50,21 +50,44 @@ abstract type Ion <: IonSimBasis end
 # Object fields
 #############################################################################################
 
+"""
+    speciesproperties(ion::Ion)
+Returns the IonProperties struct of the ion species, which contains species-specific
+information including mass, energy levels, and transitions.
+"""
 speciesproperties(I::Ion) = I.speciesproperties
 
+
+"""
+    sublevels(ion::Ion)
+Returns the energy sublevels in the Hilbert space of `ion`, `ion.sublevels`
+"""
 sublevels(I::Ion) = I.sublevels
 
 """
     sublevelaliases(ion::Ion)
 Returns a `Dict` specifying all aliases assigned to sublevels of `ion`, in the format
-`alias => sublevel`.
+`alias => sublevel`, `ion.sublevelalias`
 """
 sublevelaliases(I::Ion) = I.sublevelaliases
 
+"""
+    shape(ion::Ion)
+Returns the dimension of the ion's Hilbert space `ion.shape`
+"""
 shape(I::Ion) = I.shape
 
+"""
+    manualshift(ion::Ion)
+Returns the Dict of manualshift for `ion`'s energy levels `ion.manualshift`
+"""
 manualshift(I::Ion) = I.manualshift
 
+"""
+    ionnumber(ion::Ion)
+Returns `ion`'s number in its IonTrap `ion.ionnumber`
+If `ion` has not been added to an IonTrap, returns `missing`.
+"""
 function ionnumber(I::Ion)
     if typeof(I.ionnumber) <: Missing
         @warn "ion has not been added to an IonTrap"
@@ -74,6 +97,11 @@ function ionnumber(I::Ion)
     end
 end
 
+"""
+ionposition(ion::Ion)
+Returns `ion`'s position in its IonTrap, `ion.ionposition` in m.
+If `ion` has not been added to an IonTrap, returns `missing`.
+"""
 function ionposition(I::Ion)
     if typeof(I.ionposition) <: Missing
         @warn "ion has not been added to an IonTrap"
@@ -82,12 +110,27 @@ function ionposition(I::Ion)
         return I.ionposition
     end
 end
+
 #############################################################################################
 # General properties of species
 #############################################################################################
 
+"""
+    mass(ion::Ion)
+Returns the mass of `ion` in kg.
+"""
 mass(I::Ion) = speciesproperties(I).mass
+
+"""
+    charge(ion::Ion)
+Returns the charge of `ion`in C.
+"""
 charge(I::Ion) = speciesproperties(I).charge * e
+
+"""
+    nuclearspin(ion::Ion)
+Returns the nuclear spin of `ion`.
+"""
 nuclearspin(I::Ion) = speciesproperties(I).nuclearspin
 
 #############################################################################################
@@ -791,7 +834,7 @@ If an element of `selected_sublevels` utilizes the first option, specifying a si
 Omission of a level in `selected_sublevels` will exclude all sublevels.
 
 **Fields**
-* `speciesproperties::NamedTuple`: Contains constants specifying parameters specific to species
+* `speciesproperties::IonProperties`: Contains constants specifying parameters specific to species
 * `sublevels`::Vector{Tuple{String,Real}}: List of all sublevels present in the Hilbert space
 * `sublevelaliases::Dict{String,Tuple}`: Dict specifying aliases assigned to sublevels, in the format `alias => sublevel`
 * `shape`::Vector{Int}: Dimension of the Hilbert space

@@ -62,25 +62,66 @@ end
 # Object fields
 #############################################################################################
 
+"""
+    frequency(mode::VibrationalMode)
+Returns `mode.ν`
+"""
 frequency(mode::VibrationalMode) = mode.ν
+
+"""
+    modestructure(mode::VibrationalMode)
+Returns `mode.modestructure`
+"""
 modestructure(mode::VibrationalMode) = mode.modestructure
+
+"""
+    frequency_fluctuation(mode::VibrationalMode)
+Returns `mode.δν`
+"""
 frequency_fluctuation(mode::VibrationalMode) = mode.δν
+
+"""
+    modecutoff
+Returns `mode.N`
+"""
 modecutoff(mode::VibrationalMode) = mode.N
+
+"""
+    shape(mode::VibrationalMode)
+Returns `mode.shape`
+"""
 shape(mode::VibrationalMode) = mode.shape
+
+"""
+    axis(mode::VibrationalMode)
+Returns `mode.axis`
+"""
 axis(mode::VibrationalMode) = mode.axis
 
 #############################################################################################
 # Setters
 #############################################################################################
 
+"""
+    frequency!(mode::VibrationalMode, ν::Real)
+Sets `mode.ν` to `ν`
+"""
 function frequency!(mode::VibrationalMode, ν::Real)
     mode.ν = ν
 end
 
+"""
+    frequency_fluctuation!(mode::VibrationalMode, δν::Function)
+Sets `mode.δν` to `δν`
+"""
 function frequency_fluctuation!(mode::VibrationalMode, δν::Function)
     mode.δν = δν
     mode._cnst_δν = false
 end
+"""
+    frequency_fluctuation!(mode::VibrationalMode, δν::Real)
+Sets `mode.δν` to a constant function `t -> δν`
+"""
 function frequency_fluctuation!(mode::VibrationalMode, δν::Real)
     mode.δν = (t -> δν)
     mode._cnst_δν = true

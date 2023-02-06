@@ -191,7 +191,16 @@ end
 # Object fields
 #############################################################################################
 
+"""
+    comfrequencies(chain::LinearChain)
+Returns `chain.comfrequencies`
+"""
 comfrequencies(chain::LinearChain) = chain.comfrequencies
+
+"""
+    selectedmodes(chain::LinearChain)
+Returns `chain.selectedmodes`
+"""
 selectedmodes(chain::LinearChain) = chain.selectedmodes
 
 """

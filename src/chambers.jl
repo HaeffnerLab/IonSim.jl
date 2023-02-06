@@ -137,11 +137,40 @@ Base.show(io::IO, T::Chamber) = print(io, "Chamber")  # suppress long output
 # Object fields
 #############################################################################################
 
+"""
+    iontrap(chamber::Chamber)
+Returns the IonTrap struct associated with `chamber`, `chamber.iontrap`
+"""
 iontrap(chamber::Chamber) = chamber.iontrap
+
+"""
+    bfield(chamber::Chamber)
+Returns the magnitude of the (average) magnetic field in `chamber`, `chamber.B`,in T.
+"""
 bfield(chamber::Chamber) = chamber.B
+
+"""
+    bfield_unitvector(chamber::Chamber)::NamedTuple{:x, :y, :z}
+Returns the direction of the magnetic field inside `chamber`, `chamber.Bhat`
+"""
 bfield_unitvector(chamber::Chamber) = chamber.Bhat
+
+"""
+    bgradient(chamber::Chamber)
+Returns the gradient of the magnetic field inside `chamber`, `chamber.∇B`, in T/m.
+"""
 bgradient(chamber::Chamber) = chamber.∇B
+
+"""
+    bfield_fluctuation(chamber::Chamber)::Function
+Returns the small magnetic field fluctuation `chamber.δB` in T as a function of time in s.
+"""
 bfield_fluctuation(chamber::Chamber) = chamber.δB
+
+"""
+    lasers(chamber::Chamber)::Vector{Laser}
+Returns Vector of Lasers inside `chamber`, `chamber.lasers`
+"""
 lasers(chamber::Chamber) = chamber.lasers
 
 
@@ -149,33 +178,61 @@ lasers(chamber::Chamber) = chamber.lasers
 # Setters
 #############################################################################################
 
+"""
+    iontrap!(chamber::Chamber, iontrap::IonTrap)
+Sets `chamber.iontrap` to `iontrap`
+"""
 function iontrap!(chamber::Chamber, iontrap::IonTrap)
     chamber.iontrap = iontrap
 end
 
+"""
+    bfield!(chamber::Chamber, B::Real)
+Sets `chamber.B` to `B`
+"""
 function bfield!(chamber::Chamber, B::Real)
     chamber.B = B
 end
 
+"""
+    bfield_unitvector!(chamber::Chamber, Bhat::NamedTuple)
+Sets `chamber.Bhat` to `Bhat`
+"""
 function bfield_unitvector!(chamber::Chamber, Bhat::NamedTuple{(:x, :y, :z)})
     rtol = 1e-6
     @assert isapprox(norm(Bhat), 1, rtol = rtol) "!(|̂B| = 1)"
     chamber.Bhat = Bhat
 end
 
+"""
+    bgradient!(chamber::Chamber, ∇B::Real)
+Sets `chamber.∇B` to `∇B`
+"""
 function bgradient!(chamber::Chamber, ∇B::Real)
     chamber.∇B = ∇B
 end
 
+"""
+    bfield_fluctuation!(chamber::Chamber, δB::Function)
+Sets `chamber.δB` to `δB`
+"""
 function bfield_fluctuation!(chamber::Chamber, δB::Function)
     chamber.δB = δB
     chamber._cnst_δB = false
 end
+"""
+    bfield_fluctuation!(chamber::Chamber, δB::Real)
+Sets `chamber.δB` to a constant function `t -> δB`
+"""
 function bfield_fluctuation!(chamber::Chamber, δB::Real)
     chamber.δB = (t -> δB)
     chamber._cnst_δB = true
 end
 
+"""
+    lasers!(chamber::Chamber, lasers::Vector{Laser})
+Sets `chamber.lasers` to `lasers`
+"""
 function lasers!(chamber::Chamber, lasers::Vector{Laser})
     chamber.lasers = lasers
 end
