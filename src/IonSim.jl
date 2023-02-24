@@ -43,6 +43,9 @@ include("operators.jl")
 include("hamiltonians.jl")
 include("timeevolution.jl")
 include("species/_include_species.jl")
+include("hamiltonians/rotatingframes.jl")
+include("hamiltonians/rabifreqs.jl")
+include("hamiltonians/hamiltonians.jl")
 
 module analytical
 include("analyticfunctions.jl")

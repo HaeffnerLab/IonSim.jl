@@ -4,7 +4,9 @@ authors = ["Joseph Broz <jbroz@berkeley.edu>"]
 version = "0.5.0"
 
 [deps]
+DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 FunctionWrappers = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
