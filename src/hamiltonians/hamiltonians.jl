@@ -86,7 +86,7 @@ function lambdickeorder(h::Hamiltonian)
     return h.lambdickeorder
 end
 
-function prettyprint_labframe_matrixelement(h::Hamiltonian,(n,k,i,p,q))
+function prettyprint_labframe_transition_matrixelement(h::Hamiltonian,(n,k,i,p,q))
     @assert n in range(1,length(ions(chamber(h)))) "ion index n = $n is out of bounds"
     @assert k in range(1,length(subleveltransitions(ions(chamber(h))[n]))) "transition index k = $k is out of bounds"
     @assert i in range(1,length(modes(chamber(h)))) "vibrational mode index i = $i is out of bounds"
