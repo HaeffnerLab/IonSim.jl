@@ -7,10 +7,7 @@ using IonSim.Properties: loadfromconfig
 @suppress_err begin
 
     # set up system
-    C = Ion(
-        loadfromconfig("../configs/ions/ca40.yaml"),
-        nothing
-    )
+    C = Ion(loadfromconfig("../configs/ions/ca40.yaml"), nothing)
     λ = transitionwavelength(C, ("S1/2", "D5/2"))
     L1 = Laser(λ=λ)
     L2 = Laser(λ=λ)

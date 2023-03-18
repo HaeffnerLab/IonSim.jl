@@ -7,10 +7,7 @@ using Suppressor
 
     # setup system
     print(Base.Filesystem.pwd())
-    C = Ion(
-        CA40_PROPERTIES,
-        [("S1/2", -1 // 2), ("D5/2", -1 // 2)]
-    )
+    C = Ion(CA40_PROPERTIES, [("S1/2", -1 // 2), ("D5/2", -1 // 2)])
     chain = LinearChain(
         ions=[C, C],
         comfrequencies=(x=2, y=2, z=1),

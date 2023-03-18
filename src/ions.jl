@@ -75,11 +75,7 @@ mutable struct Ion <: IonSimBasis
     ionposition::Union{Real, Missing}
 
     # constructors (overrides default)
-    function Ion(
-        properties,
-        selected_sublevels=nothing,
-        manualshift=Dict()
-    )
+    function Ion(properties, selected_sublevels=nothing, manualshift=Dict())
         (sublevels, aliases) = _construct_sublevels(selected_sublevels, properties)
         shape = [length(sublevels)]
         manualshift_full = _construct_manualshift(manualshift, sublevels)

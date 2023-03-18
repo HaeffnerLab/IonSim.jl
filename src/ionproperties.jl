@@ -5,8 +5,7 @@ import YAML
 using LinearAlgebra: dot
 using OrderedCollections
 
-export IonProperties,
-    loadfromconfig
+export IonProperties, loadfromconfig
 
 function roundnearesthalf(value::Number)::Rational
     halves::Integer = 2 * value
@@ -77,17 +76,13 @@ Helper function to convert the ``full_transitions``, as defined in the config,
 to the format expected by ``IonProperties``.
 """
 function process_full_transitions(from_config::Vector)::Dict
-    full_transitions = Dict{
-        Tuple{String, String},
-        @NamedTuple{multipole::String, einsteinA::Real}
-    }()
+    full_transitions =
+        Dict{Tuple{String, String}, @NamedTuple{multipole::String, einsteinA::Real}}()
 
     for transition_data in from_config
         key = (transition_data["from"], transition_data["to"])
-        full_transitions[key] = (
-            multipole=transition_data["multipole"],
-            einsteinA=transition_data["einsteinA"]
-        )
+        full_transitions[key] =
+            (multipole=transition_data["multipole"], einsteinA=transition_data["einsteinA"])
     end
 
     return full_transitions
@@ -106,10 +101,7 @@ function process_nonlinear_zeeman(from_config::Vector)::Dict
         # is no need to create closures. Wonder if this is actually efficient.
         key = (nonlinear_shift["level"], nonlinear_shift["sublevel"])
         coeffs = nonlinear_shift["coeffs"]
-        nonlinear_zeemans[key] = B -> dot(
-            [B ^ pwr for pwr in 0:(length(coeffs) - 1)],
-            coeffs
-        )
+        nonlinear_zeemans[key] = B -> dot([B^pwr for pwr in 0:(length(coeffs)-1)], coeffs)
     end
 
     return nonlinear_zeemans
@@ -126,9 +118,8 @@ function loadfromconfig(config_filepath::String)
 
     # Optional arguments.
     if haskey(config, "default_sublevel_selection")
-        default_sublevel_selection = [
-            Tuple(selection) for selection in config["default_sublevel_selection"]
-        ]
+        default_sublevel_selection =
+            [Tuple(selection) for selection in config["default_sublevel_selection"]]
     else
         default_sublevel_selection = missing
     end
