@@ -6,7 +6,11 @@ using Suppressor
 @suppress_err begin
 
     # setup system
-    C = Ca40([("S1/2", -1 // 2), ("D5/2", -1 // 2)])
+    print(Base.Filesystem.pwd())
+    C = Ion(
+        CA40_PROPERTIES,
+        [("S1/2", -1 // 2), ("D5/2", -1 // 2)]
+    )
     chain = LinearChain(
         ions=[C, C],
         comfrequencies=(x=2, y=2, z=1),

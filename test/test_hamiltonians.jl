@@ -109,7 +109,10 @@ end
 
     @testset "hamiltonians -- parameter arrays" begin
         # setup system
-        C = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C = Ion(
+            loadfromconfig("../configs/ions/ca40.yaml"),
+            [("S1/2", -1 / 2), ("D5/2", -1 / 2)]
+        )
         C1 = copy(C)
 
         L1 = Laser()
@@ -220,7 +223,7 @@ end
         # tests for _setup_global_B_hamiltonian
 
         # setup system
-        C = Ca40()
+        C = Ion(CA40_PROPERTIES, nothing)
         L = Laser()
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
@@ -321,7 +324,7 @@ end
 
         # _setup_base_hamiltonian
         # Let's make sure that _setup_base_hamiltonian is recording the appropriate indices.
-        C = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L = Laser()
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
@@ -357,7 +360,7 @@ end
         @test length(unique([cidxs; c])) - 1 == (N^2 - N) == length(cidxs)
 
         ## test for two modes
-        C1 = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C1 = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L1 = Laser()
         L1.λ = transitionwavelength(C1, ("S1/2", "D5/2"))
         chain1 = LinearChain(
@@ -408,8 +411,8 @@ end
         #   * Hamiltonian built with hamiltonians.jl
 
         # define ion, laser, chain, trap
-        C_a = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
-        C_b = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C_a = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C_b = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L = Laser()
         L.pointing = [(1, 1.0), (2, 1.0)]
         chain = LinearChain(

@@ -4,7 +4,7 @@ using Suppressor
 
 @suppress_err begin
     @testset "ion_traps -- LinearChain" begin
-        C = Ca40()
+        C = Ion(CA40_PROPERTIES, nothing)
         lc = LinearChain(
             ions=[C, C, C, C],
             comfrequencies=(x=5, y=5, z=1),
@@ -54,7 +54,7 @@ using Suppressor
         @test any(isapprox.(linear_equilibrium_positions(10), pos, rtol=1e-4))
 
         # and test calculation of characterstic length scale for linear chain, equal mass
-        C = Ca40()
+        C = Ion(CA40_PROPERTIES, nothing)
         @test characteristic_length_scale(mass(C), 1e6) ≈ 4.449042804354206e-6
 
         # and do the same for Anm, which computes the normal modes

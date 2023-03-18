@@ -1,3 +1,8 @@
+# Might be a bad idea, but it's convenient! If there's a more julia-esque idiom
+# for test fixtures, that's much preferred.
+using IonSim.Properties: loadfromconfig
+CA40_PROPERTIES = loadfromconfig("../configs/ions/ca40.yaml")
+
 include("test_analytic_functions.jl")
 include("test_constants.jl")
 include("test_operators.jl")

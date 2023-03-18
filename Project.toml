@@ -13,6 +13,7 @@ QuantumOptics = "6e0679c1-51ea-5a7c-ac74-d61b76210b0c"
 QuantumOpticsBase = "4f57444f-1401-5e15-980d-4471b28d5678"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
+YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 FunctionWrappers = "1.1.2"
