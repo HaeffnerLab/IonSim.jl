@@ -5,16 +5,8 @@ using Suppressor
 @suppress_err begin
     @testset "properties -- Verify nonlinear zeeman shift mapping" begin
         nonlinear_zeeman_config = [
-            Dict(
-                "level" => "S1/2=0",
-                "sublevel" => 0,
-                "coeffs" => [1.0, 2.0, 3.0]
-            ),
-            Dict(
-                "level" => "S1/2=1",
-                "sublevel" => 0,
-                "coeffs" => [10.0, 20.0, 30.0]
-            )
+            Dict("level" => "S1/2=0", "sublevel" => 0, "coeffs" => [1.0, 2.0, 3.0]),
+            Dict("level" => "S1/2=1", "sublevel" => 0, "coeffs" => [10.0, 20.0, 30.0])
         ]
 
         processed_functions = process_nonlinear_zeeman(nonlinear_zeeman_config)
