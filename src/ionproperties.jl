@@ -87,7 +87,6 @@ function process_full_transitions(from_config::Vector)::Dict
 
     return full_transitions
 end
-process_full_transitions(::Missing) = missing
 
 
 """
