@@ -58,7 +58,7 @@ function timeevolution.schroedinger_dynamic(
     tspan,
     rho0::T,
     f::Function;
-    fout::Union{Function, Nothing} = nothing,
+    fout::Union{Function, Nothing}=nothing,
     kwargs...
 ) where {B <: Basis, T <: Operator{B, B}}
     check_bases(f(0.0, 0.0).basis_l, rho0.basis_l)
@@ -67,7 +67,7 @@ function timeevolution.schroedinger_dynamic(
         tspan,
         rho0,
         (t, rho) -> (f(t, rho), Jvec, Jvec);
-        fout = fout,
+        fout=fout,
         kwargs...
     )
 end

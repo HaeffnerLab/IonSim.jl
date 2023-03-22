@@ -8,59 +8,63 @@ using Suppressor
     # setup system
     C = Ca40([("S1/2", -1 // 2), ("D5/2", -1 // 2)])
     chain = LinearChain(
-        ions = [C, C],
-        com_frequencies = (x = 2, y = 2, z = 1),
-        vibrational_modes = (x = [1], y = [], z = [1])
+        ions=[C, C],
+        comfrequencies=(x=2, y=2, z=1),
+        selectedmodes=(x=[1], y=[], z=[1])
     )
-    T = Trap(configuration = chain)
-    modes = get_vibrational_modes(chain)
+    T = Chamber(iontrap=chain)
+    allmodes = modes(chain)
 
     @testset "operators -- VibrationalMode operators" begin
         # test creation of VibrationalMode functions by comparison with equiv. QO functions
         fb = qo.FockBasis(10)
-        @test create(modes[1]).data == qo.create(fb).data
-        @test destroy(modes[1]).data == qo.destroy(fb).data
-        @test number(modes[1]).data == qo.number(fb).data
+        @test create(allmodes[1]).data == qo.create(fb).data
+        @test destroy(allmodes[1]).data == qo.destroy(fb).data
+        @test number(allmodes[1]).data == qo.number(fb).data
         n = rand(0:10)
-        @test fockstate(modes[1], n).data == qo.fockstate(fb, n).data
+        @test fockstate(allmodes[1], n).data == qo.fockstate(fb, n).data
 
         # displacement operator
         α = rand(0:1e-3:7) + im * rand(0:1e-3:7)
-        @test displace(modes[1], α).data ≈ qo.displace(fb, α).data
+        @test displace(allmodes[1], α).data ≈ qo.displace(fb, α).data
         fb2 = qo.FockBasis(200)
-        modes[1].N = 200
+        modecutoff!(allmodes[1], 200)
         i = rand(1:5)
         j = rand(1:5)
-        @test displace(modes[1], α, method = "analytic").data[i, j] ≈
+        @test displace(allmodes[1], α, method="analytic").data[i, j] ≈
               qo.displace(fb2, α).data[i, j] atol = 1e-6
 
         # test that mean excitation of thermalstate is as expected
-        modes[1].N = 500
+        modecutoff!(allmodes[1], 500)
         n̄ = abs(2randn())
-        @test expect(number(modes[1]), thermalstate(modes[1], n̄)) ≈ n̄
-        @test expect(number(modes[1]), thermalstate(modes[1], n̄, method = "analytic")) ≈ n̄
+        @test expect(number(allmodes[1]), thermalstate(allmodes[1], n̄)) ≈ n̄
+        @test expect(
+            number(allmodes[1]),
+            thermalstate(allmodes[1], n̄, method="analytic")
+        ) ≈ n̄
 
         # test coherentstate matches QO results
         α = 10 * (randn() + im * randn())
-        coherentstate(modes[1], α).data == qo.coherentstate(fb, α).data
+        coherentstate(allmodes[1], α).data == qo.coherentstate(fb, α).data
 
         # test coherenthermalstate
         N = 500
-        modes[1].N = N
+        modecutoff!(allmodes[1], N)
         n̄ = rand(0:1e-6:10)
-        @test coherentthermalstate(modes[1], n̄, 0, method = "analytic").data ≈
-              thermalstate(modes[1], n̄).data
-        @test coherentthermalstate(modes[1], 0, α, method = "analytic").data ≈
-              dm(coherentstate(modes[1], α)).data rtol = 1e-3 * N^2
-        @test coherentthermalstate(modes[1], n̄, 0).data ≈ thermalstate(modes[1], n̄).data
-        @test coherentthermalstate(modes[1], 0, α).data ≈
-              dm(coherentstate(modes[1], α)).data rtol = 1e-3 * N^2
+        @test coherentthermalstate(allmodes[1], n̄, 0, method="analytic").data ≈
+              thermalstate(allmodes[1], n̄).data
+        @test coherentthermalstate(allmodes[1], 0, α, method="analytic").data ≈
+              dm(coherentstate(allmodes[1], α)).data rtol = 1e-3 * N^2
+        @test coherentthermalstate(allmodes[1], n̄, 0).data ≈
+              thermalstate(allmodes[1], n̄).data
+        @test coherentthermalstate(allmodes[1], 0, α).data ≈
+              dm(coherentstate(allmodes[1], α)).data rtol = 1e-3 * N^2
 
         # shouldn't be able to have a mean phonon occupation greater than Hilbert space dimension
-        @test_throws AssertionError coherentthermalstate(modes[1], N + 1, 0)
-        @test_throws AssertionError coherentthermalstate(modes[1], 0, N + 1)
-        @test_throws AssertionError coherentstate(modes[1], N + 1)
-        @test_throws AssertionError thermalstate(modes[1], N + 1)
+        @test_throws AssertionError coherentthermalstate(allmodes[1], N + 1, 0)
+        @test_throws AssertionError coherentthermalstate(allmodes[1], 0, N + 1)
+        @test_throws AssertionError coherentstate(allmodes[1], N + 1)
+        @test_throws AssertionError thermalstate(allmodes[1], N + 1)
         # @test_throws AssertionError displace(modes[1], N + 1)
     end
 
@@ -69,13 +73,13 @@ using Suppressor
         @test ionstate(C, ("S1/2", -1 // 2)).data == ionstate(C, 1).data == ComplexF64[1; 0]
         @test ionstate(C, ("D5/2", -1 // 2)).data == ionstate(C, 2).data == ComplexF64[0; 1]
 
-        # test ionstate for an IonConfiguration input
-        @test ionstate(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2)).data ==
+        # test ionstate for an IonTrap input
+        @test ionstate(chain, [("S1/2", -1 // 2), ("D5/2", -1 // 2)]).data ==
               kron(ComplexF64[0; 1], ComplexF64[1; 0])
-        @test ionstate(chain, 1, 2).data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
+        @test ionstate(chain, [1, 2]).data == kron(ComplexF64[0; 1], ComplexF64[1; 0])
 
-        # test ionstate for an Trap input
-        @test ionstate(T, ("S1/2", -1 // 2), ("D5/2", -1 // 2)).data ==
+        # test ionstate for an Chamber input
+        @test ionstate(T, [("S1/2", -1 // 2), ("D5/2", -1 // 2)]).data ==
               kron(ComplexF64[0; 1], ComplexF64[1; 0])
 
         # test sigma(ion::Ion, ψ1::T, ψ2::T) where {T<:Union{String,Int}}
@@ -85,15 +89,15 @@ using Suppressor
         # test sigma(ion::Ion, ψ1::T<:Union{String,Int})
         @test sigma(C, ("S1/2", -1 // 2)).data == sigma(C, 1).data == ComplexF64[1 0; 0 0]
 
-        # test ionprojector for IonConfiguration input
-        ψ = ionprojector(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions = true)
+        # test ionprojector for IonTrap input
+        ψ = ionprojector(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions=true)
         @test ψ.data == kron(
             ComplexF64[0; 1] * ComplexF64[0; 1]',
             ComplexF64[1; 0] * ComplexF64[1; 0]'
         )
         @test ionprojector(chain, ("S1/2", -1 // 2), ("D5/2", -1 // 2)) ==
-              ψ ⊗ one(modes[1]) ⊗ one(modes[2])
-        @test ψ == ionprojector(T, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions = true)
+              ψ ⊗ one(allmodes[1]) ⊗ one(allmodes[2])
+        @test ψ == ionprojector(T, ("S1/2", -1 // 2), ("D5/2", -1 // 2), only_ions=true)
     end
 
     @testset "operators -- internal functions" begin
@@ -121,7 +125,7 @@ using Suppressor
 
         # _Dnm
         ξ = im * exp(2π * im)
-        d = displace(modes[1], ξ).data
+        d = displace(allmodes[1], ξ).data
         diff = 0.0
         for i in 1:100, j in 1:100
             diff += abs(d[i, j] - IonSim._Dnm(ξ, i, j))
