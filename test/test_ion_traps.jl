@@ -188,4 +188,21 @@ using IonSim:
                 )
         @test length(lc.selectedmodes.x) == 0
     end
+
+    @testset "visualize-iontraps" begin
+        # for now just run all of the plots and make sure nothing errors
+        c = Ca40()
+        b = Be9()
+        y = Yb171()
+        chain = LinearChain(
+            ions=[c, b, b, c, y, y],
+            comfrequencies=(x=20e6,y=20e6,z=0.1e6), 
+            selectedmodes=(;x=[1, 3], z=[1, 3:4])
+        )
+        visualize(chain, ẑ, [:], format="circles")
+        visualize(chain, x̂, [1])
+        visualize(chain, ẑ, [1:4], format="circles")
+        visualize(xmodes(chain)[1], format="circles")
+        visualize(xmodes(chain)[1], format="bar")
+    end
 end  # end suppress

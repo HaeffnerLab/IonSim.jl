@@ -942,3 +942,11 @@ function Base.print(ion::IonInstance)
 end
 
 Base.show(io::IO, I::IonInstance) = println(io, I.speciesproperties.shortname)  # suppress long output
+
+function Base.:(==)(C1::Ion, C2::Ion)
+    if (mass(C1) == mass(C2)) && (charg(C1) == charg(C2))
+        return true
+    else
+        return false
+    end
+end

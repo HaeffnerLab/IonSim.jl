@@ -20,7 +20,8 @@ export IonTrap,
         modecutoff!,
         length,
         ionpositions,
-        LinearChain_fromyaml
+        LinearChain_fromyaml,
+        visualize
 
 """
     IonTrap
@@ -52,7 +53,7 @@ normal mode structure of the linear chain is the charge, mass  and ordering of t
     `(x=ν_x, y=ν_y, z=ν_z)`. The z-axis is taken to be along the crystal's axis of 
     symmetry. Note that these only correspond to true COM modes if all ions have the same
     mass, otherwise this is a misnomer and corresponds to the smallest (largest) eigenfrequency
-    mode in the axial (radial) directions.
+    mode in the axial (radial) directions. Note: we assume that `ν_x > ν_y > ν_z`.
 * `selectedmodes::NamedTuple{(:x,:y,:z)}`:  e.g. `selectedmodes=(x=[1], y=[2], z=[1,2])`.
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest
     mode away from the COM (see note above about meaning of "COM") for that axis. For example, 
@@ -68,12 +69,13 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
     comfrequencies::NamedTuple{(:x, :y, :z)}
     selectedmodes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     ionpositions::Vector{<:Real}
+    
     function LinearChain(; 
             ions::Vector{<:Ion}, comfrequencies::NamedTuple, 
             selectedmodes::NamedTuple, N::Int=10
         )
         num_ions = length(ions)
-        selectedmodes = _construct_vibrational_modes(selectedmodes)
+        selectedmodes = _construct_vibrational_modes(selectedmodes, num_ions)
         warn = nothing
         for i in 1:num_ions, j in (i+1):num_ions
             if ions[j] ≡ ions[i]
@@ -101,6 +103,7 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
         _setionproperties(ions, ionpositions)
         return new(ions, comfrequencies, vm, ionpositions)
     end
+
     function LinearChain(ions::Vector{<:Ion}, vm, ionpositions)
         _setionproperties(ions, ionpositions)
         new(ions, (x=NaN, y=NaN, z=NaN), vm, ionpositions)
@@ -579,7 +582,7 @@ function Base.show(io::IO, lc::LinearChain)  # suppress long output
 end
 
 # Takes e.g. (y=[1]) to (x=[], y=[1], z=[])
-function _construct_vibrational_modes(x)
+function _construct_vibrational_modes(x, num_ions)
     k = collect(keys(x))
     xyz = [:x, :y, :z]
     @assert isnothing(findfirst(x -> x ∉ xyz, k)) (
@@ -594,8 +597,17 @@ function _construct_vibrational_modes(x)
             el = x[xyz[i]]
             if !isempty(el)
                 # allows slices like (y=[1, 2:5], )
+                elscreened = []
+                for k in eachindex(el)
+                    if typeof(el[k]) == Colon
+                        @assert length(el) == 1 "Improper indexing."
+                        elscreened = 1:num_ions
+                    else
+                        push!(elscreened, el[k])
+                    end
+                end
                 flattenedx = reduce(
-                    vcat, [typeof(i)<:UnitRange ? collect(i) : i for i in el]
+                    vcat, [typeof(i)<:UnitRange ? collect(i) : i for i in elscreened]
                 )
             else
                 flattenedx = []
@@ -613,3 +625,161 @@ Base.length(lc::LinearChain) = length(lc.ions)
 Returns the positions of the ions in `chain` in meters.
 """
 ionpositions(chain) = chain.ionpositions
+
+
+#############################################################################################
+# Visualization
+#############################################################################################
+
+"""
+    visualize(lc::LinearChain, axis::String, modes::Vector{<:Int}, format="bars")
+
+Visualize the normal mode structure of a `lc` as a Plots.jl plot. `axis` can either be one
+of "x", "y", "z" or a NamedTuple{(:x,:y,:z)}. `modes` is a vector of indices 
+selecting which modes should be included in the plot. Slicing is supported. `format` can be 
+either "bars" or "circles."
+
+Note that the indexing refers to the full normal mode description and not the subset 
+`selectedmodes(lc)`.
+"""
+function visualize(lc::LinearChain, axis, modes; format="bars")
+    ion_list = ions(lc)
+    axes_dict = Dict(
+        "x" => :x, "y" => :y, "z" => :z, 
+        x̂ => :x, ŷ => :y, ẑ => :z
+    )
+    direction = axes_dict[axis]
+    radialplane = direction in [:x, :y] ? true : false
+    fnm = full_normal_mode_description(ion_list, comfrequencies(lc))[direction]
+    num_ions = length(ion_list)
+    unique_ion_labels = unique([ion.speciesproperties.shortname for ion in ion_list])
+    color_list = []
+    for ion in ion_list
+        push!(color_list, findfirst(ion.speciesproperties.shortname .== unique_ion_labels))
+    end
+
+    indextypes = map(typeof, modes)
+    if Colon in indextypes
+        indices = [1:num_ions...]
+    elseif UnitRange{Int} in indextypes
+        indices = reduce(
+            vcat, [typeof(i)<:UnitRange ? collect(i) : i for i in modes]
+        )
+    else
+        indices = modes
+    end
+    modes = fnm[indices]
+    subplots = []
+    legend_plot = plot()
+    for label in unique_ion_labels
+        plot!(
+            [], [], color_palette=palette(:tab10),
+            label=" "*label, lw=10, legend=:top, legendcolumns=1, 
+            grid=false, showaxis=false, legendfontsize=15, foreground_color_legend=nothing
+        )
+    end
+    for mode in modes
+        frequency = round(mode[1] / 1e6, digits=3)
+        v = mode[2]
+        if format == "bars"
+            push!(
+                subplots,
+                bar(
+                    v, xaxis=false, 
+                    title="$frequency MHz", legend=false, color=color_list, 
+                    color_palette=palette(:tab10), label=false, yticks=false, showaxis=false
+                )
+            )
+        elseif format == "circles"
+            xpos = linear_equilibrium_positions(num_ions)
+            GR.setarrowsize(0.75)
+            scatter(
+                xpos, zeros(length(xpos)), markersize=15, bg =:white, showaxis=false, grid=false, 
+                markerstrokecolor=:white, ylims=[-1, 1], xlim=[xpos[1]-0.5, 
+                xpos[end]+0.5], size=(1200, 300), title="$frequency MHz", legend=false,
+                color_palette=palette(:tab10), markercolor=color_list
+            )
+            offset_vector = copy(v)
+            for i in eachindex(offset_vector)
+                if offset_vector[i] > 0
+                    offset_vector[i] += 0.1
+                else
+                    offset_vector[i] -= 0.1
+                end
+            end
+            if !radialplane
+                push!(
+                    subplots, 
+                    quiver!(
+                            xpos, zeros(num_ions), quiver=(offset_vector/2, zeros(num_ions)), 
+                            lw=3, color=:black
+                        )
+                )
+            else
+                push!(
+                    subplots,
+                    quiver!(
+                            xpos, zeros(num_ions), quiver=(zeros(num_ions), offset_vector), 
+                            lw=3, color=:black
+                        )
+                )
+            end
+        end
+    end
+    divbythree = length(modes) ÷ 3
+    modthree = length(modes) % 3
+    if divbythree == 0
+        l = (modthree + 1, 1)
+    elseif modthree == 0
+        l = @layout [grid(1, 1){0.1w} grid(3, divbythree)]
+    else
+        l = @layout [grid(1, 1){0.1w} grid(3, divbythree) grid(modthree, 1)]
+    end
+    p = plot(legend_plot, subplots..., layout=l)
+    display(p)
+end
+
+"""
+    visualize(vm::VibrationalMode; format="bars")
+
+Visualize the normal mode structure of a `vm` as a Plots.jl plot. `format` can be either
+`bar` or `ions`. `format` can be either "bars" or "circles."
+"""
+function visualize(vm::VibrationalMode; format="bars")
+    axes_dict = Dict(x̂ => :x, ŷ => :y, ẑ => :z)
+    direction = axes_dict[vm.axis]
+    radialplane = direction in [:x, :y] ? true : false
+    frequency = round(vm.ν / 1e6, digits=3)
+    v = vm.modestructure
+    if format == "bars"
+        bar(
+            v, xticks=(1:4, ones(length(v))), xaxis=false, 
+            ylabel="Relative participation\nof ion in mode", 
+            title="$frequency MHz", legend=false
+        )
+        hline!([0], label=false, lc=:black)
+    elseif format == "circles"
+        N = length(v)
+        xpos = linear_equilibrium_positions(N)
+        GR.setarrowsize(0.75)
+        scatter(
+            xpos, zeros(length(xpos)), markersize=15, bg =:white, showaxis=false, grid=false, 
+            markerstrokecolor=:white, markercolor=:red3, ylims=[-1, 1], xlim=[xpos[1]-0.5, 
+            xpos[end]+0.5], size=(1200, 300), title="$frequency MHz", legend=false
+        )
+        offset_vector = copy(v)
+        for i in eachindex(offset_vector)
+            if offset_vector[i] > 0
+                offset_vector[i] += 0.1
+            else
+                offset_vector[i] -= 0.1
+            end
+        end
+        if !radialplane
+            quiver!(xpos, zeros(N), quiver=(offset_vector/2, zeros(N)), lw=3, color=:black)
+        else
+            quiver!(xpos, zeros(N), quiver=(zeros(N), offset_vector), lw=3, color=:black)
+        end
+    end
+    display(current())
+end
