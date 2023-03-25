@@ -171,4 +171,21 @@ using IonSim:
         # species and the general scaling seems to agree. but the gap width is larger for
         # our calculation and I'm not sure why
     end
+
+    @testset "load from yaml" begin
+        c = Ca40()
+        chain = LinearChain_fromyaml(
+            ions=[c, c, c, c],
+            yaml="test_load_LinearChain_fromyaml.yaml",  
+        )
+        @test isnan(chain.comfrequencies.x)
+        @test chain.ionpositions == [1, 2, 3, 4]
+        @test chain.ions == ions(chain)
+        @test_throws AssertionError full_normal_mode_description(chain)
+        lc = LinearChain_fromyaml(
+                    ions=[c, c, c, c],
+                    yaml="test_load_LinearChain_fromyaml_broken.yaml",  
+                )
+        @test length(lc.selectedmodes.x) == 0
+    end
 end  # end suppress

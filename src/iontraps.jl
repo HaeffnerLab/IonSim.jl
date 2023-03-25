@@ -501,6 +501,7 @@ at that vibrational frequency (i.e. the normal mode eigenvector corresponding to
 eigenfrequency).
 """
 function full_normal_mode_description(ions::Vector{<:Ion}, comfreqs::NamedTuple{(:x, :y, :z)})
+    @assert !isnan(comfreqs.x) "This function doesn't work for user defined mode structure."
     trappingparams = searchfor_trappingpotential_parameters(ions, comfreqs)
     normalmodes = (
         x=diagonalize_Kij(ions, x̂, trappingparams...),
