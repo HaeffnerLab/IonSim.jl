@@ -17,7 +17,8 @@ export IonTrap,
     ymodes,
     zmodes,
     modecutoff!,
-    length
+    length,
+    ionpositions
 
 """
     IonTrap
@@ -449,12 +450,14 @@ Returns an array of all of the selected `VibrationalModes` in the x-direction in
 `LinearChain`.
 """
 xmodes(lc::LinearChain) = selectedmodes(lc).x
+
 """
     ymodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the y-direction in the 
 `LinearChain`.
 """
 ymodes(lc::LinearChain) = selectedmodes(lc).y
+
 """
     zmodes(lc::LinearChain)
 Returns an array of all of the selected `VibrationalModes` in the z-direction in the 
@@ -508,12 +511,25 @@ function _construct_vibrational_modes(x)
         if i in indxs
             push!(values, Int[])
         else
-            push!(values, x[xyz[i]])
+            el = x[xyz[i]]
+            if !isempty(el)
+                # allows slices like (y=[1, 2:5], )
+                flattenedx = reduce(
+                    vcat, [typeof(i)<:UnitRange ? collect(i) : i for i in el]
+                )
+            else
+                flattenedx = []
+            end
+            push!(values, flattenedx)
         end
     end
     return (; zip(xyz, values)...)
 end
 
-characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1/3)
-
 Base.length(lc::LinearChain) = length(lc.ions)
+
+"""
+    ionpositions(chain::LinearChain)
+Returns the positions of the ions in `chain` in meters.
+"""
+ionpositions(chain) = chain.ionpositions
