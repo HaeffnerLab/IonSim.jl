@@ -4,21 +4,23 @@ using Statistics: mean
 using Optim
 using .PhysicalConstants: e, ϵ₀
 using Plots
+import YAML
 
 export IonTrap,
-    ions,
-    linear_equilibrium_positions,
-    LinearChain,
-    comfrequencies,
-    selectedmodes,
-    full_normal_mode_description,
-    modes,
-    xmodes,
-    ymodes,
-    zmodes,
-    modecutoff!,
-    length,
-    ionpositions
+        ions,
+        linear_equilibrium_positions,
+        LinearChain,
+        comfrequencies,
+        selectedmodes,
+        full_normal_mode_description,
+        modes,
+        xmodes,
+        ymodes,
+        zmodes,
+        modecutoff!,
+        length,
+        ionpositions,
+        LinearChain_fromyaml
 
 """
     IonTrap
@@ -47,7 +49,7 @@ normal mode structure of the linear chain is the charge, mass  and ordering of t
 **user-defined fields**
 * `ions::Vector{Ion}`: A list of ions that compose the linear Coulomb crystal
 * `comfrequencies::NamedTuple{(:x,:y,:z)`: Describes the COM frequencies 
-    `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be along the crystal's axis of 
+    `(x=ν_x, y=ν_y, z=ν_z)`. The z-axis is taken to be along the crystal's axis of 
     symmetry. Note that these only correspond to true COM modes if all ions have the same
     mass, otherwise this is a misnomer and corresponds to the smallest (largest) eigenfrequency
     mode in the axial (radial) directions.
@@ -57,7 +59,7 @@ normal mode structure of the linear chain is the charge, mass  and ordering of t
     `selectedmodes=(z=[2])` would specify the axial stretch mode. These are the modes that will 
     be modeled in the chain.Note: `selectedmodes=(x=[],y=[],z=[1])`, `selectedmodes=(y=[],z=[1])`
     and `selectedmodes=(;z=[1])` are all acceptable and equivalent.
-* `N::Int=10`: The Hilbert space dimension for each normal mode.
+* `N::Int=10`: Optionally specify the Hilbert space dimension for each normal mode.
 **derived fields**
 * `ionpositions::Vector{<:Real}`: The relative positions of the ions in meters.  
 """
@@ -66,8 +68,10 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
     comfrequencies::NamedTuple{(:x, :y, :z)}
     selectedmodes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     ionpositions::Vector{<:Real}
-    N::Int
-    function LinearChain(; ions, comfrequencies, selectedmodes, N=10, ionpositions=[])
+    function LinearChain(; 
+            ions::Vector{<:Ion}, comfrequencies::NamedTuple, 
+            selectedmodes::NamedTuple, N::Int=10
+        )
         num_ions = length(ions)
         selectedmodes = _construct_vibrational_modes(selectedmodes)
         warn = nothing
@@ -94,14 +98,89 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
         kz = searchfor_trappingpotential_parameters(ions, comfrequencies)[1]
         l0 = (e^2 / (4π * ϵ₀ * kz))^(1/3)
         ionpositions = l * l0
-        for (i, ion) in enumerate(ions)
-            Core.setproperty!(ion, :ionnumber, i)
-            Core.setproperty!(ion, :ionposition, ionpositions[i])
-        end
+        _setionproperties(ions, ionpositions)
         return new(ions, comfrequencies, vm, ionpositions)
+    end
+    function LinearChain(ions::Vector{<:Ion}, vm, ionpositions)
+        _setionproperties(ions, ionpositions)
+        new(ions, (x=NaN, y=NaN, z=NaN), vm, ionpositions)
     end
 end
 
+"""
+    LinearChain_fromyaml(ions::Vector{<:Ion}, yml::String; N::Int=10)
+
+Load normal mode structure from the specified `yml` file. It's up to the user to enforce
+physicality.
+````
+x:
+  - frequency: 1e6
+    mode: [0.1, 0.5, 0.3, 0.8]
+  - frequency: 2e6
+    mode: [0.3, 0.6, 0.5, 3]
+y:
+  - frequency: 8e6
+    mode: [1, 1, 1, 1]
+ionpositions: [-1, -0.5, -0.25, 5]
+````
+It is up to the user to enforce the physicality of this structure.
+"""
+function LinearChain_fromyaml(; ions::Vector{<:Ion}, yaml::String, N::Int=10)
+    num_ions = length(ions)
+    axes = ["x", "y", "z"]
+    axes_dict = Dict("x" => x̂, "y" => ŷ, "z" => ẑ)
+    # comfrequencies = (x=NaN, y=NaN, z=NaN)
+    yaml = YAML.load_file(yaml)
+    k = keys(yaml)
+    @assert "ionpositions" in k (
+        "yml file must have a key 'ionpositions'"
+    )
+    ionpositions = yaml["ionpositions"]
+    @assert length(ionpositions) == num_ions (
+        "length(ionpositions) must equal length(ions)"
+    )
+    vm = Dict("x" => [], "y" => [], "z" =>[])
+    for axis in axes
+        if axis in k
+            axismodes = yaml[axis]
+            for mode in axismodes
+                if !("frequency" in keys(mode))
+                    @warn "no frequency specified for a mode in $axis"
+                    continue
+                elseif !("mode" in keys(mode))
+                    @warn "no mode specified for frequency $(mode["frequency"])"
+                    continue
+                elseif !(length(mode["mode"]) == num_ions)
+                    @warn "length(mode) ≠ length(ions) for $(mode["frequency"]), $(mode["mode"])"
+                    continue
+                end
+                push!(vm[axis], (mode["frequency"], mode["mode"]))
+            end
+        end
+    end
+    modes = (x=vm["x"], y=vm["y"], z=vm["z"])
+    vm = (
+            x=Vector{VibrationalMode}(undef, 0),
+            y=Vector{VibrationalMode}(undef, 0),
+            z=Vector{VibrationalMode}(undef, 0)
+        )
+    for (i, axis) in enumerate(axes), mode in modes[Symbol(axis)]
+        push!(vm[i], VibrationalMode(mode..., axis=axes_dict[axis], N=N))
+    end
+    println(vm)
+    LinearChain(ions, vm, ionpositions)
+    # LinearChain(
+    #     ions=ions, comfrequencies=comfrequencies, selectedmodes=modes, 
+    #     ionpositions=ionpositions
+    # )
+end
+
+function _setionproperties(ions, ionpositions)
+    for (i, ion) in enumerate(ions)
+        Core.setproperty!(ion, :ionnumber, i)
+        Core.setproperty!(ion, :ionposition, ionpositions[i])
+    end
+end
 #############################################################################################
 # LinearChain - helper functions
 #############################################################################################
