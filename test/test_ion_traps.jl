@@ -24,7 +24,12 @@ using IonSim:
         @test [ionnumber(I) for I in lc.ions] == [1, 2, 3, 4]
 
         # cmode -> pre-evaluated equilibrium positions for four ion chain
-        cmode = [-2.1766240336602492e-5, -6.883427582857696e-6, 6.883427582857696e-6, 2.1766240336602492e-5]
+        cmode = [
+            -2.1766240336602492e-5,
+            -6.883427582857696e-6,
+            6.883427582857696e-6,
+            2.1766240336602492e-5
+        ]
         @test ionpositions(lc) ≈ cmode rtol = 1e-6
 
         # should get warning if same ion is input multiple times to ion kwarg
@@ -74,7 +79,7 @@ using IonSim:
 
         ion_list = [c for _ in 1:rand(2:7)]
         randval = rand() * 1e6
-        target_eigenfrequencies = (x=randval, y=randval, z=randval/10)
+        target_eigenfrequencies = (x=randval, y=randval, z=randval / 10)
 
         # compare optimization routine to james formula for homogeneous case https://doi.org/10.1007/s003400050373
         res = searchfor_trappingpotential_parameters(ion_list, target_eigenfrequencies)
@@ -83,23 +88,52 @@ using IonSim:
         nmstructure_z_direction = diagonalize_Kij(ion_list, ẑ, res...)
 
         for (i, e) in enumerate(nmstructure_x_direction)
-            @test e[1] ≈ diagonalize_Kij_for_homogeneous_chain(length(ion_list), target_eigenfrequencies, x̂)[i][1]
-            @test e[2] ≈ diagonalize_Kij_for_homogeneous_chain(length(ion_list), target_eigenfrequencies, x̂)[i][2] 
+            @test e[1] ≈ diagonalize_Kij_for_homogeneous_chain(
+                length(ion_list),
+                target_eigenfrequencies,
+                x̂
+            )[i][1]
+            @test e[2] ≈ diagonalize_Kij_for_homogeneous_chain(
+                length(ion_list),
+                target_eigenfrequencies,
+                x̂
+            )[i][2]
         end
 
         for (i, e) in enumerate(nmstructure_y_direction)
-            @test e[1] ≈ diagonalize_Kij_for_homogeneous_chain(length(ion_list), target_eigenfrequencies, ŷ)[i][1] 
-            @test e[2] ≈ diagonalize_Kij_for_homogeneous_chain(length(ion_list), target_eigenfrequencies, ŷ)[i][2] 
+            @test e[1] ≈ diagonalize_Kij_for_homogeneous_chain(
+                length(ion_list),
+                target_eigenfrequencies,
+                ŷ
+            )[i][1]
+            @test e[2] ≈ diagonalize_Kij_for_homogeneous_chain(
+                length(ion_list),
+                target_eigenfrequencies,
+                ŷ
+            )[i][2]
         end
 
         for (i, e) in enumerate(nmstructure_z_direction)
-            @test e[1] ≈ diagonalize_Kij_for_homogeneous_chain(length(ion_list), target_eigenfrequencies, ẑ)[i][1]
-            @test e[2] ≈ diagonalize_Kij_for_homogeneous_chain(length(ion_list), target_eigenfrequencies, ẑ)[i][2] 
+            @test e[1] ≈ diagonalize_Kij_for_homogeneous_chain(
+                length(ion_list),
+                target_eigenfrequencies,
+                ẑ
+            )[i][1]
+            @test e[2] ≈ diagonalize_Kij_for_homogeneous_chain(
+                length(ion_list),
+                target_eigenfrequencies,
+                ẑ
+            )[i][2]
         end
 
         # test for assertion error if x > y > z not obeyed
-        @test_throws AssertionError searchfor_trappingpotential_parameters(ion_list, 
-            (x=target_eigenfrequencies.z, y=target_eigenfrequencies.x, z=target_eigenfrequencies.y)
+        @test_throws AssertionError searchfor_trappingpotential_parameters(
+            ion_list,
+            (
+                x=target_eigenfrequencies.z,
+                y=target_eigenfrequencies.x,
+                z=target_eigenfrequencies.y
+            )
         )
 
         # heterogeneous chain
@@ -108,7 +142,7 @@ using IonSim:
         Compare to exact formulas for axial eigenvalues and eigenvectors of a two-ion mixed-species crystal:
         Eur. Phys. J. D 13, 261–269 (2001) https://doi.org/10.1007/s100530170275
         =#
-        
+
         function two_ion_eigenvalues(k, masses)
             m = minimum(masses)
             M = maximum(masses)
@@ -130,7 +164,7 @@ using IonSim:
                 reverse!(q2)
             end
             q1 *= sign(q1[1])
-            q2 *= sign(q2[1]) 
+            q2 *= sign(q2[1])
             return [q1, q2]
         end
 
@@ -140,15 +174,15 @@ using IonSim:
             computed_values = diagonalize_Kij(ion_list, ẑ, res...)
             computed_eigenvalues = [i[1] for i in computed_values]
             computed_eigenvectors = [i[2] for i in computed_values]
-        
+
             M = [mass(ion) for ion in ion_list]
             analytic_eigenvectors = two_ion_eigenvectors(M)
             analytic_eigenvalues = two_ion_eigenvalues(res[1], M)
-            
+
             # for some reason this isn't working here, even though it works fine in a notebook
             # also returns the same values for every itration of the loop
             # @test analytic_eigenvalues ≈ computed_eigenvalues rtol=1e-3 
-            @test analytic_eigenvectors ≈ computed_eigenvectors rtol=1e-3
+            @test analytic_eigenvectors ≈ computed_eigenvectors rtol = 1e-3
         end
 
         #= 
@@ -160,7 +194,7 @@ using IonSim:
         target_eigenfrequencies = (x=3.039e6, y=3.039e6, z=0.158e6)
         res = searchfor_trappingpotential_parameters(M, Q, target_eigenfrequencies)
         computed_values = diagonalize_Kij(M, Q, ẑ, res...)
-        axial_eigenfrequencies = [round(i[1]/1e6, digits=3) for i in computed_values]
+        axial_eigenfrequencies = [round(i[1] / 1e6, digits=3) for i in computed_values]
 
         axial_values_from_PRA = [0.158, 0.28, 0.388, 0.48, 0.57]
         @test axial_eigenfrequencies ≈ axial_values_from_PRA
@@ -176,16 +210,16 @@ using IonSim:
         c = Ca40()
         chain = LinearChain_fromyaml(
             ions=[c, c, c, c],
-            yaml="test_load_LinearChain_fromyaml.yaml",  
+            yaml="test_load_LinearChain_fromyaml.yaml",
         )
         @test isnan(chain.comfrequencies.x)
         @test chain.ionpositions == [1, 2, 3, 4]
         @test chain.ions == ions(chain)
         @test_throws AssertionError full_normal_mode_description(chain)
         lc = LinearChain_fromyaml(
-                    ions=[c, c, c, c],
-                    yaml="test_load_LinearChain_fromyaml_broken.yaml",  
-                )
+            ions=[c, c, c, c],
+            yaml="test_load_LinearChain_fromyaml_broken.yaml",
+        )
         @test length(lc.selectedmodes.x) == 0
     end
 
@@ -196,8 +230,8 @@ using IonSim:
         y = Yb171()
         chain = LinearChain(
             ions=[c, b, b, c, y, y],
-            comfrequencies=(x=20e6,y=20e6,z=0.1e6), 
-            selectedmodes=(;x=[1, 3], z=[1, 3:4])
+            comfrequencies=(x=20e6, y=20e6, z=0.1e6),
+            selectedmodes=(; x=[1, 3], z=[1, 3:4])
         )
         visualize(chain, ẑ, [:], format="circles")
         visualize(chain, x̂, [1])

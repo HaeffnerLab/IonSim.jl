@@ -7,21 +7,21 @@ using Plots
 import YAML
 
 export IonTrap,
-        ions,
-        linear_equilibrium_positions,
-        LinearChain,
-        comfrequencies,
-        selectedmodes,
-        full_normal_mode_description,
-        modes,
-        xmodes,
-        ymodes,
-        zmodes,
-        modecutoff!,
-        length,
-        ionpositions,
-        LinearChain_fromyaml,
-        visualize
+    ions,
+    linear_equilibrium_positions,
+    LinearChain,
+    comfrequencies,
+    selectedmodes,
+    full_normal_mode_description,
+    modes,
+    xmodes,
+    ymodes,
+    zmodes,
+    modecutoff!,
+    length,
+    ionpositions,
+    LinearChain_fromyaml,
+    visualize
 
 """
     IonTrap
@@ -69,11 +69,13 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
     comfrequencies::NamedTuple{(:x, :y, :z)}
     selectedmodes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     ionpositions::Vector{<:Real}
-    
-    function LinearChain(; 
-            ions::Vector{<:Ion}, comfrequencies::NamedTuple, 
-            selectedmodes::NamedTuple, N::Int=10
-        )
+
+    function LinearChain(;
+        ions::Vector{<:Ion},
+        comfrequencies::NamedTuple,
+        selectedmodes::NamedTuple,
+        N::Int=10
+    )
         num_ions = length(ions)
         selectedmodes = _construct_vibrational_modes(selectedmodes, num_ions)
         warn = nothing
@@ -98,7 +100,7 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
         end
         l = linear_equilibrium_positions(num_ions)
         kz = searchfor_trappingpotential_parameters(ions, comfrequencies)[1]
-        l0 = (e^2 / (4π * ϵ₀ * kz))^(1/3)
+        l0 = (e^2 / (4π * ϵ₀ * kz))^(1 / 3)
         ionpositions = l * l0
         _setionproperties(ions, ionpositions)
         return new(ions, comfrequencies, vm, ionpositions)
@@ -135,14 +137,12 @@ function LinearChain_fromyaml(; ions::Vector{<:Ion}, yaml::String, N::Int=10)
     # comfrequencies = (x=NaN, y=NaN, z=NaN)
     yaml = YAML.load_file(yaml)
     k = keys(yaml)
-    @assert "ionpositions" in k (
-        "yml file must have a key 'ionpositions'"
-    )
+    @assert "ionpositions" in k ("yml file must have a key 'ionpositions'")
     ionpositions = yaml["ionpositions"]
     @assert length(ionpositions) == num_ions (
         "length(ionpositions) must equal length(ions)"
     )
-    vm = Dict("x" => [], "y" => [], "z" =>[])
+    vm = Dict("x" => [], "y" => [], "z" => [])
     for axis in axes
         if axis in k
             axismodes = yaml[axis]
@@ -163,10 +163,10 @@ function LinearChain_fromyaml(; ions::Vector{<:Ion}, yaml::String, N::Int=10)
     end
     modes = (x=vm["x"], y=vm["y"], z=vm["z"])
     vm = (
-            x=Vector{VibrationalMode}(undef, 0),
-            y=Vector{VibrationalMode}(undef, 0),
-            z=Vector{VibrationalMode}(undef, 0)
-        )
+        x=Vector{VibrationalMode}(undef, 0),
+        y=Vector{VibrationalMode}(undef, 0),
+        z=Vector{VibrationalMode}(undef, 0)
+    )
     for (i, axis) in enumerate(axes), mode in modes[Symbol(axis)]
         push!(vm[i], VibrationalMode(mode..., axis=axes_dict[axis], N=N))
     end
@@ -202,9 +202,7 @@ function linear_equilibrium_positions(N::Int, Q::Vector{Int})
     function f!(F, x, N)
         for i in 1:N
             F[i] = (
-                Q[i] * x[i] 
-                - sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in 1:(i-1)]) 
-                + sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in (i+1):N])
+                Q[i] * x[i] - sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in 1:(i-1)]) + sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in (i+1):N])
             )
         end
     end
@@ -217,7 +215,7 @@ function linear_equilibrium_positions(N::Int, Q::Vector{Int})
         initial_x =
             [(2.018 / N^0.559) * i for i in filter(x -> x ≠ 0, collect((-N÷2):(N÷2)))]
     end
-    sol = nlsolve((F, x) -> f!(F, x, N), initial_x, method = :newton)
+    sol = nlsolve((F, x) -> f!(F, x, N), initial_x, method=:newton)
     # clean up values
     sol = round.(sol.zero, digits=6)
     for i in eachindex(sol)  # remove annoying signed zeros
@@ -229,8 +227,9 @@ function linear_equilibrium_positions(N::Int, Q::Vector{Int})
 end
 
 linear_equilibrium_positions(ions::Vector{<:Ion}) = linear_equilibrium_positions(
-        length(ions), [ion.speciesproperties.charge for ion in ions]
-    )
+    length(ions),
+    [ion.speciesproperties.charge for ion in ions]
+)
 
 linear_equilibrium_positions(N::Int) = linear_equilibrium_positions(N, ones(Int, N))
 
@@ -239,10 +238,14 @@ This is the Jacobian for the force of the ions in the chain due to all of the ot
 Diagonalize it to find the normal modes of motion.
 =#
 function diagonalize_Kij(
-        M_actual::Vector{<:Real}, Q::Vector{<:Int}, axis::NamedTuple{(:x, :y, :z)}, 
-        kz::Real, P::Real, kr::Real; 
-        optimize=false
-    )
+    M_actual::Vector{<:Real},
+    Q::Vector{<:Int},
+    axis::NamedTuple{(:x, :y, :z)},
+    kz::Real,
+    P::Real,
+    kr::Real;
+    optimize=false
+)
     N = length(M_actual)
     maxM = maximum(M_actual)
     M = M_actual / maxM  # scale M_actual, so masses are order unity
@@ -259,10 +262,10 @@ function diagonalize_Kij(
     =#
     if axis == x̂
         a = 1
-        kDC =  -kz/2 + 3kr/4  # kx
+        kDC = -kz / 2 + 3kr / 4  # kx
     elseif axis == ŷ
         a = 1
-        kDC = -kz/2 - 3kr/4 # ky
+        kDC = -kz / 2 - 3kr / 4 # ky
     elseif axis == ẑ
         a = -2
         P = 0
@@ -273,7 +276,9 @@ function diagonalize_Kij(
     K = Array{Real}(undef, N, N)
     for i in 1:N, j in 1:N
         if i ≡ j
-            K[i, j] = Q[i] * (P/M[i] + kDC) / kz - a * sum([Q[i] * Q[p] / abs(l[j] - l[p])^3 for p in 1:N if p != j])
+            K[i, j] =
+                Q[i] * (P / M[i] + kDC) / kz -
+                a * sum([Q[i] * Q[p] / abs(l[j] - l[p])^3 for p in 1:N if p != j])
         else
             K[i, j] = a * Q[i] * Q[j] / abs(l[j] - l[i])^3
         end
@@ -311,14 +316,15 @@ function diagonalize_Kij(
         v = view(bvectors, :, i)
         _sparsify!(v, 1e-6)
         for j in 1:N
-            v ./= M[j]  
+            v ./= M[j]
         end
         # normalization takes care of any remaining global scalings introduced for convenience
         normalize!(v)
         v .*= sign(v[1])
     end
 
-    sortedresults = sort([(bcleanedvalues[i], bvectors[:, i]) for i in 1:length(bcleanedvalues)])
+    sortedresults =
+        sort([(bcleanedvalues[i], bvectors[:, i]) for i in 1:length(bcleanedvalues)])
     if axis == ẑ
         # axial modes are sorted from lowest to highest eigenfrequency
         return sortedresults
@@ -329,13 +335,21 @@ function diagonalize_Kij(
 end
 
 diagonalize_Kij(
-        ions::Vector{<:Ion}, axis::NamedTuple{(:x, :y, :z)}, 
-        kz::Real, P::Real, kr::Real; 
-        optimize=false
-    ) = diagonalize_Kij(
-            [mass(ion) for ion in ions], [ion.speciesproperties.charge for ion in ions],
-            axis, kz, P, kr, optimize=optimize
-        )
+    ions::Vector{<:Ion},
+    axis::NamedTuple{(:x, :y, :z)},
+    kz::Real,
+    P::Real,
+    kr::Real;
+    optimize=false
+) = diagonalize_Kij(
+    [mass(ion) for ion in ions],
+    [ion.speciesproperties.charge for ion in ions],
+    axis,
+    kz,
+    P,
+    kr,
+    optimize=optimize
+)
 
 #=
 This performs the same function as diagonalize_Kij, but for a homogeneous chain where
@@ -344,8 +358,10 @@ terms of the characteristic_frequencies, which, in this case are the uniqueCOM f
 Then we can just diagonalize Kij directly instead of having to optimize.
 =#
 function diagonalize_Kij_for_homogeneous_chain(
-        N::Int, com::NamedTuple{(:x, :y, :z)}, axis::NamedTuple{(:x, :y, :z)}
-    )
+    N::Int,
+    com::NamedTuple{(:x, :y, :z)},
+    axis::NamedTuple{(:x, :y, :z)}
+)
     axis == ẑ ? a = 2 : a = -1
     l = linear_equilibrium_positions(N)
     axis_dict = Dict([(x̂, :x), (ŷ, :y), (ẑ, :z)])
@@ -389,12 +405,17 @@ structure) and then return a quantity describing how far the computed eigenfrequ
 are from the targets.
 =#
 function sequentially_diagonalize(
-        M::Vector{<:Real}, Q::Vector{<:Int}, target_eigenfrequencies::NamedTuple{(:x, :y, :z)}, 
-        kz::Real, P::Real, kr::Real, just_y=false
-    )
+    M::Vector{<:Real},
+    Q::Vector{<:Int},
+    target_eigenfrequencies::NamedTuple{(:x, :y, :z)},
+    kz::Real,
+    P::Real,
+    kr::Real,
+    just_y=false
+)
     N = length(M)
     axes = just_y ? [ŷ] : [x̂, ŷ]
-    axes_dict = Dict(x̂=>:x, ŷ=>:y)
+    axes_dict = Dict(x̂ => :x, ŷ => :y)
     computed_eigenfrequencies = []
     for i in eachindex(axes)
         axis = axes[i]
@@ -403,23 +424,34 @@ function sequentially_diagonalize(
     end
     difference = 0
     for i in eachindex(computed_eigenfrequencies)
-        difference += abs(computed_eigenfrequencies[i] - target_eigenfrequencies[axes_dict[axes[i]]])
+        difference +=
+            abs(computed_eigenfrequencies[i] - target_eigenfrequencies[axes_dict[axes[i]]])
     end
     return difference
 end
 
 sequentially_diagonalize(
-        ions::Vector{<:Ion}, target_eigenfrequencies::NamedTuple{(:x, :y, :z)}, 
-        kz::Real, P::Real, kr::Real,
-        just_y=false
-    ) = sequentially_diagonalize(
-            [mass(ion) for ion in ions], [ion.speciesproperties.charge for ion in ions],
-            target_eigenfrequencies, kz, P, kr, just_y=just_y
-        )
+    ions::Vector{<:Ion},
+    target_eigenfrequencies::NamedTuple{(:x, :y, :z)},
+    kz::Real,
+    P::Real,
+    kr::Real,
+    just_y=false
+) = sequentially_diagonalize(
+    [mass(ion) for ion in ions],
+    [ion.speciesproperties.charge for ion in ions],
+    target_eigenfrequencies,
+    kz,
+    P,
+    kr,
+    just_y=just_y
+)
 
 function searchfor_trappingpotential_parameters(
-        M::Vector{<:Real}, Q::Vector{<:Int}, target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
-    )
+    M::Vector{<:Real},
+    Q::Vector{<:Int},
+    target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
+)
     maxM = maximum(M)
     value = diagonalize_Kij(M, Q, ẑ, maxM, 0, 0; optimize=true)
     kz = (target_eigenfrequencies.z / value)^2 * maxM
@@ -427,10 +459,12 @@ function searchfor_trappingpotential_parameters(
     upperbounds = [Inf, Inf]
     difference = 0
     if target_eigenfrequencies.x != target_eigenfrequencies.y
-        initial = [10kz, kz/2]
+        initial = [10kz, kz / 2]
         res = optimize(
-            x -> sequentially_diagonalize(M, Q, target_eigenfrequencies, kz, x[1], x[2]),
-            lowerbounds, upperbounds, 
+            x ->
+                sequentially_diagonalize(M, Q, target_eigenfrequencies, kz, x[1], x[2]),
+            lowerbounds,
+            upperbounds,
             initial,
             Fminbox(NelderMead()),
             Optim.Options(g_abstol=1e-12, g_reltol=1e-6),
@@ -444,7 +478,8 @@ function searchfor_trappingpotential_parameters(
         initial = [10kz]
         res = optimize(
             x -> sequentially_diagonalize(M, Q, target_eigenfrequencies, kz, x[1], 0),
-            lowerbounds[1:1], upperbounds[1:1], 
+            lowerbounds[1:1],
+            upperbounds[1:1],
             initial[1:1],
             Fminbox(NelderMead()),
             Optim.Options(g_abstol=1e-6, g_reltol=1e-6),
@@ -458,7 +493,7 @@ function searchfor_trappingpotential_parameters(
     only_positive_eigenvalues = all(vcat(xfreqs, yfreqs) .> 0)
     only_nonnegative_trapping_parameters = all(res .>= 0)
     error_string = (
-    "Solver failed to find a normal mode structure compatible with `characteristicfrequencies`."
+        "Solver failed to find a normal mode structure compatible with `characteristicfrequencies`."
     )
     # make sure optimal values are actually close to target_eigenfrequencies
     @assert difference < 1e-3 error_string * " [1]"
@@ -471,13 +506,15 @@ function searchfor_trappingpotential_parameters(
 
     return res  # This is kz, P, kr
 end
-    
+
 searchfor_trappingpotential_parameters(
-        ions::Vector{<:Ion}, target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
-    ) = searchfor_trappingpotential_parameters(
-            [mass(ion) for ion in ions], [ion.speciesproperties.charge for ion in ions],
-            target_eigenfrequencies
-        )
+    ions::Vector{<:Ion},
+    target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
+) = searchfor_trappingpotential_parameters(
+    [mass(ion) for ion in ions],
+    [ion.speciesproperties.charge for ion in ions],
+    target_eigenfrequencies
+)
 
 
 #############################################################################################
@@ -503,7 +540,10 @@ frequency [Hz] and the second element is a vector describing the participation o
 at that vibrational frequency (i.e. the normal mode eigenvector corresponding to that 
 eigenfrequency).
 """
-function full_normal_mode_description(ions::Vector{<:Ion}, comfreqs::NamedTuple{(:x, :y, :z)})
+function full_normal_mode_description(
+    ions::Vector{<:Ion},
+    comfreqs::NamedTuple{(:x, :y, :z)}
+)
     @assert !isnan(comfreqs.x) "This function doesn't work for user defined mode structure."
     trappingparams = searchfor_trappingpotential_parameters(ions, comfreqs)
     normalmodes = (
@@ -514,9 +554,8 @@ function full_normal_mode_description(ions::Vector{<:Ion}, comfreqs::NamedTuple{
     return normalmodes
 end
 
-full_normal_mode_description(lc::LinearChain) = full_normal_mode_description(
-    ions(lc), comfrequencies(lc)
-)
+full_normal_mode_description(lc::LinearChain) =
+    full_normal_mode_description(ions(lc), comfrequencies(lc))
 
 """
     modes(lc::LinearChain)
@@ -607,7 +646,8 @@ function _construct_vibrational_modes(x, num_ions)
                     end
                 end
                 flattenedx = reduce(
-                    vcat, [typeof(i)<:UnitRange ? collect(i) : i for i in elscreened]
+                    vcat,
+                    [typeof(i) <: UnitRange ? collect(i) : i for i in elscreened]
                 )
             else
                 flattenedx = []
@@ -644,10 +684,7 @@ Note that the indexing refers to the full normal mode description and not the su
 """
 function visualize(lc::LinearChain, axis, modes; format="bars")
     ion_list = ions(lc)
-    axes_dict = Dict(
-        "x" => :x, "y" => :y, "z" => :z, 
-        x̂ => :x, ŷ => :y, ẑ => :z
-    )
+    axes_dict = Dict("x" => :x, "y" => :y, "z" => :z, x̂ => :x, ŷ => :y, ẑ => :z)
     direction = axes_dict[axis]
     radialplane = direction in [:x, :y] ? true : false
     fnm = full_normal_mode_description(ion_list, comfrequencies(lc))[direction]
@@ -662,9 +699,7 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
     if Colon in indextypes
         indices = [1:num_ions...]
     elseif UnitRange{Int} in indextypes
-        indices = reduce(
-            vcat, [typeof(i)<:UnitRange ? collect(i) : i for i in modes]
-        )
+        indices = reduce(vcat, [typeof(i) <: UnitRange ? collect(i) : i for i in modes])
     else
         indices = modes
     end
@@ -673,9 +708,17 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
     legend_plot = plot()
     for label in unique_ion_labels
         plot!(
-            [], [], color_palette=palette(:tab10),
-            label=" "*label, lw=10, legend=:top, legendcolumns=1, 
-            grid=false, showaxis=false, legendfontsize=15, foreground_color_legend=nothing
+            [],
+            [],
+            color_palette=palette(:tab10),
+            label=" " * label,
+            lw=10,
+            legend=:top,
+            legendcolumns=1,
+            grid=false,
+            showaxis=false,
+            legendfontsize=15,
+            foreground_color_legend=nothing
         )
     end
     for mode in modes
@@ -685,19 +728,35 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
             push!(
                 subplots,
                 bar(
-                    v, xaxis=false, 
-                    title="$frequency MHz", legend=false, color=color_list, 
-                    color_palette=palette(:tab10), label=false, yticks=false, showaxis=false
+                    v,
+                    xaxis=false,
+                    title="$frequency MHz",
+                    legend=false,
+                    color=color_list,
+                    color_palette=palette(:tab10),
+                    label=false,
+                    yticks=false,
+                    showaxis=false
                 )
             )
         elseif format == "circles"
             xpos = linear_equilibrium_positions(num_ions)
             GR.setarrowsize(0.75)
             scatter(
-                xpos, zeros(length(xpos)), markersize=15, bg =:white, showaxis=false, grid=false, 
-                markerstrokecolor=:white, ylims=[-1, 1], xlim=[xpos[1]-0.5, 
-                xpos[end]+0.5], size=(1200, 300), title="$frequency MHz", legend=false,
-                color_palette=palette(:tab10), markercolor=color_list
+                xpos,
+                zeros(length(xpos)),
+                markersize=15,
+                bg=:white,
+                showaxis=false,
+                grid=false,
+                markerstrokecolor=:white,
+                ylims=[-1, 1],
+                xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
+                size=(1200, 300),
+                title="$frequency MHz",
+                legend=false,
+                color_palette=palette(:tab10),
+                markercolor=color_list
             )
             offset_vector = copy(v)
             for i in eachindex(offset_vector)
@@ -709,19 +768,25 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
             end
             if !radialplane
                 push!(
-                    subplots, 
+                    subplots,
                     quiver!(
-                            xpos, zeros(num_ions), quiver=(offset_vector/2, zeros(num_ions)), 
-                            lw=3, color=:black
-                        )
+                        xpos,
+                        zeros(num_ions),
+                        quiver=(offset_vector / 2, zeros(num_ions)),
+                        lw=3,
+                        color=:black
+                    )
                 )
             else
                 push!(
                     subplots,
                     quiver!(
-                            xpos, zeros(num_ions), quiver=(zeros(num_ions), offset_vector), 
-                            lw=3, color=:black
-                        )
+                        xpos,
+                        zeros(num_ions),
+                        quiver=(zeros(num_ions), offset_vector),
+                        lw=3,
+                        color=:black
+                    )
                 )
             end
         end
@@ -753,9 +818,12 @@ function visualize(vm::VibrationalMode; format="bars")
     v = vm.modestructure
     if format == "bars"
         bar(
-            v, xticks=(1:4, ones(length(v))), xaxis=false, 
-            ylabel="Relative participation\nof ion in mode", 
-            title="$frequency MHz", legend=false
+            v,
+            xticks=(1:4, ones(length(v))),
+            xaxis=false,
+            ylabel="Relative participation\nof ion in mode",
+            title="$frequency MHz",
+            legend=false
         )
         hline!([0], label=false, lc=:black)
     elseif format == "circles"
@@ -763,9 +831,19 @@ function visualize(vm::VibrationalMode; format="bars")
         xpos = linear_equilibrium_positions(N)
         GR.setarrowsize(0.75)
         scatter(
-            xpos, zeros(length(xpos)), markersize=15, bg =:white, showaxis=false, grid=false, 
-            markerstrokecolor=:white, markercolor=:red3, ylims=[-1, 1], xlim=[xpos[1]-0.5, 
-            xpos[end]+0.5], size=(1200, 300), title="$frequency MHz", legend=false
+            xpos,
+            zeros(length(xpos)),
+            markersize=15,
+            bg=:white,
+            showaxis=false,
+            grid=false,
+            markerstrokecolor=:white,
+            markercolor=:red3,
+            ylims=[-1, 1],
+            xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
+            size=(1200, 300),
+            title="$frequency MHz",
+            legend=false
         )
         offset_vector = copy(v)
         for i in eachindex(offset_vector)
@@ -776,7 +854,13 @@ function visualize(vm::VibrationalMode; format="bars")
             end
         end
         if !radialplane
-            quiver!(xpos, zeros(N), quiver=(offset_vector/2, zeros(N)), lw=3, color=:black)
+            quiver!(
+                xpos,
+                zeros(N),
+                quiver=(offset_vector / 2, zeros(N)),
+                lw=3,
+                color=:black
+            )
         else
             quiver!(xpos, zeros(N), quiver=(zeros(N), offset_vector), lw=3, color=:black)
         end
