@@ -3,12 +3,12 @@ using NLsolve: nlsolve
 using Statistics: mean
 using Optim
 using .PhysicalConstants: e, ϵ₀
+using Plots
 
 export IonTrap,
     ions,
     linear_equilibrium_positions,
     LinearChain,
-    characteristic_length_scale,
     comfrequencies,
     selectedmodes,
     full_normal_mode_description,
@@ -16,7 +16,8 @@ export IonTrap,
     xmodes,
     ymodes,
     zmodes,
-    modecutoff!
+    modecutoff!,
+    length
 
 """
     IonTrap
@@ -34,40 +35,42 @@ ions(I::IonTrap) = I.ions
 
 """
     LinearChain(;
-            ions::Vector{Ion},
-            comfrequencies::NamedTuple{(:x,:y,:z)},
-            selectedmodes::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}
+            ions::Vector{Ion}, comfrequencies::NamedTuple{(:x,:y,:z)},
+            selectedmodes::NamedTuple{(:x,:y,:z), N::Int=10
         )
 
-Contains all of the information necessary to describe a collection of ions trapped in a 3D
-harmonic potential and forming a linear coulomb crystal.
+Generates and stores all of the information necessary to describe a collection of ions trapped 
+in a 3D harmonic potential and forming a linear coulomb crystal. Relevant to calculating the
+normal mode structure of the linear chain is the charge, mass  and ordering of the ions.
 
 **user-defined fields**
-* `ions::Vector{Ion}`: a list of ions that compose the linear Coulomb crystal
-* `comfrequencies::NamedTuple{(:x,:y,:z),Tuple{Vararg{Vector{VibrationalMode},3}}}`:
-    Describes the COM frequencies `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be
-    parallel to the crystal's symmetry axis.
+* `ions::Vector{Ion}`: A list of ions that compose the linear Coulomb crystal
+* `comfrequencies::NamedTuple{(:x,:y,:z)`: Describes the COM frequencies 
+    `(x=ν_x, y=ν_y, z=ν_z)`. The ``z``-axis is taken to be along the crystal's axis of 
+    symmetry. Note that these only correspond to true COM modes if all ions have the same
+    mass, otherwise this is a misnomer and corresponds to the smallest (largest) eigenfrequency
+    mode in the axial (radial) directions.
 * `selectedmodes::NamedTuple{(:x,:y,:z)}`:  e.g. `selectedmodes=(x=[1], y=[2], z=[1,2])`.
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest
-    mode away from the COM for that axis. For example, `selectedmodes=(z=[2])` would
-    specify the axial stretch mode. These are the modes that will be modeled in the chain.
-    Note: `selectedmodes=(x=[],y=[],z=[1])`, `selectedmodes=(y=[],z=[1])`
+    mode away from the COM (see note above about meaning of "COM") for that axis. For example, 
+    `selectedmodes=(z=[2])` would specify the axial stretch mode. These are the modes that will 
+    be modeled in the chain.Note: `selectedmodes=(x=[],y=[],z=[1])`, `selectedmodes=(y=[],z=[1])`
     and `selectedmodes=(;z=[1])` are all acceptable and equivalent.
+* `N::Int=10`: The Hilbert space dimension for each normal mode.
+**derived fields**
+* `ionpositions::Vector{<:Real}`: The relative positions of the ions in meters.  
 """
 struct LinearChain <: IonTrap  # Note: this is not a mutable struct
     ions::Vector{<:Ion}
     comfrequencies::NamedTuple{(:x, :y, :z)}
     selectedmodes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
-    function LinearChain(;
-        ions,
-        comfrequencies::NamedTuple,
-        selectedmodes::NamedTuple,
-        N=10
-    )
+    ionpositions::Vector{<:Real}
+    N::Int
+    function LinearChain(; ions, comfrequencies, selectedmodes, N=10, ionpositions=[])
+        num_ions = length(ions)
         selectedmodes = _construct_vibrational_modes(selectedmodes)
         warn = nothing
-        for i in 1:length(ions), j in (i+1):length(ions)
-            @assert typeof(ions[i]) == typeof(ions[j]) "multispecies chains not yet supported; all ions in chain must be of same species"
+        for i in 1:num_ions, j in (i+1):num_ions
             if ions[j] ≡ ions[i]
                 ions[j] = copy(ions[i])
                 if isnothing(warn)
@@ -76,28 +79,25 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
                 end
             end
         end
-        nions = length(ions)
-        A = (
-            x=Anm(nions, comfrequencies, x̂),
-            y=Anm(nions, comfrequencies, ŷ),
-            z=Anm(nions, comfrequencies, ẑ)
-        )
+        normalmodes = full_normal_mode_description(ions, comfrequencies)
         vm = (
             x=Vector{VibrationalMode}(undef, 0),
             y=Vector{VibrationalMode}(undef, 0),
             z=Vector{VibrationalMode}(undef, 0)
         )
-        r = [x̂, ŷ, ẑ]
+        axes = [x̂, ŷ, ẑ]
         for (i, modes) in enumerate(selectedmodes), mode in modes
-            push!(vm[i], VibrationalMode(A[i][mode]..., axis=r[i], N=N))
+            push!(vm[i], VibrationalMode(normalmodes[i][mode]..., axis=axes[i], N=N))
         end
-        l = linear_equilibrium_positions(length(ions))
-        l0 = characteristic_length_scale(mass(ions[1]), comfrequencies.z) # Needs to be changed when allowing for multi-species chains. Current workaround takes the mass of only the first ion to define the characteristic length scale.
+        l = linear_equilibrium_positions(num_ions)
+        kz = searchfor_trappingpotential_parameters(ions, comfrequencies)[1]
+        l0 = (e^2 / (4π * ϵ₀ * kz))^(1/3)
+        ionpositions = l * l0
         for (i, ion) in enumerate(ions)
             Core.setproperty!(ion, :ionnumber, i)
-            Core.setproperty!(ion, :ionposition, l[i] * l0)
+            Core.setproperty!(ion, :ionposition, ionpositions[i])
         end
-        return new(ions, comfrequencies, vm)
+        return new(ions, comfrequencies, vm, ionpositions)
     end
 end
 
@@ -414,21 +414,25 @@ Returns `chain.selectedmodes`
 selectedmodes(chain::LinearChain) = chain.selectedmodes
 
 """
-    full_normal_mode_description(chain::LinearChain)::NamedTuple{(:x,:y,:z)}
+    full_normal_mode_description(chain::LinearChain)<:NamedTuple{(:x,:y,:z)}
 For each axis, this contains an array of tuples where the first element is a vibrational
-frequency [Hz] and the second element is a vector describing the corresponding normalized
-normal mode structure.
+frequency [Hz] and the second element is a vector describing the participation of each ion
+at that vibrational frequency (i.e. the normal mode eigenvector corresponding to that 
+eigenfrequency).
 """
-function full_normal_mode_description(chain::LinearChain)
-    nions = length(ions(chain))
-    com_freqs = comfrequencies(chain)
-    A = (
-        x=Anm(nions, com_freqs, x̂),
-        y=Anm(nions, com_freqs, ŷ),
-        z=Anm(nions, com_freqs, ẑ)
+function full_normal_mode_description(ions::Vector{<:Ion}, comfreqs::NamedTuple{(:x, :y, :z)})
+    trappingparams = searchfor_trappingpotential_parameters(ions, comfreqs)
+    normalmodes = (
+        x=diagonalize_Kij(ions, x̂, trappingparams...),
+        y=diagonalize_Kij(ions, ŷ, trappingparams...),
+        z=diagonalize_Kij(ions, ẑ, trappingparams...)
     )
-    return A
+    return normalmodes
 end
+
+full_normal_mode_description(lc::LinearChain) = full_normal_mode_description(
+    ions(lc), comfrequencies(lc)
+)
 
 """
     modes(lc::LinearChain)
@@ -510,9 +514,6 @@ function _construct_vibrational_modes(x)
     return (; zip(xyz, values)...)
 end
 
-"""
-    characteristic_length_scale(M::Real, ν::Real)
-Returns the characteristic length scale for a linear chain of identical ions of mass `M`
-and with axial trap frequency 2π × ν.
-"""
 characteristic_length_scale(M::Real, ν::Real) = (e^2 / (4π * ϵ₀ * M * (2π * ν)^2))^(1/3)
+
+Base.length(lc::LinearChain) = length(lc.ions)
