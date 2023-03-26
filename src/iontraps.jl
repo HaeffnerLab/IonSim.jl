@@ -575,8 +575,10 @@ end
 Same thing but explicitly provide the masses `M` and charges `Q` of the ions.
 """
 function full_normal_mode_description(
-    M::Vector{<:Real}, Q::Vector{<:Int}, comfreqs::NamedTuple{(:x, :y, :z)}
-) 
+    M::Vector{<:Real},
+    Q::Vector{<:Int},
+    comfreqs::NamedTuple{(:x, :y, :z)}
+)
     @assert length(M) == length(Q) "length(M) ≠ length(Q)"
     trappingparams = searchfor_trappingpotential_parameters(M, Q, comfreqs)
     normalmodes = (
@@ -898,9 +900,10 @@ Same thing but input a normal mode description as a tuple with first element the
 and second the eigenvector.
 """
 function visualize(
-        vm::Tuple{Float64, Vector{Float64}}, axis::NamedTuple{(:x, :y, :z)}; 
-        format="bars"
-    )
+    vm::Tuple{Float64, Vector{Float64}},
+    axis::NamedTuple{(:x, :y, :z)};
+    format="bars"
+)
     VM = VibrationalMode(vm..., axis=axis, N=1)
     visualize(VM; format=format)
 end
