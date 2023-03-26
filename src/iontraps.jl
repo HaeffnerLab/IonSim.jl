@@ -64,7 +64,7 @@ normal mode structure of the linear chain is the charge, mass  and ordering of t
 **derived fields**
 * `ionpositions::Vector{<:Real}`: The relative positions of the ions in meters.  
 """
-struct LinearChain <: IonTrap 
+struct LinearChain <: IonTrap
     ions::Tuple{Vararg{Ion}}
     comfrequencies::NamedTuple{(:x, :y, :z)}
     selectedmodes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
@@ -95,7 +95,7 @@ struct LinearChain <: IonTrap
                 end
             end
         end
-        
+
         normalmodes = full_normal_mode_description(ions, comfrequencies)
         vm = (
             x=Vector{VibrationalMode}(undef, 0),

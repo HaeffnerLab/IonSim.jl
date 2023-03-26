@@ -69,13 +69,11 @@ using IonSim:
         # ions field must be an iterable
         C = Ca40()
         @test_throws AssertionError LinearChain(
-                ions=C,
-                comfrequencies=(x=4, y=4, z=1),
-                selectedmodes=(x=[], y=[], z=[1, 2])
-            )
-        @test_throws AssertionError full_normal_mode_description(
-            C, (x=1, y=1, z=1)
+            ions=C,
+            comfrequencies=(x=4, y=4, z=1),
+            selectedmodes=(x=[], y=[], z=[1, 2])
         )
+        @test_throws AssertionError full_normal_mode_description(C, (x=1, y=1, z=1))
     end
 
     @testset "ion_configurations -- mixed species" begin
