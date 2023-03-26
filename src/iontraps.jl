@@ -779,6 +779,7 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
                     showaxis=false
                 )
             )
+            hline!([0], label=false, lc=:black)
         elseif format == "circles"
             v = map(x -> x == 0 ? NaN : x, v)
             xpos = linear_equilibrium_positions(num_ions)
