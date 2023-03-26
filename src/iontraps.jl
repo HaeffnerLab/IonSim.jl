@@ -39,7 +39,7 @@ ions(I::IonTrap) = I.ions
 
 """
     LinearChain(;
-            ions::Vector{Ion}, comfrequencies::NamedTuple{(:x,:y,:z)},
+            ions, comfrequencies::NamedTuple{(:x,:y,:z)},
             selectedmodes::NamedTuple{(:x,:y,:z), N::Int=10
         )
 
@@ -48,13 +48,13 @@ in a 3D harmonic potential and forming a linear coulomb crystal. Relevant to cal
 normal mode structure of the linear chain is the charge, mass  and ordering of the ions.
 
 **user-defined fields**
-* `ions::Vector{Ion}`: A list of ions that compose the linear Coulomb crystal
+* `ions`: An iterable list of ions that compose the linear Coulomb crystal
 * `comfrequencies::NamedTuple{(:x,:y,:z)`: Describes the COM frequencies 
     `(x=ν_x, y=ν_y, z=ν_z)`. The z-axis is taken to be along the crystal's axis of 
     symmetry. Note that these only correspond to true COM modes if all ions have the same
     mass, otherwise this is a misnomer and corresponds to the smallest (largest) eigenfrequency
     mode in the axial (radial) directions. Note: we assume that `ν_x > ν_y > ν_z`.
-* `selectedmodes::NamedTuple{(:x,:y,:z)}`:  e.g. `selectedmodes=(x=[1], y=[2], z=[1,2])`.
+* `selectedmodes::NamedTuple{(:x,:y,:z)}`:  e.g. `selectedmodes=(x=[1], y=[1, 2:3], z=[:])`.
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest
     mode away from the COM (see note above about meaning of "COM") for that axis. For example, 
     `selectedmodes=(z=[2])` would specify the axial stretch mode. These are the modes that will 
@@ -64,20 +64,27 @@ normal mode structure of the linear chain is the charge, mass  and ordering of t
 **derived fields**
 * `ionpositions::Vector{<:Real}`: The relative positions of the ions in meters.  
 """
-struct LinearChain <: IonTrap  # Note: this is not a mutable struct
-    ions::Vector{<:Ion}
+struct LinearChain <: IonTrap 
+    ions::Tuple{Vararg{Ion}}
     comfrequencies::NamedTuple{(:x, :y, :z)}
     selectedmodes::NamedTuple{(:x, :y, :z), Tuple{Vararg{Vector{VibrationalMode}, 3}}}
     ionpositions::Vector{<:Real}
 
     function LinearChain(;
-        ions::Vector{<:Ion},
+        ions,
         comfrequencies::NamedTuple,
         selectedmodes::NamedTuple,
         N::Int=10
     )
+        try
+            ions = collect(ions)
+        catch
+            AssertionError("`ions` must be an iterable collection of `<:Ion`.") |> throw
+        end
         num_ions = length(ions)
         selectedmodes = _construct_vibrational_modes(selectedmodes, num_ions)
+
+        # shouldn't need this after 
         warn = nothing
         for i in 1:num_ions, j in (i+1):num_ions
             if ions[j] ≡ ions[i]
@@ -88,6 +95,7 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
                 end
             end
         end
+        
         normalmodes = full_normal_mode_description(ions, comfrequencies)
         vm = (
             x=Vector{VibrationalMode}(undef, 0),
@@ -103,19 +111,19 @@ struct LinearChain <: IonTrap  # Note: this is not a mutable struct
         l0 = (e^2 / (4π * ϵ₀ * kz))^(1 / 3)
         ionpositions = l * l0
         _setionproperties(ions, ionpositions)
-        return new(ions, comfrequencies, vm, ionpositions)
+        return new(ions |> Tuple, comfrequencies, vm, ionpositions)
     end
 
-    function LinearChain(ions::Vector{<:Ion}, vm, ionpositions)
+    function LinearChain(ions, vm, ionpositions)
         _setionproperties(ions, ionpositions)
-        new(ions, (x=NaN, y=NaN, z=NaN), vm, ionpositions)
+        new(ions |> Tuple, (x=NaN, y=NaN, z=NaN), vm, ionpositions)
     end
 end
 
 """
-    LinearChain_fromyaml(ions::Vector{<:Ion}, yml::String; N::Int=10)
+    LinearChain_fromyaml(ions::Vector{<:Ion}, yaml::String; N::Int=10)
 
-Load normal mode structure from the specified `yml` file. It's up to the user to enforce
+Load normal mode structure from the specified `yaml` file. It's up to the user to enforce
 physicality.
 ````
 x:
@@ -524,28 +532,28 @@ searchfor_trappingpotential_parameters(
 #############################################################################################
 
 """
-    comfrequencies(chain::LinearChain)
-Returns `chain.comfrequencies`
-"""
-comfrequencies(chain::LinearChain) = chain.comfrequencies
+    full_normal_mode_description(chain::LinearChain)
 
-"""
-    selectedmodes(chain::LinearChain)
-Returns `chain.selectedmodes`
-"""
-selectedmodes(chain::LinearChain) = chain.selectedmodes
-
-"""
-    full_normal_mode_description(chain::LinearChain)<:NamedTuple{(:x,:y,:z)}
 For each axis, this contains an array of tuples where the first element is a vibrational
 frequency [Hz] and the second element is a vector describing the participation of each ion
 at that vibrational frequency (i.e. the normal mode eigenvector corresponding to that 
 eigenfrequency).
 """
-function full_normal_mode_description(
-    ions::Vector{<:Ion},
-    comfreqs::NamedTuple{(:x, :y, :z)}
-)
+full_normal_mode_description(lc::LinearChain) =
+    full_normal_mode_description(ions(lc), comfrequencies(lc))
+
+"""
+    full_normal_mode_description(ions, comfreqs::NamedTuple{(:x, :y, :z)})
+
+Same thing but with an iterable list of `ions` and `NamedTuple` of COM frequencies
+explicitly given.
+"""
+function full_normal_mode_description(ions, comfreqs::NamedTuple{(:x, :y, :z)})
+    try
+        ions = collect(ions)
+    catch
+        AssertionError("`ions` must be an iterable collection of `<:Ion`.") |> throw
+    end
     @assert !isnan(comfreqs.x) "This function doesn't work for user defined mode structure."
     trappingparams = searchfor_trappingpotential_parameters(ions, comfreqs)
     normalmodes = (
@@ -554,18 +562,6 @@ function full_normal_mode_description(
         z=diagonalize_Kij(ions, ẑ, trappingparams...)
     )
     return normalmodes
-end
-
-full_normal_mode_description(lc::LinearChain) =
-    full_normal_mode_description(ions(lc), comfrequencies(lc))
-
-"""
-    modes(lc::LinearChain)
-Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
-The order is `[lc.x..., lc.y..., lc.z...]`.
-"""
-function modes(lc::LinearChain)
-    return collect(Iterators.flatten(lc.selectedmodes))
 end
 
 """
@@ -587,6 +583,27 @@ function full_normal_mode_description(
         z=diagonalize_Kij(M, Q, ẑ, trappingparams...)
     )
     return normalmodes
+end
+
+"""
+    comfrequencies(chain::LinearChain)
+Returns `chain.comfrequencies`
+"""
+comfrequencies(chain::LinearChain) = chain.comfrequencies
+
+"""
+    selectedmodes(chain::LinearChain)
+Returns `chain.selectedmodes`
+"""
+selectedmodes(chain::LinearChain) = chain.selectedmodes
+
+"""
+    modes(lc::LinearChain)
+Returns an array of all of the selected `VibrationalModes` in the `LinearChain`.
+The order is `[lc.x..., lc.y..., lc.z...]`.
+"""
+function modes(lc::LinearChain)
+    return collect(Iterators.flatten(lc.selectedmodes))
 end
 
 """
