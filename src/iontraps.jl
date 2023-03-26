@@ -413,6 +413,7 @@ function sequentially_diagonalize(
     kr::Real,
     just_y=false
 )
+    @assert length(M) == length(Q) "length(M) ≠ length(Q)"
     N = length(M)
     axes = just_y ? [ŷ] : [x̂, ŷ]
     axes_dict = Dict(x̂ => :x, ŷ => :y)
@@ -452,6 +453,7 @@ function searchfor_trappingpotential_parameters(
     Q::Vector{<:Int},
     target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
 )
+    @assert length(M) == length(Q) "length(M) ≠ length(Q)"
     maxM = maximum(M)
     value = diagonalize_Kij(M, Q, ẑ, maxM, 0, 0; optimize=true)
     kz = (target_eigenfrequencies.z / value)^2 * maxM
@@ -564,6 +566,25 @@ The order is `[lc.x..., lc.y..., lc.z...]`.
 """
 function modes(lc::LinearChain)
     return collect(Iterators.flatten(lc.selectedmodes))
+end
+
+"""
+    function full_normal_mode_description(
+        M::Vector{<:Real}, Q::Vector{<:Int}, comfreqs::NamedTuple{(:x, :y, :z)}
+    )
+Same thing but explicitly provide the masses `M` and charges `Q` of the ions.
+"""
+function full_normal_mode_description(
+    M::Vector{<:Real}, Q::Vector{<:Int}, comfreqs::NamedTuple{(:x, :y, :z)}
+) 
+    @assert length(M) == length(Q) "length(M) ≠ length(Q)"
+    trappingparams = searchfor_trappingpotential_parameters(M, Q, comfreqs)
+    normalmodes = (
+        x=diagonalize_Kij(M, Q, x̂, trappingparams...),
+        y=diagonalize_Kij(M, Q, ŷ, trappingparams...),
+        z=diagonalize_Kij(M, Q, ẑ, trappingparams...)
+    )
+    return normalmodes
 end
 
 """
@@ -773,7 +794,7 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
                         xpos,
                         zeros(num_ions),
                         quiver=(offset_vector / 2, zeros(num_ions)),
-                        lw=3,
+                        lw=2,
                         color=:black
                     )
                 )
@@ -784,7 +805,7 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
                         xpos,
                         zeros(num_ions),
                         quiver=(zeros(num_ions), offset_vector),
-                        lw=3,
+                        lw=2,
                         color=:black
                     )
                 )
@@ -858,7 +879,7 @@ function visualize(vm::VibrationalMode; format="bars")
                 xpos,
                 zeros(N),
                 quiver=(offset_vector / 2, zeros(N)),
-                lw=3,
+                lw=2,
                 color=:black
             )
         else
@@ -866,4 +887,20 @@ function visualize(vm::VibrationalMode; format="bars")
         end
     end
     display(current())
+end
+
+"""
+    visualize(
+        vm::Tuple{Float64, Vector{Float64}}, axis::NamedTuple{(:x, :y, :z)}; format="bars"
+    )
+
+Same thing but input a normal mode description as a tuple with first element the eigenfrequency
+and second the eigenvector.
+"""
+function visualize(
+        vm::Tuple{Float64, Vector{Float64}}, axis::NamedTuple{(:x, :y, :z)}; 
+        format="bars"
+    )
+    VM = VibrationalMode(vm..., axis=axis, N=1)
+    visualize(VM; format=format)
 end
