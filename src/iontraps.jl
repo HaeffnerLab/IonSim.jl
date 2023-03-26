@@ -722,7 +722,7 @@ either "bars" or "circles."
 Note that the indexing refers to the full normal mode description and not the subset 
 `selectedmodes(lc)`.
 """
-function visualize(lc::LinearChain, axis, modes; format="bars")
+function visualize(lc::LinearChain, axis, modes; format="bars", legend=true)
     ion_list = ions(lc)
     axes_dict = Dict("x" => :x, "y" => :y, "z" => :z, x̂ => :x, ŷ => :y, ẑ => :z)
     direction = axes_dict[axis]
@@ -782,39 +782,17 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
             hline!([0], label=false, lc=:black)
         elseif format == "circles"
             v = map(x -> x == 0 ? NaN : x, v)
+            offset = 0.6
+            v = map(x -> x + sign(x) * offset, v)
             xpos = linear_equilibrium_positions(num_ions)
             GR.setarrowsize(0.75)
-            scatter(
-                xpos,
-                zeros(length(xpos)),
-                markersize=15,
-                bg=:white,
-                showaxis=false,
-                grid=false,
-                markerstrokecolor=:white,
-                ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] : [-0.5, 0.5],
-                xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
-                size=(1200, 300),
-                title="$frequency MHz",
-                legend=false,
-                color_palette=palette(:tab10),
-                markercolor=color_list
-            )
-            offset_vector = copy(v)
-            for i in eachindex(offset_vector)
-                if offset_vector[i] > 0
-                    offset_vector[i] += 0.1
-                else
-                    offset_vector[i] -= 0.1
-                end
-            end
             if !radialplane
                 push!(
                     subplots,
-                    quiver!(
+                    quiver(
                         xpos,
                         zeros(num_ions),
-                        quiver=(offset_vector / 2, zeros(num_ions)),
+                        quiver=(v / 3, zeros(num_ions)),
                         lw=2,
                         color=:black
                     )
@@ -822,27 +800,56 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
             else
                 push!(
                     subplots,
-                    quiver!(
+                    quiver(
                         xpos,
                         zeros(num_ions),
-                        quiver=(zeros(num_ions), offset_vector),
+                        quiver=(zeros(num_ions), v),
                         lw=2,
                         color=:black
                     )
                 )
             end
+            scatter!(
+                xpos,
+                zeros(length(xpos)),
+                markersize=15,
+                bg=:white,
+                showaxis=false,
+                grid=false,
+                markerstrokewidth=0,
+                ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] : [-0.5, 0.5],
+                xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
+                size=radialplane ? (500, 500) : (1200, 300),
+                title="$frequency MHz",
+                legend=false,
+                color_palette=palette(:tab10),
+                markercolor=color_list
+            )
         end
     end
-    divbythree = length(modes) ÷ 3
-    modthree = length(modes) % 3
+    nrows = 2
+    divbythree = length(modes) ÷ nrows
+    modthree = length(modes) % nrows
     if divbythree == 0
         l = (modthree + 1, 1)
     elseif modthree == 0
-        l = @layout [grid(1, 1){0.1w} grid(3, divbythree)]
+        if legend
+            l = @layout [grid(1, 1){0.1w} grid(nrows, divbythree)]
+        else
+            l = @layout [grid(nrows, divbythree)]
+        end
     else
-        l = @layout [grid(1, 1){0.1w} grid(3, divbythree) grid(modthree, 1)]
+        if legend
+            l = @layout [grid(1, 1){0.1w} grid(nrows, divbythree) grid(modthree, 1)]
+        else
+            l = @layout [grid(nrows, divbythree) grid(modthree, 1)]
+        end
     end
-    p = plot(legend_plot, subplots..., layout=l)
+    if legend
+        p = plot(legend_plot, subplots..., layout=l)
+    else
+        p = plot(subplots..., layout=l)
+    end
     display(p)
 end
 
@@ -873,10 +880,6 @@ function visualize(vm::VibrationalMode; format="bars")
         N = length(v)
         xpos = linear_equilibrium_positions(N)
         GR.setarrowsize(0.75)
-        println(xpos)
-        println(zeros(length(xpos)))
-        println(radialplane)
-        println(v)
         scatter(
             xpos,
             zeros(length(xpos)),
