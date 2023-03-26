@@ -780,6 +780,7 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
                 )
             )
         elseif format == "circles"
+            v = map(x -> x == 0 ? NaN : x, v)
             xpos = linear_equilibrium_positions(num_ions)
             GR.setarrowsize(0.75)
             scatter(
@@ -867,6 +868,7 @@ function visualize(vm::VibrationalMode; format="bars")
         )
         hline!([0], label=false, lc=:black)
     elseif format == "circles"
+        v = map(x -> x == 0 ? NaN : x, v)
         N = length(v)
         xpos = linear_equilibrium_positions(N)
         GR.setarrowsize(0.75)
