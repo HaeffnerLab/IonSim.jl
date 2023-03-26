@@ -791,7 +791,7 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
                 showaxis=false,
                 grid=false,
                 markerstrokecolor=:white,
-                ylims=[-1, 1],
+                ylim= radialplane ? [minimum(v .- 0.5), maximum(v .+ 0.5)] : [-0.5, 0.5],
                 xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
                 size=(1200, 300),
                 title="$frequency MHz",
@@ -881,11 +881,11 @@ function visualize(vm::VibrationalMode; format="bars")
             grid=false,
             markerstrokecolor=:white,
             markercolor=:red3,
-            ylims=[-1, 1],
+            ylim= radialplane ? [minimum(v .- 0.5), maximum(v .+ 0.5)] : [-0.5, 0.5],
             xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
             size=(1200, 300),
             title="$frequency MHz",
-            legend=false
+            legend=false,
         )
         offset_vector = copy(v)
         for i in eachindex(offset_vector)
