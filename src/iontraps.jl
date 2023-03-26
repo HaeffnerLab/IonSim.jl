@@ -817,7 +817,8 @@ function visualize(lc::LinearChain, axis, modes; format="bars", legend=true)
                 showaxis=false,
                 grid=false,
                 markerstrokewidth=0,
-                ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] : [-0.5, 0.5],
+                ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] :
+                     [-0.5, 0.5],
                 xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
                 size=radialplane ? (500, 500) : (1200, 300),
                 title="$frequency MHz",
@@ -889,7 +890,8 @@ function visualize(vm::VibrationalMode; format="bars")
             grid=false,
             markerstrokecolor=:white,
             markercolor=:red3,
-            ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] : [-0.5, 0.5],
+            ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] :
+                 [-0.5, 0.5],
             xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
             size=(1200, 300),
             title="$frequency MHz",
