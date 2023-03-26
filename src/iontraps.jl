@@ -791,7 +791,7 @@ function visualize(lc::LinearChain, axis, modes; format="bars")
                 showaxis=false,
                 grid=false,
                 markerstrokecolor=:white,
-                ylim= radialplane ? [minimum(v .- 0.5), maximum(v .+ 0.5)] : [-0.5, 0.5],
+                ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] : [-0.5, 0.5],
                 xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
                 size=(1200, 300),
                 title="$frequency MHz",
@@ -872,6 +872,10 @@ function visualize(vm::VibrationalMode; format="bars")
         N = length(v)
         xpos = linear_equilibrium_positions(N)
         GR.setarrowsize(0.75)
+        println(xpos)
+        println(zeros(length(xpos)))
+        println(radialplane)
+        println(v)
         scatter(
             xpos,
             zeros(length(xpos)),
@@ -881,7 +885,7 @@ function visualize(vm::VibrationalMode; format="bars")
             grid=false,
             markerstrokecolor=:white,
             markercolor=:red3,
-            ylim= radialplane ? [minimum(v .- 0.5), maximum(v .+ 0.5)] : [-0.5, 0.5],
+            ylim=radialplane ? [minimum([v..., 0] .- 0.5), maximum([v..., 0] .+ 0.5)] : [-0.5, 0.5],
             xlim=[xpos[1] - 0.5, xpos[end] + 0.5],
             size=(1200, 300),
             title="$frequency MHz",
