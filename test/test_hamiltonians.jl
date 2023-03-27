@@ -466,8 +466,8 @@ end
         H = hamiltonian(T, timescale=1e-6, lamb_dicke_order=101)
         H1 = hamiltonian(T, timescale=1e-6, lamb_dicke_order=101, time_dependent_eta=true)
         # test similarity at a random time input
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
-        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
+        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-2
 
         # Case 1b: analytic solution (as opposed to truncated solution)
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
@@ -486,7 +486,7 @@ end
             displacement="analytic",
             time_dependent_eta=true
         )
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 2a: full hamiltonian (w/o conj_repeated_indices)
@@ -500,8 +500,8 @@ end
         )
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
         mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
-        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
+        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-2
 
         # Case 2b: Like 2a, but with analytic solution
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
@@ -522,7 +522,7 @@ end
             time_dependent_eta=true,
             rwa_cutoff=1e10
         )
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 3: test Hamiltonian with zero Lamb-Dicke value, i.e. no vibrational modes

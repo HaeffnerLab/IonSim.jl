@@ -38,7 +38,8 @@ julia> using Pkg
 julia> Pkg.add("IonSim")
 julia> Pkg.add("IJulia")
 ```
-The last line adds Jupyter compatibility, so you'll have the option to start a Julia kernel from Jupyter notebook.
+The last line adds Jupyter compatibility, so you'll have the option to start a Julia kernel from Jupyter notebook. This is the suggested way
+to interact with IonSim.
 
 ### Updating IonSim
 
