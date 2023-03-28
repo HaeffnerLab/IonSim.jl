@@ -144,7 +144,7 @@ function _createfromconfigobject(config::OrderedDict)
 end
 
 
-DEFAULT_PROPERTIES = Dict();
+DEFAULT_PROPERTIES = Dict()
 
 
 # Define one-shot function to just populate the DEFAULT_PROPERTIES dictionary.
@@ -152,17 +152,14 @@ function _populate_properties()
     config_dir = joinpath(dirname(@__DIR__), "configs", "ions")
     for ion_fname::String in readdir(config_dir)
         full_path = joinpath(config_dir, ion_fname)
-        config_yaml = YAML.load_file(
-            full_path, 
-            dicttype=OrderedDict{String, Any}
-        )
+        config_yaml = YAML.load_file(full_path, dicttype=OrderedDict{String, Any})
         ion_name::String = config_yaml["name"]
         DEFAULT_PROPERTIES[ion_name] = _createfromconfigobject(config_yaml)
     end
 end
 
 
-_populate_properties();
+_populate_properties()
 
 
 end  # Properties module
