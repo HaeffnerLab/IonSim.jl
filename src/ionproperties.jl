@@ -111,7 +111,11 @@ process_nonlinear_zeeman(::Missing) = missing
 """Instantiate from config file"""
 function loadfromconfig(config_filepath::String)
     config = YAML.load_file(config_filepath, dicttype=OrderedDict{String, Any})
+    return _createfromconfigobject(config)
+end
 
+
+function _createfromconfigobject(config::OrderedDict)
     full_level_structure = process_full_level_structure(config["full_level_structure"])
     full_transitions = process_full_transitions(config["full_transitions"])
 
@@ -136,6 +140,29 @@ function loadfromconfig(config_filepath::String)
         gfactors=gfactors,
         nonlinear_zeeman=nonlinear_zeeman
     )
+
 end
+
+
+DEFAULT_PROPERTIES = Dict();
+
+
+# Define one-shot function to just populate the DEFAULT_PROPERTIES dictionary.
+function _populate_properties()
+    config_dir = joinpath(dirname(@__DIR__), "configs", "ions")
+    for ion_fname::String in readdir(config_dir)
+        full_path = joinpath(config_dir, ion_fname)
+        config_yaml = YAML.load_file(
+            full_path, 
+            dicttype=OrderedDict{String, Any}
+        )
+        ion_name::String = config_yaml["name"]
+        DEFAULT_PROPERTIES[ion_name] = _createfromconfigobject(config_yaml)
+    end
+end
+
+
+_populate_properties();
+
 
 end  # Properties module
