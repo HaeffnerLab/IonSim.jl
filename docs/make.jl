@@ -11,21 +11,21 @@ pages = [
         "IonTraps" => [
             "objects/iontraps.md",
             "objects/linearchains.md",
-            "objects/vibrationalmodes.md"
+            "objects/vibrationalmodes.md",
         ],
         "objects/emfields.md",
-        "objects/waveforms.md"
+        "objects/waveforms.md",
         "objects/chambers.md",
     ],
-    "hamiltonian.md"
+    "hamiltonian.md",
     "Simulation" => [
             "timeevolution/solve.md",
             "timeevolution/rotatingframes.md",
-            "timeevolution/technicalnoise.md"   
-            "timevoluiton/quantumnoise.md"
+            "timeevolution/technicalnoise.md",   
+            "timevoluiton/quantumnoise.md",
     ],
     "examples.md",
-    "api.md"
+    "api.md",
 ]
 
 makedocs(
