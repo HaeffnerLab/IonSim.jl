@@ -22,7 +22,7 @@ pages = [
             "timeevolution/solve.md",
             "timeevolution/rotatingframes.md",
             "timeevolution/technicalnoise.md",   
-            "timevoluiton/quantumnoise.md",
+            "timeevolution/quantumnoise.md",
     ],
     "examples.md",
     "api.md",
