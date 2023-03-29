@@ -50,6 +50,8 @@ julia> Pkg.update("IonSim")
 
 Once you've installed IonSim you can take a look at the tutorial or the examples.
 
+\end{section}
+
 <!-- ==============================
      Examples
      ============================== -->
