@@ -44,7 +44,6 @@ makedocs(
         ],
     ),
     build = builddir,
-    sitename = "IonSim.jl",
     pages = pages
 )
 
