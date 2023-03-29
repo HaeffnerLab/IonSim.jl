@@ -2,7 +2,7 @@
   <img src="https://github.com/HaeffnerLab/IonSim.jl/blob/media/logo3_SM.svg?raw=true", width="450px">
 </p>
 
-[![test status](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml/badge.svg)](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml)
+[![][docs-stable-img]][docs-stable-url][![test status](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml/badge.svg)](https://github.com/HaeffnerLab/IonSim.jl/actions/workflows/test.yml)
 [![codecov][codecov-badge]][codecov-url]
 [![License: MIT][license-badge]][license-url]
 
@@ -107,4 +107,7 @@ If you have any questions, please make a GitHub issue.
 [twitter-badge]: https://img.shields.io/twitter/follow/Berkeley_ions.svg?style=social&label=@Berkeley_ions
 
 [logo-url]: https://github.com/HaeffnerLab/IonSim.jl/blob/media/smallest_logo.png?raw=true
+
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://github.com/HaeffnerLab/IonSim.jl
 

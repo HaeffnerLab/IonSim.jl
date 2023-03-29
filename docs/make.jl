@@ -49,5 +49,13 @@ makedocs(
 
 deploydocs(
     repo = "github.com/HaeffnerLab/IonSim.jl.git",
-    push_preview = true
+    target = "build",
+    branch = "gh-pages",
+)
+
+deploydocs(
+    repo = "github.com/m3g/SPGBox.jl.git",
+    target = "build",
+    branch = "gh-pages",
+    # versions = ["stable" => "v^", "v#.#"],
 )
