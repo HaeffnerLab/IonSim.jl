@@ -36,13 +36,13 @@ where ``\hat{a}^{\dagger}_k`` and  ``\hat{a}_k`` satisfy the normal commutation 
 !!! note
     In the above, we've implicitly assumed that the ions were identical in mass and charge. The situation is a bit more complicated when this is no longer true, but IonSim can handle these situations as well.
 
-## Purpose of LinearChain in IonSim
+## Purpose
 
 **DocString**: [`LinearChain`](@ref)
 
 The main purpose of a `LinearChain` object is to organize and store information about the coupled center of mass motion for a chain of ions, which can then be used to construct a [`Chamber`](@ref) as a next step towards simulating a trapped ion experiment. Assuming a harmonic potential confining potential and a linearized, inter-ion Coulomb interaction as described earlier, the structure of this motion is uniquely specified given three frequencies. 
 
-## Buiding a LinearChain in IonSim
+## Buiding a LinearChain
 
 Creating an instance of `LinearChain` requires three arguments:
 
@@ -96,15 +96,23 @@ typeof(selectedmodes(chain).x[1]) <: IonSimBasis
 The normal mode structure can be better understood by using IonSim's `visualize` function:
 
 ```@example lc1
+using Plots # hide
 visualize(chain, ẑ, [:])
+savefig("../assets/zchain.png"); nothing # hide
 ```
+
+![](../assets/zchain.png)
+
 
 ```@example lc1
 visualize(chain, x̂, [:], format="circles")
+savefig("../assets/xchain.png"); nothing # hide
 ```
 
-## Buiding a LinearChain from YAML
-One can alternatively build a `LinearChain` from a yaml file. Suppose the contents of some file `normal_mode.yaml` are 
+![](../assets/xchain.png)
+
+## Buiding from YAML
+One can alternatively build a `LinearChain` from a yaml file. If the file `normal_mode.yaml` has the following contents:
 
 ```yaml
 ---
@@ -119,7 +127,7 @@ y:
 ionpositions: [1,2,3,4]
 ```
 
-Then the syntax is:
+Then this can be used to instantiate a `LinearChain` using:
 
 ```@example lc1
 chain = LinearChain_fromyaml(
@@ -138,10 +146,8 @@ fnm = full_normal_mode_description(mass_list, charge_list, (x=5e6, y=5e6, z=1e6)
 fnm.x
 ```
 
-## Full List of Functions with LinearChain as Argument
+```@example lc1
+visualize(fnm.x[2], ẑ, format="circles")
+savefing("../assets/fullnormalmode.png"); nothing # hide
 
-```@autodocs
-Modules = [IonSim]
-Order   = [:function]
-Pages   = [iontraps.jl]
-```
+![](../assets/fullnormalmode.png)
