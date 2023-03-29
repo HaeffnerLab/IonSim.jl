@@ -148,6 +148,7 @@ fnm.x
 
 ```@example lc1
 visualize(fnm.x[2], ẑ, format="circles")
-savefing("../assets/fullnormalmode.png"); nothing # hide
+savefig("../assets/fullnormalmode.png"); nothing # hide
+```
 
 ![](../assets/fullnormalmode.png)

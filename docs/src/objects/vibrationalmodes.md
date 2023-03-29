@@ -15,7 +15,7 @@ chain = LinearChain(
     selectedmodes=(;x=[1]) 
 )
 
-move = xmodes(chain)[1]
+mode = xmodes(chain)[1]
 
 typeof(mode) <: VibrationalMode
 ```
