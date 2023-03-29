@@ -1,5 +1,4 @@
 using Documenter, IonSim
-# push!(LOAD_PATH, "/Users/josephbroz/Desktop/IonSim/IonSim.jl/src") 
 
 builddir = "build"
 
@@ -14,15 +13,24 @@ pages = [
             "objects/linearchains.md",
             "objects/vibrationalmodes.md"
         ],
+        "objects/emfields.md",
+        "objects/waveforms.md"
         "objects/chambers.md",
-        "objects/hamiltonian.md",
     ],
-    "timeevolution.md",
+    "hamiltonian.md"
+    "Simulation" => [
+            "timeevolution/solve.md",
+            "timeevolution/rotatingframes.md",
+            "timeevolution/technicalnoise.md"   
+            "timevoluiton/quantumnoise.md"
+    ],
     "examples.md",
     "api.md"
 ]
 
 makedocs(
+    sitename = "IonSim.jl",
+    authors = "Joseph Broz",
     modules = [IonSim],
     checkdocs = :exports,
     format=Documenter.HTML(
@@ -42,6 +50,5 @@ makedocs(
 
 deploydocs(
     repo = "github.com/HaeffnerLab/IonSim.jl.git",
-    devurl = "",
-    versions = nothing
+    push_preview = true
 )
