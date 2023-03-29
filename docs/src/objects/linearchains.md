@@ -50,6 +50,8 @@ Creating an instance of `LinearChain` requires three arguments:
 - `comfrequencies`: A `NamedTuple{:x, :y, :z}` specifying the vibrational frequencies for the center of mass modes, e.g. `comfrequencies = (x=3e6, y=3e6, z=1e6)`.
 + `selectedmodes`: Another `NamedTuple{:x, :y, :z}` but with arguments that are lists of integers e.g. `selectedmodes = (x=[1, 3], y=[:], z=[1:3, 5])`. These specify a subset of the normal modes that will actually be taken into account during simulation.
 
+An optional keyword argument `N::Int` can be specified, which sets the Hilbert space dimension assoicated with each generated normal mode (this defaults to 10).
+
 
 !!! note
     In the case that all ions have the same mass and charge, the COM motion of the ion chain factors into three unique modes (one for each spatial coordinate). And these are typically used to characterize the normal mode structure of the chain since they are the same independent of the number of ions. 
@@ -70,6 +72,7 @@ chain = LinearChain(
 ```
 
 Creates a 4-ion chain of two calcium ions and 2 beryllium ions where the smallest normal mode axial frequency is 1 MHz and the largest frequency in both of the radial directions is 7 MHz. `chain` has four fields (which you can see by typing a period and hitting the tab key).
+
 ![](../assets/tab-completion-example.png)
 
 `chain.comfrequencies` and `chain.ions` correspond to the arguments used to instantiate `chain`. `chain.ionpositions` is a vector of floats representing the positions of the ions in the chain in meters:
@@ -87,17 +90,58 @@ selectedmodes(chain).x
 which are quantum operators further described in the [`VibrationalMode`](@ref) section.
 
 ```@example lc1
-typeof(VibrationalMode) <: IonSimBasis
+typeof(selectedmodes(chain).x[1]) <: IonSimBasis
+```
+
+The normal mode structure can be better understood by using IonSim's `visualize` function:
+
+```@example lc1
+visualize(chain, ẑ, [:])
+```
+
+```@example lc1
+visualize(chain, x̂, [:], format="circles")
 ```
 
 ## Buiding a LinearChain from YAML
+One can alternatively build a `LinearChain` from a yaml file. Suppose the contents of some file `normal_mode.yaml` are 
 
-## Visualization
+```yaml
+---
+x:
+  - frequency: 1e6
+    mode: [0.1, 0.5, 0.3, 0.8]
+  - frequency: 2e6
+    mode: [0.3, 0.6, 0.5, 3]
+y:
+  - frequency: 8e6
+    mode: [1, 1, 1, 1]
+ionpositions: [1,2,3,4]
+```
 
-## Full list of functions with LinearChain as an argument
+Then the syntax is:
+
+```@example lc1
+chain = LinearChain_fromyaml(
+    ions=[c, c, c, c],
+    yaml="normal_mode.yaml",  
+)
+```
+## Additional Functionality
+
+A normal mode calculation can be performed without the need for a `LinearChain` using `full_normal_mode_description`.
+
+```@example lc1
+mass_list =    [1, 1, 1, 1, 1]
+charge_list =  [2, 1, 2, 2, 1]
+fnm = full_normal_mode_description(mass_list, charge_list, (x=5e6, y=5e6, z=1e6))
+fnm.x
+```
+
+## Full List of Functions with LinearChain as Argument
 
 ```@autodocs
 Modules = [IonSim]
 Order   = [:function]
-Pages   = [IonTrap.jl]
+Pages   = [iontraps.jl]
 ```
