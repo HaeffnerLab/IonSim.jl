@@ -1,5 +1,5 @@
 using Documenter, IonSim
-push!(LOAD_PATH, "/Users/josephbroz/Desktop/IonSim/IonSim.jl/src") 
+# push!(LOAD_PATH, "/Users/josephbroz/Desktop/IonSim/IonSim.jl/src") 
 
 builddir = "build"
 
@@ -41,7 +41,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/HaeffnerLab/IonSim.jl-Documentation.git",
+    repo = "github.com/HaeffnerLab/IonSim.jl.git",
     devurl = "",
     versions = nothing
 )
