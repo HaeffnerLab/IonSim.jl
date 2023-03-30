@@ -43,7 +43,7 @@ export Ion,
 """
     Ion
 
-The physical parameters defining an isolated ion's internal structure.
+Contains the physical parameters defining the internal structure of an isolated ion.
 """
 abstract type Ion <: IonSimBasis end
 
@@ -53,20 +53,22 @@ abstract type Ion <: IonSimBasis end
 
 """
     speciesproperties(ion::Ion)
-Returns the IonProperties struct of the ion species, which contains species-specific
-information including mass, energy levels, and transitions.
+
+Returns the `ion.speciesproperties`, which contains species-specific information including 
+mass, energy levels, and transitions.
 """
 speciesproperties(I::Ion) = I.speciesproperties
 
-
 """
     sublevels(ion::Ion)
-Returns the energy sublevels in the Hilbert space of `ion`, `ion.sublevels`
+
+Returns the energy sublevels in the Hilbert space of `ion`. Equivalent to `ion.sublevels`.
 """
 sublevels(I::Ion) = I.sublevels
 
 """
     sublevelaliases(ion::Ion)
+
 Returns a `Dict` specifying all aliases assigned to sublevels of `ion`, in the format
 `alias => sublevel`, `ion.sublevelalias`
 """
@@ -74,18 +76,22 @@ sublevelaliases(I::Ion) = I.sublevelaliases
 
 """
     shape(ion::Ion)
+
 Returns the dimension of the ion's Hilbert space `ion.shape`
 """
 shape(I::Ion) = I.shape
 
 """
     manualshift(ion::Ion)
-Returns the Dict of manualshift for `ion`'s energy levels `ion.manualshift`
+
+Returns the Dict of manualshift for `ion`'s energy levels. Equivalent to `ion.manualshift`.
 """
 manualshift(I::Ion) = I.manualshift
 
+# Will be removing this, instead the ion will have a field pointing to a particular IonTrap
 """
     ionnumber(ion::Ion)
+
 Returns `ion`'s number in its IonTrap `ion.ionnumber`
 If `ion` has not been added to an IonTrap, returns `missing`.
 """
@@ -98,8 +104,10 @@ function ionnumber(I::Ion)
     end
 end
 
+# Will also be removing this 
 """
-ionposition(ion::Ion)
+    ionposition(ion::Ion)
+
 Returns `ion`'s position in its IonTrap, `ion.ionposition` in m.
 If `ion` has not been added to an IonTrap, returns `missing`.
 """
@@ -118,19 +126,23 @@ end
 
 """
     mass(ion::Ion)
-Returns the mass of `ion` in kg.
+
+Returns the mass of `ion` in kg. Equivalent to `ion.speciesproperties.mass`.
 """
 mass(I::Ion) = speciesproperties(I).mass
 
 """
     charge(ion::Ion)
-Returns the charge of `ion`in C.
+
+Returns the charge of `ion` in Coulombs. 
+Equivalent to `ion.speciesproperties.charge * PhysicalConstants.e`.
 """
 charge(I::Ion) = speciesproperties(I).charge * e
 
 """
     nuclearspin(ion::Ion)
-Returns the nuclear spin of `ion`.
+
+Returns the nuclear spin of `ion`. Equivalent to `ion.speciesproperties.nuclearspin`.
 """
 nuclearspin(I::Ion) = speciesproperties(I).nuclearspin
 
@@ -139,23 +151,32 @@ nuclearspin(I::Ion) = speciesproperties(I).nuclearspin
 #############################################################################################
 
 validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
-    @assert sublevel in sublevels(I) "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of available sublevels."
+    @assert sublevel in sublevels(I) (
+            "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of 
+            available sublevels."
+        )
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, sublevel(I, alias))
 
 """
     sublevelalias!(I::Ion, sublevel::Tuple{String,Real}, alias::String)
-Assigns an alias `alias` to `sublevel` of `I`. This then allows one to pass `alias` in place of `sublevel` (for `I` only) into any function which accepts a sublevel as an argument.
+
+Assigns an alias `alias` to `sublevel` of `I`. This then allows one to pass `alias` in place 
+of `sublevel` (for `I` only) into any function which accepts a sublevel as an argument.
 """
 function sublevelalias!(I::Ion, sublevel::Tuple{String, Real}, alias::String)
     validatesublevel(I, sublevel)
-    @assert alias ∉ levels(I) "cannot make alias name identical to level name ($alias)"
+    @assert alias ∉ levels(I) "Cannot make alias name identical to level name ($alias)"
     sublevel_rational = (sublevel[1], Rational(sublevel[2]))   # Force m to be Rational
     return I.sublevelaliases[alias] = sublevel_rational
 end
+
 """
     sublevelalias!(I::Ion, aliasassignments)
-`aliasassignments` specifies which aliases should be assigned to which sublevels. There are two options to do this:
-* `aliasassignments` is a Vector of Tuples, with the first element of each being the sublevel (`sublevel::Tuple{String,Real}`) and the second being its assigned alias (`alias::String`)
+
+`aliasassignments` specifies which aliases should be assigned to which sublevels. There are 
+two options to do this:
+* `aliasassignments` is a Vector of Tuples, with the first element of each being the sublevel 
+ (`sublevel::Tuple{String,Real}`) and the second being its assigned alias (`alias::String`)
 * `aliasassignments` is a Dict with the format `alias::String => sublevel::Tuple{String,Real}`
 Calls `sublevelalias!(I, sublevel, alias)` for each pair `sublevel, alias`.
 """
@@ -167,6 +188,7 @@ function sublevelalias!(
         sublevelalias!(I, sublevel, alias)
     end
 end
+
 function sublevelalias!(I::Ion, aliasdict::Dict{String, Tuple{String, R}} where {R <: Real})
     for (alias, sublevel) in aliasdict
         sublevelalias!(I, sublevel, alias)
@@ -174,41 +196,41 @@ function sublevelalias!(I::Ion, aliasdict::Dict{String, Tuple{String, R}} where 
 end
 
 """
-    clearsublevelalias!(I::Ion, sublevel)
-Erases the assignment of an alias to `sublevel` of Ion `I`. Accepts either the full sublevel `Tuple{String,Real}` or its alias `String`.
+    clearsublevelalias!(I::Ion, [, sublevel])
+
+Erases the assignment of an alias to `sublevel` of Ion `I`. Accepts either the full sublevel 
+`Tuple{String,Real}` or its alias `String`.
 Also accepts a vector of sublevels to clear multiple alias assignments in a single call.
 """
 function clearsublevelalias!(I::Ion, sublevel::Tuple{String, Real})
     alias = sublevelalias(I, sublevel)
     return delete!(I.sublevelaliases, alias)
 end
-function clearsublevelalias!(I::Ion, alias::String)
-    return delete!(I.sublevelaliases, alias)
-end
-function clearsublevelalias!(I::Ion, v::Vector)
-    return map(x -> clearsublevelalias!(I, x), v)
-end
+clearsublevelalias!(I::Ion, alias::String) = delete!(I.sublevelaliases, alias)
+clearsublevelalias!(I::Ion, v::Vector) = map(x -> clearsublevelalias!(I, x), v)
+
 """
-    clearsublevelalias!(I::Ion)
-Erases the assignment of all sublevel aliases of Ion `I`. 
+If sublevel not specified, the assignment of all sublevel aliases of Ion `I` are erased. 
 """
-function clearsublevelalias!(I::Ion)
-    return empty!(I.sublevelaliases)
-end
+clearsublevelalias!(I::Ion) = return empty!(I.sublevelaliases)
 
 """
     manualshift!(I::Ion, sublevel, shift::Real)
-Applies a manual shift `shift` to the chosen `sublevel` of `I` (overwriting any previously assigned manual shift).
+
+Applies a manual shift `shift` to the chosen `sublevel` of `I` (overwriting any previously 
+assigned manual shift).
 """
 function manualshift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
     validatesublevel(I, sublevel)
     return I.manualshift[(sublevel[1], Rational(sublevel[2]))] = shift
 end
-manualshift!(I::Ion, alias::String, shift::Real) =
-    manualshift!(I, sublevel(I, alias), shift)
+manualshift!(I::Ion, alias::String, shift::Real) = manualshift!(I, sublevel(I, alias), shift)
+
 """
     manualshift!(I::Ion, manualshift_dict::Dict)
-Applies `manualshift(I, sublevel, shift)` to all pairs `sublevel => shift` of the Dict `manual_shift_dict`.
+
+Applies `manualshift(I, sublevel, shift)` to all pairs `sublevel => shift` of the Dict 
+`manual_shift_dict`.
 """
 function manualshift!(I::Ion, manual_shift_dict::Dict)
     for sublevel in keys(manual_shift_dict)
@@ -218,6 +240,7 @@ end
 
 """
     zeromanualshift!(I::Ion)
+    
 Sets the manual shift of all sublevels of `I` to zero.
 """
 function zeromanualshift!(I::Ion)
