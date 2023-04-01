@@ -115,8 +115,8 @@ mutable struct Chamber
         @assert isapprox(norm(Bhat), 1, rtol=1e-6) "!(|$Bhat| = 1)"
         for (li, l) in enumerate(lasers), p in l.pointing
             @assert p[1] <= length(iontrap.ions) (
-                """lasers[$li] points at iontrap.ions[$(p[1])], but there are only
-                 $(length(iontrap.ions)) ions."""
+                "lasers[$li] points at iontrap.ions[$(p[1])], but there are only \
+                 $(length(iontrap.ions)) ions."
             )
         end
         if TδB <: Number
@@ -139,36 +139,42 @@ Base.show(io::IO, T::Chamber) = print(io, "Chamber")  # suppress long output
 
 """
     iontrap(chamber::Chamber)
+
 Returns the IonTrap struct associated with `chamber`, `chamber.iontrap`
 """
 iontrap(chamber::Chamber) = chamber.iontrap
 
 """
     bfield(chamber::Chamber)
+
 Returns the magnitude of the (average) magnetic field in `chamber`, `chamber.B`,in T.
 """
 bfield(chamber::Chamber) = chamber.B
 
 """
     bfield_unitvector(chamber::Chamber)::NamedTuple{:x, :y, :z}
+
 Returns the direction of the magnetic field inside `chamber`, `chamber.Bhat`
 """
 bfield_unitvector(chamber::Chamber) = chamber.Bhat
 
 """
     bgradient(chamber::Chamber)
+
 Returns the gradient of the magnetic field inside `chamber`, `chamber.∇B`, in T/m.
 """
 bgradient(chamber::Chamber) = chamber.∇B
 
 """
     bfield_fluctuation(chamber::Chamber)::Function
+
 Returns the small magnetic field fluctuation `chamber.δB` in T as a function of time in s.
 """
 bfield_fluctuation(chamber::Chamber) = chamber.δB
 
 """
     lasers(chamber::Chamber)::Vector{Laser}
+
 Returns Vector of Lasers inside `chamber`, `chamber.lasers`
 """
 lasers(chamber::Chamber) = chamber.lasers
@@ -180,6 +186,7 @@ lasers(chamber::Chamber) = chamber.lasers
 
 """
     iontrap!(chamber::Chamber, iontrap::IonTrap)
+
 Sets `chamber.iontrap` to `iontrap`
 """
 function iontrap!(chamber::Chamber, iontrap::IonTrap)
@@ -188,6 +195,7 @@ end
 
 """
     bfield!(chamber::Chamber, B::Real)
+
 Sets `chamber.B` to `B`
 """
 function bfield!(chamber::Chamber, B::Real)
@@ -196,6 +204,7 @@ end
 
 """
     bfield_unitvector!(chamber::Chamber, Bhat::NamedTuple)
+
 Sets `chamber.Bhat` to `Bhat`
 """
 function bfield_unitvector!(chamber::Chamber, Bhat::NamedTuple{(:x, :y, :z)})
@@ -206,6 +215,7 @@ end
 
 """
     bgradient!(chamber::Chamber, ∇B::Real)
+
 Sets `chamber.∇B` to `∇B`
 """
 function bgradient!(chamber::Chamber, ∇B::Real)
@@ -214,6 +224,7 @@ end
 
 """
     bfield_fluctuation!(chamber::Chamber, δB::Function)
+
 Sets `chamber.δB` to `δB`
 """
 function bfield_fluctuation!(chamber::Chamber, δB::Function)
@@ -222,6 +233,7 @@ function bfield_fluctuation!(chamber::Chamber, δB::Function)
 end
 """
     bfield_fluctuation!(chamber::Chamber, δB::Real)
+
 Sets `chamber.δB` to a constant function `t -> δB`
 """
 function bfield_fluctuation!(chamber::Chamber, δB::Real)
@@ -231,6 +243,7 @@ end
 
 """
     lasers!(chamber::Chamber, lasers::Vector{Laser})
+
 Sets `chamber.lasers` to `lasers`
 """
 function lasers!(chamber::Chamber, lasers::Vector{Laser})
@@ -245,6 +258,7 @@ end
 
 """	
     basis(chamber::Chamber)	
+
 Returns the composite basis describing the Hilbert space for `chamber`.
 This is the same as basis(iontrap(chain)).
 """
@@ -260,7 +274,9 @@ end
 
 """
     ionintrap(trap::Chamber, ion::Ion)
-Returns a boolean that indicates whether `ion` is actually in `trap`. Useful for checking if an error needs to be thrown.
+
+Returns a boolean that indicates whether `ion` is actually in `trap`. Useful for checking if 
+an error needs to be thrown.
 """
 function ionintrap(trap::Chamber, ion::Ion)
     return ion in ions(trap.iontrap)
@@ -268,6 +284,7 @@ end
 
 """"
     ions(T::Chamber)
+
 Returns a list of the ions in the `Chamber`.
 """
 ions(T::Chamber) = ions(iontrap(T))
@@ -275,28 +292,35 @@ ions(T::Chamber) = ions(iontrap(T))
 
 """
     modes(T::Chamber)
+
 Returns modes(iontrap(T))
 """
 modes(T::Chamber) = modes(iontrap(T))
 """
     xmodes(T::Chamber)
-Returns an array of all of the selected `VibrationalModes` in the x-direction in the `Chamber`'s `IonConfiguration`.
+Returns an array of all of the selected `VibrationalModes` in the x-direction in the 
+`Chamber`'s `IonConfiguration`.
 """
 xmodes(T::Chamber) = xmodes(iontrap(T))
 """
     ymodes(T::Chamber)
+
 Returns an array of all of the selected `VibrationalModes` in the y-direction in the `Chamber`'s `IonConfiguration`.
 """
 ymodes(T::Chamber) = ymodes(iontrap(T))
 """
     zmodes(T::Chamber)
-Returns an array of all of the selected `VibrationalModes` in the z-direction in the `Chamber`'s `IonConfiguration`.
+
+Returns an array of all of the selected `VibrationalModes` in the z-direction in the 
+`Chamber`'s `IonConfiguration`.
 """
 zmodes(T::Chamber) = zmodes(iontrap(T))
 
 """
     modecutoff!(T::Chamber, N::Int)
-Sets the upper bound of the Hilbert space of all `VibrationalMode`s in the `IonTrap` of `T` to be the Fock state `N`.
+
+Sets the upper bound of the Hilbert space of all `VibrationalMode`s in the `IonTrap` of `T` 
+to be the Fock state `N`.
 """
 function modecutoff!(T::Chamber, N::Int)
     modecutoff!(iontrap(T), N)
@@ -304,9 +328,12 @@ end
 
 """
     groundstate(obj)
+
 If obj is a `VibrationalMode`, returns the N=0 ket of that mode.
-If obj is a Vector of `VibrationalMode`, returns a tensor product `mode1[0] ⊗ mode2[0] ⊗ ...` in the same order given.
-If obj is a `LinearChain`, returns the full ground state of the motional degrees of freedom as a tensor product.
+If obj is a Vector of `VibrationalMode`, returns a tensor product `mode1[0] ⊗ mode2[0] ⊗ ...` 
+in the same order given.
+If obj is a `LinearChain`, returns the full ground state of the motional degrees of freedom 
+as a tensor product.
 """
 groundstate(mode::VibrationalMode) = mode[0]
 groundstate(modes::Vector{VibrationalMode}) = tensor([mode[0] for mode in modes]...)
@@ -315,6 +342,7 @@ groundstate(lc::LinearChain) = groundstate(modes(lc))
 
 """
     globalbeam!(laser, chamber::Chamber)
+
 Set `laser` to shine with full intensity on all ions in `Chamber`.
 `laser` may be either a Laser or an Int indicating the desired laser's index within `chamber`.
 """
@@ -333,6 +361,7 @@ end
         laser::Laser, pi_time::Real, ion::Ion, transition::Tuple,
         Bhat::NamedTuple{(:x,:y,:z)}
     )
+
 Compute the intensity needed to get a certain `pi_time` with a certain resonant `laser`-`ion`
 `transition`, in the presence of a magnetic field pointing in the direction `Bhat`.
 """
@@ -363,6 +392,7 @@ end
     intensity_from_pitime(
         laser, pi_time::Real, ion, transition::Tuple, chamber::Chamber
         )
+
 Compute the intensity needed to get a certain `pi_time` with a certain resonant `laser`-`ion`
 `transition` within `chamber`, which defines the magnetic field direction.
 `laser` may be either a Laser or an Int indicating the desired laser's index within `chamber`.
@@ -405,9 +435,11 @@ end
         laser::Laser, pi_time::Real, ion::Ion, transition::Tuple,
         Bhat::NamedTuple{(:x,:y,:z)}
     )
+
     intensity_from_pitime!(
         laser, pi_time::Real, ion, transition::Tuple, chamber::Chamber
     )
+
 Same as `intensity_from_pitime`, but updates `laser[:I]` in-place.
 """
 function intensity_from_pitime!(
@@ -421,6 +453,7 @@ function intensity_from_pitime!(
     intensity!(laser, I)
     return I
 end
+
 function intensity_from_pitime!(
     laser::Laser,
     pi_time::Real,
@@ -432,6 +465,7 @@ function intensity_from_pitime!(
     intensity!(laser, I)
     return I
 end
+
 function intensity_from_pitime!(
     laser_index::Int,
     pi_time::Real,
@@ -452,8 +486,9 @@ end
         laser::Laser, rabi_frequency::Real, ion::Ion, transition::Tuple,
         Bhat::NamedTuple{(:x,:y,:z)}
     )
-Compute the intensity needed to get a certain `rabi_frequency` with a certain resonant `laser`-`ion`
-`transition`, in the presence of a magnetic field pointing in the direction `Bhat`.
+
+Compute the intensity needed to get a certain `rabi_frequency` with a certain resonant 
+`laser`-`ion` `transition`, in the presence of a magnetic field pointing in the direction `Bhat`.
 """
 function intensity_from_rabifrequency(
     laser::Laser,
@@ -469,6 +504,7 @@ end
 intensity_from_rabifrequency(
         laser, rabi_frequency::Real, ion, transition::Tuple, chamber::Chamber
         )
+
 Compute the intensity needed to get a certain `rabi_frequency` with a certain resonant `laser`-`ion`
 `transition` within `chamber`, which defines the magnetic field direction.
 `laser` may be either a Laser or an Int indicating the desired laser's index within `chamber`.
@@ -490,6 +526,7 @@ function intensity_from_rabifrequency(
         bfield_unitvector(chamber)
     )
 end
+
 function intensity_from_rabifrequency(
     laser_index::Int,
     rabi_frequency::Real,
@@ -528,6 +565,7 @@ function intensity_from_rabifrequency!(
     intensity!(laser, I)
     return I
 end
+
 function intensity_from_rabifrequency!(
     laser::Laser,
     rabi_frequency::Real,
@@ -540,6 +578,7 @@ function intensity_from_rabifrequency!(
     intensity!(laser, I)
     return I
 end
+
 function intensity_from_rabifrequency!(
     laser_index::Int,
     rabi_frequency::Real,
@@ -562,21 +601,25 @@ end
 
 """
     bfield(chamber::Chamber, ion)
-Retuns the value of the magnetic field in `T` at the location of `ion`, including both the trap's overall B-field and its B-field gradient.
-`ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
+
+Retuns the value of the magnetic field in `T` at the location of `ion`, including both the 
+trap's overall B-field and its B-field gradient. `ion` may be either an Ion or an Int 
+indicating the desired ion's index within `chamber`.
 """
 function bfield(chamber::Chamber, ion::Ion)
     @assert ionintrap(chamber, ion) "trap does not contain ion"
     return bfield(chamber) + bgradient(chamber) * ionposition(ion)
 end
+
 function bfield(chamber::Chamber, ion_index::Int)
     return bfield(chamber, ions(chamber)[ion_index])
 end
 
 """
     transitionfrequency(ion, transition::Tuple, chamber::Chamber; ignore_manualshift=false)
-Returns The frequency of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
-`ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
+Returns The frequency of the transition `transition` including the Zeeman shift experienced 
+by `ion` given its position in `T`. `ion` may be either an Ion or an Int indicating the 
+desired ion's index within `chamber`.
 """
 transitionfrequency(
     ion::Ion,
@@ -589,6 +632,7 @@ transitionfrequency(
     B=bfield(chamber, ion),
     ignore_manualshift=ignore_manualshift
 )
+
 transitionfrequency(
     ion_index::Int,
     transition::Tuple,
@@ -603,8 +647,9 @@ transitionfrequency(
 
 """
     transitionwavelength(ion, transition::Tuple, chamber::Chamber; ignore_manualshift=false)
-Returns The wavelength of the transition `transition` including the Zeeman shift experienced by `ion` given its position in `T`.
-`ion` may be either an Ion or an Int indicating the desired ion's index within `chamber`.
+Returns The wavelength of the transition `transition` including the Zeeman shift experienced 
+by `ion` given its position in `T`. `ion` may be either an Ion or an Int indicating the 
+desired ion's index within `chamber`.
 """
 transitionwavelength(
     ion::Ion,
@@ -617,6 +662,7 @@ transitionwavelength(
     B=bfield(chamber, ion),
     ignore_manualshift=ignore_manualshift
 )
+
 transitionwavelength(
     ion_index::Int,
     transition::Tuple,
@@ -656,6 +702,7 @@ function wavelength_from_transition!(
     wavelength!(laser, λ)
     return λ
 end
+
 function wavelength_from_transition!(
     laser::Laser,
     ion_index::Int,
@@ -691,6 +738,7 @@ matrixelement(ion_index::Int, transition::Tuple, laser_index::Int, T::Chamber, t
 
 """
     zeemanshift(I, sublevel, T::Chamber)
+
 Calls `zeemanshift(I::Ion, sublevel, B::Real)` with `B` evaluated for ion `I` in `T`.
 `I` may be either an Ion or an Int indicating the desired ion's index within `T`.
 """
@@ -703,6 +751,7 @@ zeemanshift(ion_index::Int, sublevel::Union{Tuple{String, Real}, String}, T::Cha
     bgradient!(
             T::Chamber, ion_indxs::Tuple{Int,Int}, transition::Tuple, d::Real
         )
+
 Sets the Bfield gradient in place to achieve a detuning `d` between the `transition` of two
 ions, which are assumed to be of the same species. `ion_indxs` refer to the
 ordering of the ions in the chain.
@@ -719,7 +768,8 @@ function bgradient!(T::Chamber, ion_indxs::Tuple{Int, Int}, transition::Tuple, d
     g2 = landegf(ionA, L2)
     m1 = quantumnumbers(ionA, SL1).m
     m2 = quantumnumbers(ionA, SL2).m
-    # Calculate Zeeman shifts with a unit B-field using a method of zeemanshift that ensures a nonlinear term is not used
+    # Calculate Zeeman shifts with a unit B-field using a method of zeemanshift that ensures 
+    # a nonlinear term is not used
     E1 = zeemanshift(1.0, g1, m1)
     E2 = zeemanshift(1.0, g2, m2)
     bgradient!(T, d / (abs(E2 - E1) * separation))
@@ -748,6 +798,7 @@ end
 
 """
     lambdicke(V::VibrationalMode, I::Ion, L::Laser)
+
 The Lamb-Dicke parameter: 
 ``|k|cos(\\theta)\\sqrt{\\frac{\\hbar}{2m\\nu}}`` 
 for a given vibrational mode, ion and laser.

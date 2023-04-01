@@ -21,6 +21,7 @@ export Laser,
     Laser(;λ=missing, E=0, Δ=0, ϵ=(x̂+ŷ)/√2, k=ẑ, ϕ=0, pointing::Array{Tuple{Int,Real}})
         
 The physical parameters defining laser light.
+
 **args**
 * `λ::Union{Real,Missing}`: the wavelength of the laser in meters
 * `I::Union{Function,Real}`: laser intensity in W/m²

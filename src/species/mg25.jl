@@ -1,7 +1,7 @@
 export Mg25
 
-const properties_mg25 = IonProperties(
-    shortname="²⁵Mg",
+const properties_mg25 = SpeciesProperties(
+    shortname="²⁵Mg⁺",
     mass=4.1489954812e-26,
     charge=1,
     nuclearspin=5 // 2,

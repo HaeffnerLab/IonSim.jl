@@ -26,6 +26,7 @@ export embed,
 
 # used for copying composite types
 Base.copy(x::T) where {T} = T([getfield(x, k) for k in fieldnames(T)]...)
+
 """
     IonSimBasis
 An abstract type for specialized bases, which are unique to IonSim.

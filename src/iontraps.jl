@@ -44,23 +44,26 @@ ions(I::IonTrap) = I.ions
             selectedmodes::NamedTuple{(:x,:y,:z), N::Int=10
         )
 
-Generates and stores all of the information necessary to describe a collection of ions trapped 
-in a 3D harmonic potential and forming a linear coulomb crystal. Relevant to calculating the
-normal mode structure of the linear chain is the charge, mass  and ordering of the ions.
+Generates and stores all of the information necessary to describe a collection of ions 
+trapped in a 3D harmonic potential and forming a linear coulomb crystal. Relevant to 
+calculating the normal mode structure of the linear chain is the charge, mass  and ordering 
+of the ions.
 
 **user-defined fields**
 * `ions`: An iterable list of ions that compose the linear Coulomb crystal
 * `comfrequencies::NamedTuple{(:x,:y,:z)`: Describes the COM frequencies 
     `(x=ν_x, y=ν_y, z=ν_z)`. The z-axis is taken to be along the crystal's axis of 
     symmetry. Note that these only correspond to true COM modes if all ions have the same
-    mass, otherwise this is a misnomer and corresponds to the smallest (largest) eigenfrequency
-    mode in the axial (radial) directions. Note: we assume that `ν_x > ν_y > ν_z`.
+    mass, otherwise this is a misnomer and corresponds to the smallest (largest) 
+    eigenfrequency mode in the axial (radial) directions. Note: we assume that 
+    `ν_x > ν_y > ν_z`.
 * `selectedmodes::NamedTuple{(:x,:y,:z)}`:  e.g. `selectedmodes=(x=[1], y=[1, 2:3], z=[:])`.
     Specifies the axis and a list of integers which correspond to the ``i^{th}`` farthest
     mode away from the COM (see note above about meaning of "COM") for that axis. For example, 
-    `selectedmodes=(z=[2])` would specify the axial stretch mode. These are the modes that will 
-    be modeled in the chain.Note: `selectedmodes=(x=[],y=[],z=[1])`, `selectedmodes=(y=[],z=[1])`
-    and `selectedmodes=(;z=[1])` are all acceptable and equivalent.
+    `selectedmodes=(z=[2])` would specify the axial stretch mode. These are the modes that 
+    will be modeled in the chain.Note: `selectedmodes=(x=[],y=[],z=[1])`, 
+    `selectedmodes=(y=[],z=[1])` and `selectedmodes=(;z=[1])` are all acceptable and 
+    equivalent.
 * `N::Int=10`: Optionally specify the Hilbert space dimension for each normal mode.
 **derived fields**
 * `ionpositions::Vector{<:Real}`: The relative positions of the ions in meters.  
@@ -124,9 +127,11 @@ end
 """
     LinearChain_fromyaml(ions::Vector{<:Ion}, yaml::String; N::Int=10)
 
-Load normal mode structure from the specified `yaml` file. It's up to the user to enforce
-physicality.
+Load normal mode structure from the specified `yaml` file. It is up to the user to enforce 
+the physicality of this structure. The yaml file should have the following structure:
+
 ````
+---
 x:
   - frequency: 1e6
     mode: [0.1, 0.5, 0.3, 0.8]
@@ -137,7 +142,6 @@ y:
     mode: [1, 1, 1, 1]
 ionpositions: [-1, -0.5, -0.25, 5]
 ````
-It is up to the user to enforce the physicality of this structure.
 """
 function LinearChain_fromyaml(; ions::Vector{<:Ion}, yaml::String, N::Int=10)
     num_ions = length(ions)
@@ -163,7 +167,10 @@ function LinearChain_fromyaml(; ions::Vector{<:Ion}, yaml::String, N::Int=10)
                     @warn "no mode specified for frequency $(mode["frequency"])"
                     continue
                 elseif !(length(mode["mode"]) == num_ions)
-                    @warn "length(mode) ≠ length(ions) for $(mode["frequency"]), $(mode["mode"])"
+                    @warn (
+                        "length(mode) ≠ length(ions) for $(mode["frequency"]), \
+                        $(mode["mode"])"
+                    )
                     continue
                 end
                 push!(vm[axis], (mode["frequency"], mode["mode"]))
@@ -199,11 +206,9 @@ end
 
 _sparsify!(x, eps) = @. x[abs(x)<eps] = 0
 
-#= 
-Computes the equilibrium positions for a linear chain of N ions with individual charges
-Q[i] (in units of fundamental charge). This equilibrium occurs when global confining 
-pseudopotential balances inter-ion Coulomb repulsion for all ions.
-=#
+# Computes the equilibrium positions for a linear chain of N ions with individual charges
+# Q[i] (in units of fundamental charge). This equilibrium occurs when global confining 
+# pseudopotential balances inter-ion Coulomb repulsion for all ions.
 function linear_equilibrium_positions(N::Int, Q::Vector{Int})
     @assert !(1 in (Q .< 0) && 1 in (Q .> 0)) (
         "Can't have negative and positive charges in the same chain."
@@ -211,7 +216,9 @@ function linear_equilibrium_positions(N::Int, Q::Vector{Int})
     function f!(F, x, N)
         for i in 1:N
             F[i] = (
-                Q[i] * x[i] - sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in 1:(i-1)]) + sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in (i+1):N])
+                  Q[i] * x[i] 
+                - sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in 1:(i-1)]) 
+                + sum([Q[i] * Q[j] / (x[i] - x[j])^2 for j in (i+1):N])
             )
         end
     end
@@ -242,10 +249,8 @@ linear_equilibrium_positions(ions::Vector{<:Ion}) = linear_equilibrium_positions
 
 linear_equilibrium_positions(N::Int) = linear_equilibrium_positions(N, ones(Int, N))
 
-#=
-This is the Jacobian for the force of the ions in the chain due to all of the other ions.
-Diagonalize it to find the normal modes of motion.
-=#
+# This is the Jacobian for the force of the ions in the chain due to all of the other ions.
+# Diagonalize it to find the normal modes of motion.
 function diagonalize_Kij(
     M_actual::Vector{<:Real},
     Q::Vector{<:Int},
@@ -260,15 +265,15 @@ function diagonalize_Kij(
     M = M_actual / maxM  # scale M_actual, so masses are order unity
     # P *= maxM  # scale P by Mtot since it gets divided by M[i]
 
-    #= 
-    kz = ka - kr/2
-    kxⱼ = P/Mⱼ - ka/2 + kr   = -kz/2 + 3kr/4
-    kyⱼ = P/Mⱼ - ka/2 - kr/2 = -kz/2 - 3kr/4
 
-    Where P is defined s.t. the pseudopotential frequency for jth ion is (√(Qⱼ * P)/Mⱼ) * kz.
-    And ka is defined  s.t. the axial DC confining potential frequency is √(Qⱼ * ka / Mⱼ) * kz.
-    (Similar for kr, but this is an additional DC quadrupole that is confining in radial direction).
-    =#
+    # kz = ka - kr/2
+    # kxⱼ = P/Mⱼ - ka/2 + kr   = -kz/2 + 3kr/4
+    # kyⱼ = P/Mⱼ - ka/2 - kr/2 = -kz/2 - 3kr/4
+
+    # Where P is defined s.t. the pseudopotential frequency for jth ion is (√(Qⱼ * P)/Mⱼ) * kz.
+    # And ka is defined  s.t. the axial DC confining potential frequency is 
+    # √(Qⱼ * ka / Mⱼ) * kz. (Similar for kr, but this is an additional DC quadrupole that is 
+    # confining in radial direction).
     if axis == x̂
         a = 1
         kDC = -kz / 2 + 3kr / 4  # kx
@@ -297,9 +302,9 @@ function diagonalize_Kij(
 
     bvalues, bvectors = eigen(K)
     bcleanedvalues = []
-    # When arg for sqrt is negative, we still want to return something real so the optimizer will work.
-    # But we need to make sure it returns a *definitely incorrect* but not super divergent value.
-    # This method seems to work, but seems a bit sketchy.
+    # When arg for sqrt is negative, we still want to return something real so the optimizer 
+    # will work. But we need to make sure it returns a *definitely incorrect* but not super 
+    # divergent value. This method seems to work, but seems a bit sketchy.
     for value in bvalues
         if kz > 0 && value > 0
             push!(bcleanedvalues, sqrt.(value * kz / maxM))
@@ -311,8 +316,8 @@ function diagonalize_Kij(
         end
     end
 
-    # When optimizing, we are just trying to match the computed eigenfrequencies with the target 
-    # eigenfrequencies, so no need to compute the eigenvectors
+    # When optimizing, we are just trying to match the computed eigenfrequencies with the 
+    # target eigenfrequencies, so no need to compute the eigenvectors
     if optimize
         if axis == ẑ
             return minimum(bcleanedvalues)
@@ -504,7 +509,8 @@ function searchfor_trappingpotential_parameters(
     only_positive_eigenvalues = all(vcat(xfreqs, yfreqs) .> 0)
     only_nonnegative_trapping_parameters = all(res .>= 0)
     error_string = (
-        "Solver failed to find a normal mode structure compatible with `characteristicfrequencies`."
+        "Solver failed to find a normal mode structure compatible with \
+        `characteristicfrequencies`."
     )
     # make sure optimal values are actually close to target_eigenfrequencies
     @assert difference < 1e-3 error_string * " [1]"
@@ -926,8 +932,8 @@ end
         vm::Tuple{Float64, Vector{Float64}}, axis::NamedTuple{(:x, :y, :z)}; format="bars"
     )
 
-Same thing but input a normal mode description as a tuple with first element the eigenfrequency
-and second the eigenvector.
+Same thing but input a normal mode description as a tuple with first element the 
+eigenfrequency and second the eigenvector.
 """
 function visualize(
     vm::Tuple{Float64, Vector{Float64}},

@@ -1,7 +1,7 @@
 export Be9
 
-const properties_be9 = IonProperties(
-    shortname="⁹Be",
+const properties_be9 = SpeciesProperties(
+    shortname="⁹Be⁺",
     mass=1.496508080073e-26,
     charge=1,
     nuclearspin=3 // 2,

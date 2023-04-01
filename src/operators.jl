@@ -174,10 +174,9 @@ ionstate(chamber::Chamber, states::Vector) = ionstate(iontrap(chamber), states)
 
 """
     sigma(ion::Ion, ψ1::sublevel[, ψ2::sublevel])
-Returns ``|ψ1\\rangle\\langle ψ2|``, where ``|ψ_i\\rangle`` corresponds to the state
-returned by `ion[ψᵢ]`.
+Returns ``|ψ₁⟩⟨ψ₂|``, where ``|ψᵢ⟩`` corresponds to the state returned by `ion[ψᵢ]`.
 
-If ψ2 is not given, then ``|ψ1\\rangle\\langle ψ1|`` is returned.
+If ψ2 is not given, then the projector ``|ψ₁⟩⟨ψ₁|`` is returned.
 """
 sigma(ion::Ion, ψ1::T, ψ2::T) where {T <: Union{Tuple{String, Real}, String, Int}} =
     sparse(projector(ion[ψ1], dagger(ion[ψ2])))
@@ -187,8 +186,8 @@ sigma(ion::Ion, ψ1::Union{Tuple{String, Real}, String, Int}) = sigma(ion, ψ1, 
     ionprojector(obj, sublevels...; only_ions=false)
 
 If `obj<:IonTrap` this will return ``|ψ₁⟩⟨ψ₁|⊗...⊗|ψ\\_N⟩⟨ψ\\_N|⊗𝟙``
-where ``|ψᵢ⟩`` = `obj.ions[i][sublevels[i]]` and the identity operator ``𝟙`` is over all of the
-COM modes considered in `obj`.
+where ``|ψᵢ⟩`` = `obj.ions[i][sublevels[i]]` and the identity operator ``𝟙`` is over all of 
+the motional modes considered in `obj`.
 
 If `only_ions=true`, then the projector is defined only over the ion subspace.
 
@@ -211,6 +210,7 @@ function ionprojector(
     end
     return observable
 end
+
 function ionprojector(
     T::Chamber,
     sublevels::Union{Tuple{String, Real}, String, Int}...;

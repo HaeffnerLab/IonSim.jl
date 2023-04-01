@@ -1,7 +1,7 @@
 export Yb171
 
-const properties_yb171 = IonProperties(
-    shortname="¹⁷¹Yb",
+const properties_yb171 = SpeciesProperties(
+    shortname="¹⁷¹Yb⁺",
     mass=28.8384644689030595108e-26,
     charge=1,
     nuclearspin=1 // 2,
