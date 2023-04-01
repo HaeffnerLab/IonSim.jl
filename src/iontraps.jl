@@ -252,14 +252,14 @@ linear_equilibrium_positions(N::Int) = linear_equilibrium_positions(N, ones(Int,
 # This is the Jacobian for the force of the ions in the chain due to all of the other ions.
 # Diagonalize it to find the normal modes of motion.
 function diagonalize_Kij(
-    M_actual::Vector{<:Real},
-    Q::Vector{<:Int},
-    axis::NamedTuple{(:x, :y, :z)},
-    kz::Real,
-    P::Real,
-    kr::Real;
-    optimize=false
-)
+        M_actual::Vector{<:Real},
+        Q::Vector{<:Int},
+        axis::NamedTuple{(:x, :y, :z)},
+        kz::Real,
+        P::Real,
+        kr::Real;
+        optimize=false
+    )
     N = length(M_actual)
     maxM = maximum(M_actual)
     M = M_actual / maxM  # scale M_actual, so masses are order unity
@@ -349,21 +349,21 @@ function diagonalize_Kij(
 end
 
 diagonalize_Kij(
-    ions::Vector{<:Ion},
-    axis::NamedTuple{(:x, :y, :z)},
-    kz::Real,
-    P::Real,
-    kr::Real;
-    optimize=false
-) = diagonalize_Kij(
-    [mass(ion) for ion in ions],
-    [ion.speciesproperties.charge for ion in ions],
-    axis,
-    kz,
-    P,
-    kr,
-    optimize=optimize
-)
+        ions::Vector{<:Ion},
+        axis::NamedTuple{(:x, :y, :z)},
+        kz::Real,
+        P::Real,
+        kr::Real;
+        optimize=false
+    ) = diagonalize_Kij(
+        [mass(ion) for ion in ions],
+        [ion.speciesproperties.charge for ion in ions],
+        axis,
+        kz,
+        P,
+        kr,
+        optimize=optimize
+    )
 
 #=
 This performs the same function as diagonalize_Kij, but for a homogeneous chain where
@@ -372,10 +372,10 @@ terms of the characteristic_frequencies, which, in this case are the uniqueCOM f
 Then we can just diagonalize Kij directly instead of having to optimize.
 =#
 function diagonalize_Kij_for_homogeneous_chain(
-    N::Int,
-    com::NamedTuple{(:x, :y, :z)},
-    axis::NamedTuple{(:x, :y, :z)}
-)
+        N::Int,
+        com::NamedTuple{(:x, :y, :z)},
+        axis::NamedTuple{(:x, :y, :z)}
+    )
     axis == ẑ ? a = 2 : a = -1
     l = linear_equilibrium_positions(N)
     axis_dict = Dict([(x̂, :x), (ŷ, :y), (ẑ, :z)])
@@ -419,14 +419,14 @@ structure) and then return a quantity describing how far the computed eigenfrequ
 are from the targets.
 =#
 function sequentially_diagonalize(
-    M::Vector{<:Real},
-    Q::Vector{<:Int},
-    target_eigenfrequencies::NamedTuple{(:x, :y, :z)},
-    kz::Real,
-    P::Real,
-    kr::Real,
-    just_y=false
-)
+        M::Vector{<:Real},
+        Q::Vector{<:Int},
+        target_eigenfrequencies::NamedTuple{(:x, :y, :z)},
+        kz::Real,
+        P::Real,
+        kr::Real,
+        just_y=false
+    )
     @assert length(M) == length(Q) "length(M) ≠ length(Q)"
     N = length(M)
     axes = just_y ? [ŷ] : [x̂, ŷ]
@@ -452,21 +452,21 @@ sequentially_diagonalize(
     P::Real,
     kr::Real,
     just_y=false
-) = sequentially_diagonalize(
-    [mass(ion) for ion in ions],
-    [ion.speciesproperties.charge for ion in ions],
-    target_eigenfrequencies,
-    kz,
-    P,
-    kr,
-    just_y=just_y
-)
+    ) = sequentially_diagonalize(
+        [mass(ion) for ion in ions],
+        [ion.speciesproperties.charge for ion in ions],
+        target_eigenfrequencies,
+        kz,
+        P,
+        kr,
+        just_y=just_y
+    )
 
 function searchfor_trappingpotential_parameters(
-    M::Vector{<:Real},
-    Q::Vector{<:Int},
-    target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
-)
+        M::Vector{<:Real},
+        Q::Vector{<:Int},
+        target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
+    )
     @assert length(M) == length(Q) "length(M) ≠ length(Q)"
     maxM = maximum(M)
     value = diagonalize_Kij(M, Q, ẑ, maxM, 0, 0; optimize=true)
@@ -525,13 +525,13 @@ function searchfor_trappingpotential_parameters(
 end
 
 searchfor_trappingpotential_parameters(
-    ions::Vector{<:Ion},
-    target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
-) = searchfor_trappingpotential_parameters(
-    [mass(ion) for ion in ions],
-    [ion.speciesproperties.charge for ion in ions],
-    target_eigenfrequencies
-)
+        ions::Vector{<:Ion},
+        target_eigenfrequencies::NamedTuple{(:x, :y, :z)}
+    ) = searchfor_trappingpotential_parameters(
+        [mass(ion) for ion in ions],
+        [ion.speciesproperties.charge for ion in ions],
+        target_eigenfrequencies
+    )
 
 
 #############################################################################################
@@ -578,10 +578,10 @@ end
 Same thing but explicitly provide the masses `M` and charges `Q` of the ions.
 """
 function full_normal_mode_description(
-    M::Vector{<:Real},
-    Q::Vector{<:Int},
-    comfreqs::NamedTuple{(:x, :y, :z)}
-)
+        M::Vector{<:Real},
+        Q::Vector{<:Int},
+        comfreqs::NamedTuple{(:x, :y, :z)}
+    )
     @assert length(M) == length(Q) "length(M) ≠ length(Q)"
     trappingparams = searchfor_trappingpotential_parameters(M, Q, comfreqs)
     normalmodes = (
@@ -936,10 +936,10 @@ Same thing but input a normal mode description as a tuple with first element the
 eigenfrequency and second the eigenvector.
 """
 function visualize(
-    vm::Tuple{Float64, Vector{Float64}},
-    axis::NamedTuple{(:x, :y, :z)};
-    format="bars"
-)
+        vm::Tuple{Float64, Vector{Float64}},
+        axis::NamedTuple{(:x, :y, :z)};
+        format="bars"
+    )
     VM = VibrationalMode(vm..., axis=axis, N=1)
     visualize(VM; format=format)
 end
