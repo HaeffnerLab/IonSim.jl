@@ -1,6 +1,7 @@
 module IonSim
 
 using QuantumOptics
+using Parameters
 import OrderedCollections: OrderedDict
 
 export OrderedDict, analytical
@@ -35,6 +36,7 @@ abstract type IonSimBasis <: Basis end
 export IonSimBasis
 
 include("constants.jl")
+include("termsymbols.jl")
 include("ions.jl")
 include("vibrationalmodes.jl")
 include("lasers.jl")

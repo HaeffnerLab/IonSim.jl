@@ -1,4 +1,5 @@
 include("test_analytic_functions.jl")
+include("test_termsymbols.jl")
 include("test_constants.jl")
 include("test_operators.jl")
 include("test_lasers.jl")
