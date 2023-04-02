@@ -448,7 +448,7 @@ function _setup_global_B_hamiltonian(chamber, timescale)
     all_ions = ions(chamber)
     global_B_indices = Vector{Vector{Int64}}(undef, 0)
     global_B_scales = Vector{Float64}(undef, 0)
-    δB = bfield_fluctuation(chamber)
+    δB = magnitude_fluctuation(magneticfield(chamber))
     τ = timescale
     bfunc = FunctionWrapper{Float64, Tuple{Float64}}(t -> 2π * δB(t * τ))
     if chamber._cnst_δB && δB(0) == 0
@@ -521,8 +521,6 @@ function _Δmatrix(chamber, timescale)
     all_ions = ions(chamber)
     all_lasers = lasers(chamber)
     (N, M) = length(all_ions), length(all_lasers)
-    B = bfield(chamber)
-    ∇B = bgradient(chamber)
     Δnmkj = Array{Vector}(undef, N, M)
     for n in 1:N, m in 1:M
         Btot = bfield(chamber, all_ions[n])
@@ -572,7 +570,7 @@ function _Ωmatrix(chamber, timescale)
                     1.0,
                     polarization(all_lasers[m]),
                     wavevector(all_lasers[m]),
-                    bfield_unitvector(chamber)
+                    direction(magneticfield(chamber))
                 ) / 2.0
             if Ω0 == 0
                 push!(v, 0)

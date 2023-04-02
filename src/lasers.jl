@@ -207,6 +207,10 @@ function pointing!(
     laser.pointing = p
 end
 
+#############################################################################################
+# Other functions
+#############################################################################################
+
 """
     efield(I::Real)::Real
 Returns the electric field (in V/m) corresponding to a light intensity of `I` (in W/m²)

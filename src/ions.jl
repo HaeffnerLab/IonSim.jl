@@ -448,12 +448,28 @@ function transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_manualshift=
 end
 
 """
+This needs a docstring
+"""
+function transitionfrequency(I::Ion, transition::Tuple, magfield::MagneticField; ignore_manualshift=false)
+    B = magnitude(magfield)
+    return transitionfrequency(I, transition, B=B, ignore_manualshift=ignore_manualshift)
+end
+
+"""
     transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)
 Returns the wavelength corresponding to `transitionfrequency(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)`.
 """
 function transitionwavelength(I::Ion, transition::Tuple; B=0, ignore_manualshift=false)
     return c /
            transitionfrequency(I, transition, B=B, ignore_manualshift=ignore_manualshift)
+end
+
+"""
+This needs a docstring
+"""
+function transitionwavelength(I::Ion, transition::Tuple, magfield::MagneticField, ignore_manualshift=false)
+    return c /
+           transitionfrequency(I, transition, magfield, ignore_manualshift=ignore_manualshift)
 end
 
 """
@@ -658,6 +674,7 @@ function matrixelement(
         Bhat
     )
 end
+
 
 #############################################################################################
 # Functions for constructing ion structs
