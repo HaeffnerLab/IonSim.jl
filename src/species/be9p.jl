@@ -25,16 +25,6 @@ const properties_be9 = SpeciesProperties(
         (ls"2²S_1/2", ls"2²P_3/2") => (multipole="E1", einsteinA=19.4e6),
     ),
     # # Optional fields
-    # default_sublevel_selection=[
-    #     ("S1/2f=1", "all"),
-    #     ("S1/2f=2", "all"),
-    #     ("P1/2f=1", "all"),
-    #     ("P1/2f=2", "all"),
-    #     ("P3/2f=0", "all"),
-    #     ("P3/2f=1", "all"),
-    #     ("P3/2f=2", "all"),
-    #     ("P3/2f=3", "all"),
-    # ],
     
     # gfactors=Dict("S1/2" => 2.00225664, "D5/2" => 1.2003340)
 

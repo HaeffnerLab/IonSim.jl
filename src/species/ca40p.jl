@@ -27,7 +27,7 @@ const properties_ca40 =
         ),
         
         
-        full_level_structure=OrderedDict(
+        level_structure=OrderedDict(
             ls"4²S_1/2" => 0,
             ls"3²D_3/2" => 4.09335071228e14,
             ls"3²D_5/2" => 4.1115503183857306e14,
@@ -46,7 +46,6 @@ const properties_ca40 =
         ),
 
         # Optional fields
-        default_sublevel_selection=[("S1/2", "all"), ("D5/2", "all"),],
         gfactors=Dict("S1/2" => 2.00225664, "D5/2" => 1.2003340)
 
         #nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,

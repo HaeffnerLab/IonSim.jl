@@ -5,7 +5,7 @@ const properties_ca40 = SpeciesProperties(;
     mass=6.635943757345042e-26,
     charge=1,
     nuclearspin=0,
-    full_level_structure=OrderedDict(
+    level_structure=OrderedDict(
         "S1/2" => (n=4, l=0, j=1 // 2, f=1 // 2, E=0),
         "D3/2" => (n=3, l=2, j=3 // 2, f=3 // 2, E=4.09335071228e14),
         "D5/2" => (n=3, l=2, j=5 // 2, f=5 // 2, E=4.1115503183857306e14),
@@ -23,7 +23,6 @@ const properties_ca40 = SpeciesProperties(;
     ),
 
     # Optional fields
-    default_sublevel_selection=[("S1/2", "all"), ("D5/2", "all"),],
     gfactors=Dict("S1/2" => 2.00225664, "D5/2" => 1.2003340)
 
     #nonlinear_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,

@@ -5,7 +5,7 @@ const properties_mg25 = SpeciesProperties(
     mass=4.1489954812e-26,
     charge=1,
     nuclearspin=5 // 2,
-    full_level_structure=OrderedDict(
+    level_structure=OrderedDict(
         "S1/2f=2" => (n=3, l=0, j=1 // 2, f=2, E=1.043445158e9),
         "S1/2f=3" => (n=3, l=0, j=1 // 2, f=3, E=-0.745317970e9),
         "P1/2f=2" => (n=3, l=1, j=1 // 2, f=2, E=1069.3408690519877e12),
@@ -28,16 +28,6 @@ const properties_mg25 = SpeciesProperties(
         ("S1/2f=3", "P1/2f=4") => (multipole="E1", einsteinA=41.3e6),
     ),
     # Optional fields
-    default_sublevel_selection=[
-        ("S1/2f=2", "all"),
-        ("S1/2f=3", "all"),
-        ("P1/2f=2", "all"),
-        ("P1/2f=3", "all"),
-        ("P3/2f=1", "all"),
-        ("P3/2f=2", "all"),
-        ("P3/2f=3", "all"),
-        ("P3/2f=4", "all"),
-    ],
 )
 
 # boilerplate code

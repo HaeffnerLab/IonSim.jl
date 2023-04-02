@@ -155,7 +155,7 @@ struct SpeciesProperties
     mass::Number  # mass of ion in kg
     charge::Number  # charge of ion in units of elementary charge e
     nuclearspin::Number
-    full_level_structure::OrderedDict{
+    level_structure::OrderedDict{
         String,
         NamedTuple{(:n, :l, :j, :f, :E), T} where T <: Tuple
     }
@@ -163,7 +163,6 @@ struct SpeciesProperties
         Tuple{String, String},
         NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}
     }
-    default_sublevel_selection::Union{Vector{Tuple{String, String}}, Missing}
     gfactors::Union{Dict{String, Number}, Missing}
     nonlinear_zeeman::Union{Dict{Tuple{String, Real}, Function}, Missing}
 end
@@ -173,9 +172,8 @@ function SpeciesProperties(;
         mass,
         charge,
         nuclearspin,
-        full_level_structure,
+        level_structure,
         full_transitions,
-        default_sublevel_selection=missing,
         gfactors=missing,
         nonlinear_zeeman=missing
     )  
@@ -184,9 +182,8 @@ function SpeciesProperties(;
             mass,
             charge,
             nuclearspin,
-            full_level_structure,
+            level_structure,
             full_transitions,
-            default_sublevel_selection,
             gfactors,
             nonlinear_zeeman
         )
@@ -296,21 +293,12 @@ end
 #############################################################################################
 
 function _construct_sublevels(selected_sublevels, properties)
-    full_level_structure = properties.full_level_structure
+    level_structure = properties.level_structure
 
     # If selected_sublevels is blank, use the default selection. If it is "all", use all 
     # sublevels.
-    if isnothing(selected_sublevels)
-        if !ismissing(properties.default_sublevel_selection)
-            selected_sublevels = properties.default_sublevel_selection
-        else
-            @error (
-                "no level structure specified in constructor, and no default level structure \
-                specified for this ion species"
-            )
-        end
-    elseif selected_sublevels == "all"
-        selected_sublevels = [(sublevel, "all") for sublevel in keys(full_level_structure)]
+    if isnothing(selected_sublevels) || selected_sublevels == "all" 
+        selected_sublevels = [(sublevel, "all") for sublevel in keys(level_structure)]
     end
 
     # Construct the list of sublevels
@@ -319,8 +307,8 @@ function _construct_sublevels(selected_sublevels, properties)
     for manifold in selected_sublevels
         # Ensure that the string is a valid level
         level = manifold[1]
-        @assert level in keys(full_level_structure) "invalid level $level"
-        level_structure = full_level_structure[level]
+        @assert level in keys(level_structure) "invalid level $level"
+        level_structure = level_structure[level]
 
         # Create aliases, if applicable
         selectedms = manifold[2]
@@ -544,7 +532,7 @@ If second argument is a sublevel, returns `(:n, :i, :s, :l, :j, :f, :m)`
 """
 function quantumnumbers(I::Ion, sublevel::Tuple{String, Real})
     validatesublevel(I, sublevel)
-    levelstruct = speciesproperties(I).full_level_structure[sublevel[1]]
+    levelstruct = speciesproperties(I).level_structure[sublevel[1]]
     names = (:n, :i, :s, :l, :j, :f, :m)
     values = (
         levelstruct.n,
@@ -562,7 +550,7 @@ function quantumnumbers(I::Ion, level_or_alias::String)
     # If the second argument is a String, it's either a level name or the alias of a sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Leave out the m quantum number
-        levelstruct = speciesproperties(I).full_level_structure[level_or_alias]
+        levelstruct = speciesproperties(I).level_structure[level_or_alias]
         names = (:n, :i, :s, :l, :j, :f)
         values = (
             levelstruct.n,
@@ -674,7 +662,7 @@ value of `B`. The manual shift can be omitted by setting `ignore_manualshift=tru
 """
 function energy(I::Ion, sublevel::Tuple{String, Real}; B=0, ignore_manualshift=false)
     validatesublevel(I, sublevel)
-    E0 = speciesproperties(I).full_level_structure[sublevel[1]].E
+    E0 = speciesproperties(I).level_structure[sublevel[1]].E
     zeeman = zeemanshift(I, sublevel, B)
     manual = (ignore_manualshift ? 0.0 : manualshift(I, sublevel))
     return E0 + zeeman + manual
@@ -690,7 +678,7 @@ function energy(I::Ion, level_or_alias::String; B=0, ignore_manualshift=false)
     # sublevel
     if level_or_alias in levels(I)
         # Second argument is a level name. Return the bare energy of that level.
-        return speciesproperties(I).full_level_structure[level_or_alias].E
+        return speciesproperties(I).level_structure[level_or_alias].E
     else
         # Second argument is a sublevel alias.
         return energy(
@@ -809,7 +797,7 @@ Computes lifetime of `level` by summing the transition rates out of `level`. The
  over all levels that the species may have, rather than the levels present in the instance `I`.
 """
 function lifetime(I::Ion, level::String)
-    @assert level in keys(speciesproperties(I).full_level_structure) (
+    @assert level in keys(speciesproperties(I).level_structure) (
         "Ion species $(typeof(I)) does not contain level $level"
     )
     totaltransitionrate = 0.0

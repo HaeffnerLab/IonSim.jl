@@ -5,7 +5,7 @@ const properties_be9 = SpeciesProperties(
     mass=1.496508080073e-26,
     charge=1,
     nuclearspin=3 // 2,
-    full_level_structure=OrderedDict(
+    level_structure=OrderedDict(
         "S1/2f=1" => (n=2, l=0, j=1 // 2, f=1, E=0.78126104631e9),
         "S1/2f=2" => (n=2, l=0, j=1 // 2, f=2, E=-0.468756627786e9),
         "P1/2f=1" => (n=2, l=1, j=1 // 2, f=1, E=957.2010729076436e12),
@@ -29,16 +29,6 @@ const properties_be9 = SpeciesProperties(
     ),
 
     # Optional fields
-    default_sublevel_selection=[
-        ("S1/2f=1", "all"),
-        ("S1/2f=2", "all"),
-        ("P1/2f=1", "all"),
-        ("P1/2f=2", "all"),
-        ("P3/2f=0", "all"),
-        ("P3/2f=1", "all"),
-        ("P3/2f=2", "all"),
-        ("P3/2f=3", "all"),
-    ],
 )
 
 # boilerplate code

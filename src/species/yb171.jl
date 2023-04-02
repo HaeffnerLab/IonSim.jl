@@ -5,7 +5,7 @@ const properties_yb171 = SpeciesProperties(
     mass=28.8384644689030595108e-26,
     charge=1,
     nuclearspin=1 // 2,
-    full_level_structure=OrderedDict(
+    level_structure=OrderedDict(
         # should this be negative, or should I increase the energy of every state by 9GHz?
         "S1/2f=0" => (n=6, l=0, j=1 // 2, f=0, E=-9.48210909315e9),
         "S1/2f=1" => (n=6, l=0, j=1 // 2, f=1, E=3.16070303105e9),
@@ -60,12 +60,6 @@ const properties_yb171 = SpeciesProperties(
         ("[3/2]1/2f=1", "S1/2f=1") => (multipole="E1", einsteinA=5.125e7),
     ),
     # Optional fields
-    default_sublevel_selection=[
-        ("S1/2f=0", "all"),
-        ("S1/2f=1", "all"),
-        ("P1/2f=0", "all"),
-        ("P1/2f=1", "all")
-    ],
     gfactors=Dict(
         "S1/2f=0" => 1.998,
         "S1/2f=1" => 1.998,
