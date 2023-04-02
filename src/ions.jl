@@ -236,7 +236,7 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 * `ionposition`: When the ion is added to an `IonTrap`, this value keeps track of its physical 
     position in meters
 """
-mutable struct IonInstance{Species<:Any}<:Ion
+mutable struct IonInstance{Species<:Any} <: Ion
     # fields
     speciesproperties::SpeciesProperties
     sublevels::Vector{Tuple{String, Real}}
@@ -265,6 +265,7 @@ mutable struct IonInstance{Species<:Any}<:Ion
             missing
         )
     end
+
     function IonInstance{Species}(
         speciesproperties,
         sublevels,
@@ -304,7 +305,7 @@ function _construct_sublevels(selected_sublevels, properties)
             selected_sublevels = properties.default_sublevel_selection
         else
             @error (
-                "no level structure specified in constructor, and no default level structure 
+                "no level structure specified in constructor, and no default level structure \
                 specified for this ion species"
             )
         end
@@ -319,9 +320,6 @@ function _construct_sublevels(selected_sublevels, properties)
         # Ensure that the string is a valid level
         level = manifold[1]
         @assert level in keys(full_level_structure) "invalid level $level"
-        # @assert level ∉ [k[1] for k in sublevels] (
-        #         "multiple instances of level $level in ion constructor call"
-        #     )
         level_structure = full_level_structure[level]
 
         # Create aliases, if applicable

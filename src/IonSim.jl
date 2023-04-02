@@ -36,7 +36,7 @@ abstract type IonSimBasis <: Basis end
 export IonSimBasis
 
 include("constants.jl")
-include("termsymbols.jl")
+include("energylevels.jl")
 include("ions.jl")
 include("vibrationalmodes.jl")
 include("lasers.jl")
