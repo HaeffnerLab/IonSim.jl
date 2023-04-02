@@ -159,7 +159,7 @@ struct SpeciesProperties
         String,
         NamedTuple{(:n, :l, :j, :f, :E), T} where T <: Tuple
     }
-    full_transitions::Dict{
+    transitions::Dict{
         Tuple{String, String},
         NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}
     }
@@ -173,7 +173,7 @@ function SpeciesProperties(;
         charge,
         nuclearspin,
         level_structure,
-        full_transitions,
+        transitions,
         gfactors=missing,
         nonlinear_zeeman=missing
     )  
@@ -183,7 +183,7 @@ function SpeciesProperties(;
             charge,
             nuclearspin,
             level_structure,
-            full_transitions,
+            transitions,
             gfactors,
             nonlinear_zeeman
         )
@@ -727,7 +727,7 @@ Returns all allowed transitions between levels of `I` as a vector of `Tuple{Stri
 function leveltransitions(I::Ion)
     list = []
     lvls = levels(I)
-    for levelpair in keys(speciesproperties(I).full_transitions)
+    for levelpair in keys(speciesproperties(I).transitions)
         if levelpair[1] in lvls && levelpair[2] in lvls
             push!(list, levelpair)
         end
@@ -774,7 +774,7 @@ second must be the upper level.
 function einsteinA(I::Ion, leveltransition::Tuple{String, String})
     (L1, L2) = leveltransition
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
-    return speciesproperties(I).full_transitions[(L1, L2)].einsteinA
+    return speciesproperties(I).transitions[(L1, L2)].einsteinA
 end
 
 """
@@ -787,7 +787,7 @@ second must be the upper level.
 function transitionmultipole(I::Ion, leveltransition::Tuple{String, String})
     (L1, L2) = leveltransition
     @assert (L1, L2) in leveltransitions(I) "invalid transition $L1 -> $L2"
-    return speciesproperties(I).full_transitions[(L1, L2)].multipole
+    return speciesproperties(I).transitions[(L1, L2)].multipole
 end
 
 """
@@ -801,7 +801,7 @@ function lifetime(I::Ion, level::String)
         "Ion species $(typeof(I)) does not contain level $level"
     )
     totaltransitionrate = 0.0
-    for (transition, info) in speciesproperties(I).full_transitions
+    for (transition, info) in speciesproperties(I).transitions
         if transition[2] == level
             totaltransitionrate += info.einsteinA
         end

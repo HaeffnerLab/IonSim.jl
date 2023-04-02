@@ -15,7 +15,7 @@ const properties_be9 = SpeciesProperties(
         "P3/2f=2" => (n=2, l=1, j=3 // 2, f=2, E=957.3965638867406e12),
         "P3/2f=3" => (n=2, l=1, j=3 // 2, f=3, E=957.3965608267406e12),
     ),
-    full_transitions=Dict(
+    transitions=Dict(
         ("S1/2f=1", "P1/2f=1") => (multipole="E1", einsteinA=19.4e6),
         ("S1/2f=1", "P1/2f=2") => (multipole="E1", einsteinA=19.4e6),
         ("S1/2f=2", "P1/2f=1") => (multipole="E1", einsteinA=19.4e6),

@@ -12,7 +12,7 @@ const properties_ca40 = SpeciesProperties(;
         "P1/2" => (n=4, l=1, j=1 // 2, f=1 // 2, E=7.554e14),
         "P3/2" => (n=4, l=1, j=3 // 2, f=3 // 2, E=7.621e14),
     ),
-    full_transitions=Dict(
+    transitions=Dict(
         ("S1/2", "D5/2") => (multipole="E2", einsteinA=8.562e-1),
         ("S1/2", "P1/2") => (multipole="E1", einsteinA=1.299e8),
         ("D3/2", "P1/2") => (multipole="E1", einsteinA=1.060e7),

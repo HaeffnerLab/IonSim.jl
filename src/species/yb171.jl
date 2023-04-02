@@ -24,7 +24,7 @@ const properties_yb171 = SpeciesProperties(
         "F7/2f=3" => (n=6, l=3, j=7 // 2, f=3, E=6.42115934728750e14),
         "F7/2f=4" => (n=6, l=3, j=7 // 2, f=4, E=6.42119554728750e14),
     ),
-    full_transitions=Dict(
+    transitions=Dict(
         # Laser lines
         # 411nm
         ("S1/2f=0", "D5/2f=2") => (multipole="E2", einsteinA=22),

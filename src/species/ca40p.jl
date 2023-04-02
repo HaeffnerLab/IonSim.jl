@@ -35,7 +35,7 @@ const properties_ca40 =
             ls"3²P_3/2" => 7.621e14,
         ),
 
-        full_transitions=Dict(
+        transitions=Dict(
             ("S1/2", "D5/2") => (multipole="E2", einsteinA=8.562e-1),
             ("S1/2", "P1/2") => (multipole="E1", einsteinA=1.299e8),
             ("D3/2", "P1/2") => (multipole="E1", einsteinA=1.060e7),
