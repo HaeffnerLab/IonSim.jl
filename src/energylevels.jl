@@ -23,7 +23,8 @@ Stores description of an LS-coupled energy level.
 `s`: electronic spin angular momentum
 `j`: total electronic angular momentum
 **optional**
-`f`: total angular momentum (including nuclear spin) 
+`f`: total angular momentum (including nuclear spin)
+`str_repr`: a string representation of the level
 """
 @with_kw struct LS <: EnergyLevel
     n::Int 
@@ -31,6 +32,7 @@ Stores description of an LS-coupled energy level.
     s::Union{Int, Rational{Int}}
     j::Union{Int, Rational{Int}}; @assert abs(l-s) <= j <= l+s
     f::Union{Int, Rational{Int}, Nothing}=nothing; # we don't require I, so can't restrict values
+    str_repr::Union{String, Nothing}=nothing
 end
 
 """
@@ -44,6 +46,7 @@ Stores description of intermediate, J₁K coupled energy level.
 `j`: total electronic angular momentum (spin and orbital)
 **optional**
 `f`: total angular momentum (including nuclear spin) 
+`str_repr`: a string representation of the level
 """
 @with_kw struct J₁K <: EnergyLevel @deftype Union{Int, Rational{Int}}
     # It seems that we can't specify a particular n?
@@ -52,6 +55,7 @@ Stores description of intermediate, J₁K coupled energy level.
     s
     j
     f::Union{Int, Rational{Int}, Nothing}=nothing # we don't require I, so can't restrict values
+    str_repr::Union{String, Nothing}=nothing
 end
 
 """
@@ -94,7 +98,7 @@ macro jk_str(T::AbstractString)
         f = _checkforhyperfine(T)
     end
     
-    return J₁K(k=k, s=s, j=j, f=f)
+    return J₁K(k=k, s=s, j=j, f=f, str_repr=T)
 end
 
 """
@@ -135,7 +139,7 @@ macro ls_str(T::AbstractString)
         f = _checkforhyperfine(T)
     end
 
-    return LS(n=n, s=s, l=l, j=j, f=f)
+    return LS(n=n, s=s, l=l, j=j, f=f, str_repr=T)
 end
 
 function _checkfraction(fraction)
@@ -172,6 +176,7 @@ function Base.print(io::IO, T::EnergyLevel)
     _tostr(x) = typeof(x)<:Int ? "$x" : "$(x.num)/$(x.den)"
     str = "|"
     for sym in fieldnames(typeof(T))
+        sym == :str_repr && continue
         sym_str = String(sym)
         x = getfield(T, sym)
         isnothing(x) && continue
@@ -187,5 +192,14 @@ function Base.println(io::IO, T::EnergyLevel)
     println()
 end
 
+# What gets printed when T is instantiated
 Base.show(io::IO, m::MIME"text/plain", T::EnergyLevel) = print(io, T)
-Base.dump(io::IOContext, T::EnergyLevel; maxdepth=8, indent="") = print(io, T)
+
+# What gets printed when T is placed in standard containers (tuples, lists, etc.)
+function Base.dump(io::IOContext, T::EnergyLevel; maxdepth=8, indent="")
+    if isnothing(T.str_repr)
+        print(io, T)
+    else
+        print(io, T.str_repr)
+    end
+end
