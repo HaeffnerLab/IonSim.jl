@@ -1,12 +1,13 @@
 using QuantumOptics
 using Test, IonSim
 using IonSim.analytical
+using IonSim.Properties: loadfromconfig
 using Suppressor
 
 @suppress_err begin
     @testset "Dynamics -- Rabi" begin
         # carrier
-        C = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L = Laser()
         chain = LinearChain(
             ions=[C],
@@ -127,7 +128,7 @@ using Suppressor
         # could use some better tests
 
         # use ϕ(t) to set laser frequency to resonance
-        C = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L = Laser()
         chain = LinearChain(
             ions=[C],
@@ -199,7 +200,7 @@ using Suppressor
 
     @testset "molmer-sorensen" begin
         # slow gate
-        C = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L1 = Laser()
         L2 = Laser()
         chain = LinearChain(

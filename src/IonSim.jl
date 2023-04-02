@@ -34,6 +34,7 @@ abstract type IonSimBasis <: Basis end
 export IonSimBasis
 
 include("constants.jl")
+include("ionproperties.jl")
 include("ions.jl")
 include("vibrationalmodes.jl")
 include("lasers.jl")
@@ -42,7 +43,6 @@ include("chambers.jl")
 include("operators.jl")
 include("hamiltonians.jl")
 include("timeevolution.jl")
-include("species/_include_species.jl")
 
 module analytical
 include("analyticfunctions.jl")

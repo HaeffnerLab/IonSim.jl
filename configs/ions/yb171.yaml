@@ -1,0 +1,80 @@
+name: "Yb171"
+shortname: "¹⁷¹Yb"
+mass: 28.8384644689030595108e-26
+charge: 1
+nuclearspin: 0.5
+full_level_structure:
+  "S1/2f=0": {n: 6, l: 0, j: 0.5, f: 0, E: -9.48210909315e+9}
+  "S1/2f=1": {n: 6, l: 0, j: 0.5, f: 1, E: 3.16070303105e+9}
+  "D3/2f=0": {n: 5, l: 2, j: 1.5, f: 1, E: 6.88342460964640e+14}
+  "D3/2f=1": {n: 5, l: 2, j: 1.5, f: 2, E: 6.88350470564640e+14}
+  "D5/2f=2": {n: 5, l: 2, j: 2.5, f: 2, E: 7.29477895985202e+14}
+  "D5/2f=3": {n: 5, l: 2, j: 2.5, f: 3, E: 7.29474121985202e+14}
+  "P1/2f=0": {n: 6, l: 1, j: 0.5, f: 0, E: 8.112913749003559e+14}
+  "P1/2f=1": {n: 6, l: 1, j: 0.5, f: 1, E: 8.112934798003559e+14}
+  "[3/2]1/2f=0": {n: 6, l: null, j: 0.5, f: 0, E: 1.008917341058788e+15}
+  "[3/2]1/2f=1": {n: 6, l: null, j: 0.5, f: 1, E: 1.008917341058788e+15}
+  "[3/2]3/2f=1": {n: 6, l: null, j: 1.5, f: 1, E: 8.621425511314839e+14}
+  "[3/2]3/2f=2": {n: 6, l: null, j: 1.5, f: 2, E: 8.621425511314839e+14}
+  "[5/2]5/2f=2": {n: 6, l: null, j: 2.5, f: 2, E: 9.70461163716380e+14}
+  "[5/2]5/2f=3": {n: 6, l: null, j: 2.5, f: 3, E: 9.70461163716380e+14}
+  "F7/2f=3": {n: 6, l: 3, j: 3.5, f: 3, E: 6.42115934728750e+14}
+  "F7/2f=4": {n: 6, l: 3, j: 3.5, f: 4, E: 6.42119554728750e+14}
+
+full_transitions:
+  # Laser lines
+  # 411nm
+  - {from: "S1/2f=0", to: "D5/2f=2", multipole: "E2", einsteinA: 22}
+  - {from: "S1/2f=1", to: "D5/2f=2", multipole: "E2", einsteinA: 22}
+  - {from: "S1/2f=1", to: "D5/2f=3", multipole: "E2", einsteinA: 22}
+  # 369nm
+  - {from: "S1/2f=0", to: "P1/2f=1", multipole: "E1", einsteinA: 1.155e+8}
+  - {from: "S1/2f=1", to: "P1/2f=0", multipole: "E1", einsteinA: 1.155e+8}
+  - {from: "S1/2f=1", to: "P1/2f=1", multipole: "E1", einsteinA: 1.155e+8}
+  # 935nm
+  - {from: "D3/2f=1", to: "[3/2]1/2f=0", multipole: "E1", einsteinA: 1.2e+5}
+  - {from: "D3/2f=1", to: "[3/2]1/2f=1", multipole: "E1", einsteinA: 1.2e+5}
+  - {from: "D3/2f=2", to: "[3/2]1/2f=1", multipole: "E1", einsteinA: 1.2e+5}
+  # 760nm
+  - {from: "F7/2f=3", to: "[3/2]3/2f=1", multipole: "E2", einsteinA: 5.0e+4}
+  - {from: "F7/2f=3", to: "[3/2]3/2f=2", multipole: "E2", einsteinA: 5.0e+4}
+  - {from: "F7/2f=4", to: "[3/2]3/2f=2", multipole: "E2", einsteinA: 5.0e+4}
+  # 638nm
+  # 976nm
+  # 861nm
+  # Decay lines
+  # P1/2 -> D3/2
+  - {from: "P1/2f=0", to: "D3/2f=1", multipole: "E1", einsteinA: 5.7e+5}
+  - {from: "P1/2f=1", to: "D3/2f=2", multipole: "E1", einsteinA: 5.7e+5}
+  - {from: "P1/2f=1", to: "D3/2f=2", multipole: "E1", einsteinA: 5.7e+5}
+  # [3/2]1/2 -> S1/2
+  - {from: "[3/2]1/2f=0", to: "S1/2f=1", multipole: "E1", einsteinA: 8.05e+7}
+  - {from: "[3/2]1/2f=1", to: "S1/2f=0", multipole: "E1", einsteinA: 8.05e+7}
+  - {from: "[3/2]1/2f=1", to: "S1/2f=1", multipole: "E1", einsteinA: 8.05e+7}
+  # [3/2]3/2 -> S1/2
+  - {from: "[3/2]1/2f=0", to: "S1/2f=1", multipole: "E1", einsteinA: 5.125e+7}
+  - {from: "[3/2]1/2f=1", to: "S1/2f=0", multipole: "E1", einsteinA: 5.125e+7}
+  - {from: "[3/2]1/2f=1", to: "S1/2f=1", multipole: "E1", einsteinA: 5.125e+7}
+
+# Optional fields
+default_sublevel_selection:
+  - ["S1/2f=0", "all"]
+  - ["S1/2f=1", "all"]
+  - ["P1/2f=0", "all"]
+  - ["P1/2f=1", "all"]
+
+gfactors:
+  "S1/2f=0": 1.998
+  "S1/2f=1": 1.998
+  "D5/2f=2": 1.202
+  "D5/2f=3": 1.202
+  "F7/2f=3": 1.145
+  "F7/2f=4": 1.145
+  "[3/2]1/2f=0": 1.32
+  "[3/2]1/2f=1": 1.32
+  "[3/2]3/2f=1": 1.44
+  "[3/2]3/2f=2": 1.44
+
+nonlinear_zeeman:
+- {level: "S1/2f=0", sublevel: 0, coeffs: [0.0, 0.0, -155.305]}
+- {level: "S1/2f=1", sublevel: 0, coeffs: [0.0, 0.0, 155.305]}

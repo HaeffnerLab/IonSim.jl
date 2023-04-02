@@ -109,7 +109,10 @@ end
 
     @testset "hamiltonians -- parameter arrays" begin
         # setup system
-        C = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C = Ion(
+            loadfromconfig("../configs/ions/ca40.yaml"),
+            [("S1/2", -1 / 2), ("D5/2", -1 / 2)]
+        )
         C1 = copy(C)
 
         L1 = Laser()
@@ -220,7 +223,7 @@ end
         # tests for _setup_global_B_hamiltonian
 
         # setup system
-        C = Ca40()
+        C = Ion(CA40_PROPERTIES, nothing)
         L = Laser()
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
@@ -321,7 +324,7 @@ end
 
         # _setup_base_hamiltonian
         # Let's make sure that _setup_base_hamiltonian is recording the appropriate indices.
-        C = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L = Laser()
         L.λ = transitionwavelength(C, ("S1/2", "D5/2"))
         chain = LinearChain(
@@ -357,7 +360,7 @@ end
         @test length(unique([cidxs; c])) - 1 == (N^2 - N) == length(cidxs)
 
         ## test for two modes
-        C1 = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C1 = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L1 = Laser()
         L1.λ = transitionwavelength(C1, ("S1/2", "D5/2"))
         chain1 = LinearChain(
@@ -408,8 +411,8 @@ end
         #   * Hamiltonian built with hamiltonians.jl
 
         # define ion, laser, chain, trap
-        C_a = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
-        C_b = Ca40([("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C_a = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
+        C_b = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -1 / 2)])
         L = Laser()
         L.pointing = [(1, 1.0), (2, 1.0)]
         chain = LinearChain(
@@ -466,8 +469,8 @@ end
         H = hamiltonian(T, timescale=1e-6, lamb_dicke_order=101)
         H1 = hamiltonian(T, timescale=1e-6, lamb_dicke_order=101, time_dependent_eta=true)
         # test similarity at a random time input
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
-        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-2
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
 
         # Case 1b: analytic solution (as opposed to truncated solution)
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
@@ -486,7 +489,7 @@ end
             displacement="analytic",
             time_dependent_eta=true
         )
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 2a: full hamiltonian (w/o conj_repeated_indices)
@@ -500,8 +503,8 @@ end
         )
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="truncated")
         mode_op2(t; η) = displace(mode2, im * η * exp(im * 2π * √3 * t), method="truncated")
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
-        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-2
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
+        @test norm(qoH(tp).data - H1(tp, 0).data) < 1e-4
 
         # Case 2b: Like 2a, but with analytic solution
         mode_op1(t; η) = displace(mode1, im * η * exp(im * 2π * t), method="analytic")
@@ -522,7 +525,7 @@ end
             time_dependent_eta=true,
             rwa_cutoff=1e10
         )
-        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-2
+        @test norm(qoH(tp).data - H(tp, 0).data) < 1e-4
         @test H1(tp, 0).data ≈ H(tp, 0).data
 
         # Case 3: test Hamiltonian with zero Lamb-Dicke value, i.e. no vibrational modes

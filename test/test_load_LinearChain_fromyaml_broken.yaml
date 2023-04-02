@@ -1,8 +1,0 @@
-x:
-  - frequency: 1e6
-    mode: [0.1, 0.5, 0.3, 0.8, 1]
-  - frequency: 2e6
-y:
-  - frequency: 8e6
-    mode: [1, 1, 1, 1]
-ionpositions: [1,2,3,4]
