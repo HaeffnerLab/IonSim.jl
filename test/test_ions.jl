@@ -9,8 +9,6 @@ using Suppressor
         # test for required fields
         @test typeof(speciesproperties(C)) <: IonProperties
         @test typeof(sublevels(C)) == Vector{Tuple{String, Real}}
-        @test typeof(sublevelaliases(C)) == Dict{String, Tuple}
-        @test isempty(sublevelaliases(C))
         @test typeof(shape(C)) == Vector{Int64}
         @test typeof(manualshift(C)) == OrderedDict{Tuple, Real}
         @test typeof(ionnumber(C)) == Missing
@@ -20,29 +18,6 @@ using Suppressor
         C1 = Ca40()
         @test C1 == C
 
-        # test aliases
-        sublevelalias!(C, ("S1/2", -1 / 2), "S")
-        @test sublevelaliases(C) == Dict("S" => ("S1/2", -1 / 2))
-        clearsublevelalias!(C, ("S1/2", -1 / 2))
-
-        sublevelalias!(
-            C,
-            [
-                (("S1/2", -1 / 2), "S")
-                (("D5/2", -1 / 2), "D")
-            ]
-        )
-        @test sublevelaliases(C) == Dict("S" => ("S1/2", -1 / 2), "D" => ("D5/2", -1 / 2))
-        clearsublevelalias!(C, ["S", "D"])
-
-        sublevelalias!(C, Dict("0" => ("S1/2", 1 / 2), "1" => ("D5/2", 5 / 2)))
-        @test sublevelaliases(C) == Dict("0" => ("S1/2", 1 / 2), "1" => ("D5/2", 5 / 2))
-        clearsublevelalias!(C)
-
-        # set some aliases for convenience
-        sublevelalias!(C, ("S1/2", -1 / 2), "S")
-        sublevelalias!(C, ("D5/2", -5 / 2), "D")
-
         #test manual shift
         manualshift!(C, "S", 10.0)
         @test manualshift(C, "S") == 10.0
@@ -51,8 +26,6 @@ using Suppressor
 
         # test levels and sublevels
         @test levels(C) == ["S1/2", "D5/2"]
-        @test sublevelalias(C, ("S1/2", -1 / 2)) == "S"
-        @test sublevelalias(C, ("D5/2", -1 / 2)) == nothing
         @test sublevel(C, "S") == ("S1/2", -1 / 2)
         @test level(C, "S") == "S1/2"
         @test level(C, ("D5/2", -3 / 2)) == "D5/2"
@@ -76,10 +49,6 @@ using Suppressor
 
     @testset "ions -- Ca40" begin
         C = Ca40()
-
-        # set some aliases for convenience
-        sublevelalias!(C, ("S1/2", -1 / 2), "S")
-        sublevelalias!(C, ("D5/2", -5 / 2), "D")
 
         # test for general species properties
         @test mass(C) ≈ 6.635943757345042e-26
@@ -110,8 +79,6 @@ using Suppressor
 
         # # test indexing
         C1 = Ca40([("S1/2", -1 / 2), ("D5/2", -5 / 2)])
-        sublevelalias!(C1, ("S1/2", -1 / 2), "S")
-        sublevelalias!(C1, ("D5/2", -5 / 2), "D")
         @test C1[("S1/2", -1 / 2)].data == ComplexF64[1; 0]
         @test C1[("D5/2", -5 / 2)].data == ComplexF64[0; 1]
         @test C1["S"].data == ComplexF64[1; 0]

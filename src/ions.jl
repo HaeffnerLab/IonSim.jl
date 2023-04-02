@@ -6,8 +6,6 @@ export Ion,
     # SpeciesProperties,
     speciesproperties,
     sublevels,
-    sublevelaliases,
-    sublevelalias,
     shape,
     manualshift,
     ionnumber,
@@ -19,8 +17,6 @@ export Ion,
     manualshift!,
     sublevel,
     level,
-    sublevelalias!,
-    clearsublevelalias!,
     levels,
     quantumnumbers,
     landegf,
@@ -68,13 +64,6 @@ Returns the energy sublevels in the Hilbert space of `ion`. Equivalent to `ion.s
 """
 sublevels(I::Ion) = I.sublevels
 
-"""
-    sublevelaliases(ion::Ion)
-
-Returns a `Dict` specifying all aliases assigned to sublevels of `ion`, in the format
-`alias => sublevel`, `ion.sublevelalias`
-"""
-sublevelaliases(I::Ion) = I.sublevelaliases
 
 """
     shape(ion::Ion)
@@ -222,8 +211,6 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 **Fields**
 * `speciesproperties`: A container of species-specific properties
 * `sublevels`::Vector{Tuple{String,Real}}: List of all sublevels present in the Hilbert space
-* `sublevelaliases::Dict{String,Tuple}`: Dict specifying aliases assigned to sublevels, in the 
-    format `alias => sublevel`
 * `shape`::Vector{Int}: Dimension of the Hilbert space
 * `manualshift::OrderedDict`: A dictionary with keys denoting the selected levels and values, 
     a real number for describing a shift of the level's energy. This is just a convenient way 
@@ -237,7 +224,6 @@ mutable struct IonInstance{Species<:Any} <: Ion
     # fields
     speciesproperties::SpeciesProperties
     sublevels::Vector{Tuple{String, Real}}
-    sublevelaliases::Dict{String, Tuple}
     shape::Vector{Int}
     manualshift::OrderedDict{Tuple, Real}
     ionnumber::Union{Int, Missing}
@@ -249,13 +235,12 @@ mutable struct IonInstance{Species<:Any} <: Ion
         selected_sublevels=nothing,
         manualshift=Dict()
     ) where {Species<:Any}
-        (sublevels, aliases) = _construct_sublevels(selected_sublevels, properties)
+        sublevels = _construct_sublevels(selected_sublevels, properties)
         shape = [length(sublevels)]
         manualshift_full = _construct_manualshift(manualshift, sublevels)
         return new{Species}(
             properties,
             sublevels,
-            aliases,
             shape,
             manualshift_full,
             missing,
@@ -264,22 +249,19 @@ mutable struct IonInstance{Species<:Any} <: Ion
     end
 
     function IonInstance{Species}(
-        speciesproperties,
-        sublevels,
-        sublevelaliases,
-        shape,
-        manualshift,
-        ionnumber,
-        ionposition
-    ) where {Species<:Any}
-        sublevels = deepcopy(sublevels)
-        sublevelaliases = deepcopy(sublevelaliases)
-        shape = copy(shape)
-        manualshift = deepcopy(manualshift)
+            speciesproperties,
+            sublevels,
+            shape,
+            manualshift,
+            ionnumber,
+            ionposition
+        ) where {Species<:Any}
+            sublevels = deepcopy(sublevels)
+            shape = copy(shape)
+            manualshift = deepcopy(manualshift)
         return new{Species}(
             speciesproperties,
             sublevels,
-            sublevelaliases,
             shape,
             manualshift,
             ionnumber,
@@ -288,39 +270,29 @@ mutable struct IonInstance{Species<:Any} <: Ion
     end
 end
 
+
 #############################################################################################
 # Functions for constructing ion structs
 #############################################################################################
 
 function _construct_sublevels(selected_sublevels, properties)
-    level_structure = properties.level_structure
+    full_level_structure = properties.level_structure
 
     # If selected_sublevels is blank, use the default selection. If it is "all", use all 
     # sublevels.
     if isnothing(selected_sublevels) || selected_sublevels == "all" 
-        selected_sublevels = [(sublevel, "all") for sublevel in keys(level_structure)]
+        selected_sublevels = [(sublevel, "all") for sublevel in keys(full_level_structure)]
     end
 
     # Construct the list of sublevels
     sublevels = []
-    aliases = Dict()
     for manifold in selected_sublevels
         # Ensure that the string is a valid level
         level = manifold[1]
-        @assert level in keys(level_structure) "invalid level $level"
-        level_structure = level_structure[level]
+        @assert level in keys(full_level_structure) "invalid level $level"
+        level_structure = full_level_structure[level]
 
-        # Create aliases, if applicable
         selectedms = manifold[2]
-        if length(manifold) == 3
-            @assert typeof(selectedms) <: Real (
-                    "$manifold: sublevel aliases may only be assigned to a single sublevel"
-            )
-            sl = (level, Rational(selectedms))
-            alias = manifold[3]
-            aliases[alias] = sl
-        end
-
         # Add chosen sublevels
         f = level_structure.f
 
@@ -339,8 +311,7 @@ function _construct_sublevels(selected_sublevels, properties)
             push!(sublevels, (level, m))
         end
     end
-
-    return (sublevels, aliases)
+    return sublevels
 end
 
 function _construct_manualshift(manualshift, sublevels)
@@ -363,63 +334,6 @@ validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
             available sublevels."
         )
 validatesublevel(I::Ion, alias::String) = validatesublevel(I, sublevel(I, alias))
-
-"""
-    sublevelalias!(I::Ion, sublevel::Tuple{String,Real}, alias::String)
-
-Assigns an alias `alias` to `sublevel` of `I`. This then allows one to pass `alias` in place 
-of `sublevel` (for `I` only) into any function which accepts a sublevel as an argument.
-"""
-function sublevelalias!(I::Ion, sublevel::Tuple{String, Real}, alias::String)
-    validatesublevel(I, sublevel)
-    @assert alias ∉ levels(I) "Cannot make alias name identical to level name ($alias)"
-    sublevel_rational = (sublevel[1], Rational(sublevel[2]))   # Force m to be Rational
-    return I.sublevelaliases[alias] = sublevel_rational
-end
-
-"""
-    sublevelalias!(I::Ion, aliasassignments)
-
-`aliasassignments` specifies which aliases should be assigned to which sublevels. There are 
-two options to do this:
-* `aliasassignments` is a Vector of Tuples, with the first element of each being the sublevel 
- (`sublevel::Tuple{String,Real}`) and the second being its assigned alias (`alias::String`)
-* `aliasassignments` is a Dict with the format `alias::String => sublevel::Tuple{String,Real}`
-Calls `sublevelalias!(I, sublevel, alias)` for each pair `sublevel, alias`.
-"""
-function sublevelalias!(
-    I::Ion,
-    pairs::Vector{Tuple{Tuple{String, R}, String}} where {R <: Real}
-)
-    for (sublevel, alias) in pairs
-        sublevelalias!(I, sublevel, alias)
-    end
-end
-
-function sublevelalias!(I::Ion, aliasdict::Dict{String, Tuple{String, R}} where {R <: Real})
-    for (alias, sublevel) in aliasdict
-        sublevelalias!(I, sublevel, alias)
-    end
-end
-
-"""
-    clearsublevelalias!(I::Ion, [, sublevel])
-
-Erases the assignment of an alias to `sublevel` of Ion `I`. Accepts either the full sublevel 
-`Tuple{String,Real}` or its alias `String`.
-Also accepts a vector of sublevels to clear multiple alias assignments in a single call.
-"""
-function clearsublevelalias!(I::Ion, sublevel::Tuple{String, Real})
-    alias = sublevelalias(I, sublevel)
-    return delete!(I.sublevelaliases, alias)
-end
-clearsublevelalias!(I::Ion, alias::String) = delete!(I.sublevelaliases, alias)
-clearsublevelalias!(I::Ion, v::Vector) = map(x -> clearsublevelalias!(I, x), v)
-
-"""
-If sublevel not specified, the assignment of all sublevel aliases of Ion `I` are erased. 
-"""
-clearsublevelalias!(I::Ion) = return empty!(I.sublevelaliases)
 
 """
     manualshift!(I::Ion, sublevel, shift::Real)
@@ -467,39 +381,6 @@ end
 Returns array of all energy levels of `I`.
 """
 levels(I::Ion) = unique([sublevel[1] for sublevel in sublevels(I)])
-
-"""
-    sublevelalias(I::Ion, sublevel::Tuple{String,Real})
-
-Returns the alias assined to `sublevel` of `I`. If no alias is assigned, returns `nothing`.
-"""
-function sublevelalias(I::Ion, sublevel::Tuple{String, Real})
-    validatesublevel(I, sublevel)
-    alias_dict = sublevelaliases(I)
-    aliases = [k for (k, v) in alias_dict if v == sublevel]
-    if length(aliases) == 0
-        return nothing
-    elseif length(aliases) == 1
-        return aliases[1]
-    else
-        @warn "multiple aliases point to the same level $sublevel"
-    end
-end
-
-"""
-    sublevel(I::Ion, alias::String)
-
-Returns the sublevel corresponding to the given alias `alias` of `I`. 
-Inverse function of `sublevelalias`.
-"""
-function sublevel(I::Ion, alias::String)
-    all_aliases = I.sublevelaliases
-    @assert alias in keys(all_aliases) (
-            "Ion does not contain any sublevel with the alias $alias. Use sublevelaliases(Ion) 
-            to see available aliases."
-    )
-    return all_aliases[alias]
-end
 
 """
     level(I::Ion, sublevel)
@@ -956,12 +837,7 @@ Base.getindex(I::Ion, state::Union{Tuple{String, Real}, String, Int}) = ionstate
 function Base.print(ion::IonInstance)
     println(ion.speciesproperties.shortname)
     for sublevel in sublevels(ion)
-        if sublevel in values(sublevelaliases(ion))
-            alias = sublevelalias(ion, sublevel)
-            println("$sublevel: \"$alias\"")
-        else
-            println(sublevel)
-        end
+        println(sublevel)
     end
 end
 
@@ -985,3 +861,8 @@ end
 function Base.:(==)(C1::Ion, C2::Ion)
    return (mass(C1) == mass(C2)) && (C1.speciesproperties == C2.speciesproperties)
 end
+
+# TODO: Have this print a nicely formatted summary of pertinent speciesproperties
+Base.show(io::IO, m::MIME"text/plain", S::SpeciesProperties) = print("$(S.shortname) SpeciesProperties")
+Base.print(io::IO, S::SpeciesProperties) = print("$(S.shortname) SpeciesProperties")
+

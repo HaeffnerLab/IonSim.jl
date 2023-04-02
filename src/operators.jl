@@ -153,7 +153,6 @@ function ionstate(ion::Ion, sublevel::Tuple{String, Real})
     i = findall(sublevels(ion) .== [sublevel])[1]
     return basisstate(ion, i)
 end
-ionstate(ion::Ion, sublevelalias::String) = ionstate(ion, sublevel(ion, sublevelalias))
 ionstate(ion::Ion, sublevel::Int) = basisstate(ion, sublevel)
 
 """

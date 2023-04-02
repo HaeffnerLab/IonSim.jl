@@ -1,7 +1,7 @@
 # Ions.jl
 
 + Reorganized the code in ions.jl.
-    - This was done for (my personal opinion of) readability (with go-ahead     from Neil). I tried to stick to a format from top to bottom 
+    - This was done for (my subjective opinion of) readability (with go-ahead from Neil). I tried to stick to the format (from top of file to bottom) 
         1) object fields
         2) object definitions 
         3) helper functions for object definitions 
@@ -11,5 +11,5 @@
     But we should probably split this file up at some point.
 + `full_level_structure` renamed `level_structure`
 + `full_transitions` renamed `transitions`
++ Removed `default_sublevels`
 + Removed `sublevel_aliases`
-+ Reomoved `default_sublevels`
