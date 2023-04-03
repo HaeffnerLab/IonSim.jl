@@ -26,6 +26,7 @@ by the string macro [`@ls_str`](@ref)
 * `j`: total electronic angular momentum
 **optional**
 * `f`: total angular momentum (including nuclear spin)
+* `i`: total nuclear spin quantum number
 * `str_repr`: a string representation of the level
 """
 @with_kw struct LS <: EnergyLevel
@@ -34,6 +35,7 @@ by the string macro [`@ls_str`](@ref)
     s::Union{Int, Rational{Int}}
     j::Union{Int, Rational{Int}}; @assert abs(l-s) <= j <= l+s
     f::Union{Int, Rational{Int}, Nothing}=nothing; # we don't require I, so can't restrict values
+    i::Union{Int, Rational{Int}, Nothing}=nothing
     str_repr::Union{String, Nothing}=nothing
 end
 
@@ -48,7 +50,7 @@ instantiated by the string macro [`@jk_str`](@ref).
 * `s`: total spin quantum number for outermost valence electrons
 * `j`: total electronic angular momentum (spin and orbital)
 **optional**
-* `f`: total angular momentum (including nuclear spin) 
+* `f`: total angular momentum (including nuclear spin)
 * `str_repr`: a string representation of the level
 """
 @with_kw struct J₁K <: EnergyLevel @deftype Union{Int, Rational{Int}}
@@ -182,7 +184,7 @@ function addhyperfine(T::EnergyLevel, F::Union{Rational, Int})
     catch InexactError
         F = "$(F.num)/$(F.den)"
     end
-    return typeof(T)(T.n, T.l, T.s, T.j, F, T.str_repr * "(F=$F)")
+    return typeof(T)(T.n, T.l, T.s, T.j, F, T.i, T.str_repr * "(F=$F)")
 end
 
 #TODO: Custom type for sublevels (currently they are stored as Tuple{EnergyLevel, Real})
@@ -193,8 +195,12 @@ end
 #############################################################################################
 
 # we don't care about str_repr
-function Base.:(==)(E1::EnergyLevel, E2::EnergyLevel)
+function Base.:(==)(E1::LS, E2::LS)
     (E1.n == E2.n) && (E1.l == E2.l) && (E1.s == E2.s) && (E1.j == E2.j) && (E1.f == E2.f)
+end
+
+function Base.:(==)(E1::J₁K, E2::J₁K)
+    (E1.k == E2.k) && (E1.s == E2.s) && (E1.j == E2.j) && (E1.f == E2.f)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", T::EnergyLevel)
@@ -220,7 +226,7 @@ function Base.dump(io::IO, T::EnergyLevel; maxdepth=8, indent="")
     end
 end
     
-function Base.show(io::IO, x::Tuple{Vararg{Tuple{<:EnergyLevel, <:Any}}})
+function Base.show(io::IO, ::MIME"text/plain", x::Tuple{Vararg{Tuple{<:EnergyLevel, <:Any}}})
     for t in x
         println(io, t)
     end
@@ -237,12 +243,31 @@ function Base.show(io::IO, t::Tuple{EnergyLevel, Union{Rational, Int}})
     print(io, "(", t1, ", ", t2, ")")
 end
 
+
+#FIXME: Do we really need to define all of these separate methods to get proper printout
+# for energylevels in containers??
 function Base.show(io::IO, ::MIME"text/plain", x::AbstractDict{<:EnergyLevel, <:Any})
-    println(io, "OrderedDict{EnergyLevel, Real} with $(length(x)) entries:")
+    println(io, "Dict{EnergyLevel, Real} with $(length(x)) entries:")
     for pair in x
         println(io, pair)
     end
 end
 
+function Base.show(
+        io::IO, ::MIME"text/plain", 
+        x::AbstractDict{Tuple{<:EnergyLevel, <:EnergyLevel}, <:Any}
+    )
+    println(io, "Dict{EnergyLevel, EnergyLevel}, NamedTuple} with $(length(x)) entries:")
+    for pair in x
+        println(io, pair[1], " => ", pair[2])
+    end
+end
 
-
+function Base.show(
+        io::IO, ::MIME"text/plain", 
+        x::AbstractDict{Tuple{EnergyLevel, Union{Rational, Int}}, Real}
+    )
+    for pair in x
+        println(io, pair[1], " => ", pair[2])
+    end
+end

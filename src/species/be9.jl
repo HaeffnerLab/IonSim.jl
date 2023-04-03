@@ -1,33 +1,25 @@
 export Be9
 
 const properties_be9 = SpeciesProperties(
+    # scalar properties
     shortname="⁹Be⁺",
     mass=1.496508080073e-26,
     charge=1,
-    nuclearspin=3 // 2,
+    nuclearspin=3//2,
     level_structure=OrderedDict(
-        "S1/2f=1" => (n=2, l=0, j=1 // 2, f=1, E=0.78126104631e9),
-        "S1/2f=2" => (n=2, l=0, j=1 // 2, f=2, E=-0.468756627786e9),
-        "P1/2f=1" => (n=2, l=1, j=1 // 2, f=1, E=957.2010729076436e12),
-        "P1/2f=2" => (n=2, l=1, j=1 // 2, f=2, E=957.2008357076436e12),
-        "P3/2f=0" => (n=2, l=1, j=3 // 2, f=0, E=957.3965669467407e12),
-        "P3/2f=1" => (n=2, l=1, j=3 // 2, f=1, E=957.3965659267407e12),
-        "P3/2f=2" => (n=2, l=1, j=3 // 2, f=2, E=957.3965638867406e12),
-        "P3/2f=3" => (n=2, l=1, j=3 // 2, f=3, E=957.3965608267406e12),
+        ls"2²S_1/2(F=1)" =>  0.78126104631e9,
+        ls"2²S_1/2(F=2)" => -0.468756627786e9,
+        ls"2²P_1/2(F=1)" => 957.2010729076436e12,
+        ls"2²P_1/2(F=2)" => 957.2008357076436e12,
+        ls"2²P_3/2(F=0)" => 957.3965669467407e12,
+        ls"2²P_3/2(F=1)" => 957.3965659267407e12,
+        ls"2²P_3/2(F=2)" => 957.3965638867406e12,
+        ls"2²P_3/2(F=3)" => 957.3965608267406e12,
     ),
     transitions=Dict(
-        ("S1/2f=1", "P1/2f=1") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=1", "P1/2f=2") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=2", "P1/2f=1") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=2", "P1/2f=2") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=1", "P3/2f=0") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=1", "P3/2f=1") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=1", "P3/2f=2") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=2", "P1/2f=1") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=2", "P1/2f=2") => (multipole="E1", einsteinA=19.4e6),
-        ("S1/2f=2", "P1/2f=3") => (multipole="E1", einsteinA=19.4e6),
+        (ls"2²S_1/2", ls"2²P_1/2") => (multipole="E1", einsteinA=19.4e6),
+        (ls"2²S_1/2", ls"2²P_3/2") => (multipole="E1", einsteinA=19.4e6),
     ),
-
     # Optional fields
 )
 
