@@ -5,7 +5,7 @@ using IonSim.PhysicalConstants
 export Ion,
     # SpeciesProperties,
     speciesproperties,
-    sublevels,
+    selected_sublevels,
     shape,
     manualshift,
     ionnumber,
@@ -15,17 +15,17 @@ export Ion,
     nuclearspin,
     zeromanualshift!,
     manualshift!,
-    sublevel,
-    level,
+    sublevel, #
+    # level,    #
     levels,
-    quantumnumbers,
+    # quantumnumbers,  #
     landegf,
     zeemanshift,
-    energy,
+    energy,          #
     transitionfrequency,
     transitionwavelength,
-    leveltransitions,
-    subleveltransitions,
+    leveltransitions,     #
+    subleveltransitions,  #
     einsteinA,
     transitionmultipole,
     lifetime,
@@ -58,17 +58,17 @@ mass, energy levels, and transitions.
 speciesproperties(I::Ion) = I.speciesproperties
 
 """
-    sublevels(ion::Ion)
+    selected_sublevels(ion::Ion)
 
-Returns the energy sublevels in the Hilbert space of `ion`. Equivalent to `ion.sublevels`.
+Returns the selected energy sublevels in the Hilbert space of `ion`. Equivalent to 
+`ion.sublevels`.
 """
-sublevels(I::Ion) = I.sublevels
-
+selected_sublevels(I::Ion) = I.selected_sublevels
 
 """
     shape(ion::Ion)
 
-Returns the dimension of the ion's Hilbert space `ion.shape`
+Returns the dimension of the ion's Hilbert space. Equivalent to `ion.shape`
 """
 shape(I::Ion) = I.shape
 
@@ -143,13 +143,14 @@ struct SpeciesProperties
     shortname::String  # an intuitive string identifier for the ion
     mass::Number  # mass of ion in kg
     charge::Number  # charge of ion in units of elementary charge e
-    nuclearspin::Number
-    level_structure::OrderedDict{
-        String,
-        NamedTuple{(:n, :l, :j, :f, :E), T} where T <: Tuple
+    nuclearspin::Number  # nuclear spin of the ion
+    level_structure::OrderedDict{EnergyLevel, Real}  # Mapping of EnergyLevel to energy (scalar)
+    transitions::Dict{  # Dictionary of allowed transitions between energy levels
+        Tuple{EnergyLevel, EnergyLevel},
+        NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}
     }
-    transitions::Dict{
-        Tuple{String, String},
+    allowed_sublevel_transitions::Dict{  # Dictionary of allowed transitions between energy levels
+        Tuple{EnergyLevel, EnergyLevel},
         NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}
     }
     gfactors::Union{Dict{String, Number}, Missing}
@@ -165,7 +166,79 @@ function SpeciesProperties(;
         transitions,
         gfactors=missing,
         nonlinear_zeeman=missing
-    )  
+    )
+    allowed_sublevel_transitions = Dict()
+    for (k, v) in transitions
+        transition_info = v
+        e1, e2 = k
+        j1, j2 = e1.j, e2.j
+        l1, l2 = e1.l, e2.l
+
+        multipole = v.multipole
+        if multipole == "user-defined"
+            @warn(
+                "NotImplemented: User defined transition matrix elements are not yet \
+                implemented. These will be skipped"
+            )
+            continue
+        elseif !(multipole in ["E1", "E2", "M1"])
+            @warn(
+                "NotImplemented: Only E1, E2 and M1 transitions currently supported"
+            )
+            continue
+        end
+        if nuclearspin == 0
+            allowed_sublevel_transitions = transitions
+        else
+            # F ∈ {|J-I|, |J-I| + 1, |J-I| + 2, ..., J+I}
+            possible_F1 = [i for i in abs(j1 - nuclearspin):j1 + nuclearspin]
+            possible_F2 = [i for i in abs(j2 - nuclearspin):j2 + nuclearspin]
+            for f1 in possible_F1, f2 in possible_F2
+                # check to see if user defined these levels in level_structure
+                hf1 = addhyperfine(copy(e1), f1)
+                hf1 in keys(level_structure) || continue
+                hf2 = addhyperfine(copy(e2), f2)
+                hf2 in keys(level_structure) || continue
+                
+                # avoid double counting by requiring hf1 to be lower in energy than hf2  #new
+                (level_structure[hf1] < level_structure[hf2]) || continue                #new
+                
+                Δf = abs(f1 - f2)
+                if multipole == "E1"
+                    # ΔF(0↔0)forbidden
+                    ((f1 == 0) && (f2 == 0)) && continue
+                    # Δ𝐹 and Δ𝐽=0,±1
+                    (Δf > 1) && continue
+                    # should be enforced by users choice of transitions
+                    # ΔL(0↔0)forbidden
+                    # ((l1 == 0) && (l2 == 0)) && continue
+                    # # ΔL = 0, ±1
+                    # (ΔL > 1) && continue
+                elseif multipole == "M1"
+                    # ΔF(0↔0)forbidden
+                    ((f1 == 0) && (f2 == 0)) && continue
+                    # Δ𝐹 and Δ𝐽=0,±1
+                    (Δf > 1) && continue
+                    # should be enforced by users choice of transitions
+                    # # ΔL = 0
+                    # (ΔL != 0) && continue
+                elseif multipole == "E2"
+                    # (0↔0)forbidden
+                    ((f1 == 0) && (f2 == 0)) && continue
+                    # (0↔1)forbidden
+                    ((f1 == 0) && (f2 == 1)) && continue
+                    # (1/2↔1/2)forbidden
+                    ((f1 == 1//2) && (f2 == 1//2)) && continue
+                    # Δ𝐹 and Δ𝐽=0,±2
+                    (Δf > 2) && continue
+                    # should be enforced by users choice of transitions
+                    # # ΔL=±2
+                    # (ΔL > 2) && continue
+                end
+                allowed_sublevel_transitions[(hf1, hf2)] = transition_info
+            end
+        end
+    end
     SpeciesProperties(
             shortname,
             mass,
@@ -173,12 +246,42 @@ function SpeciesProperties(;
             nuclearspin,
             level_structure,
             transitions,
+            allowed_sublevel_transitions,
             gfactors,
             nonlinear_zeeman
         )
 end
 
+#FIXME: I gave up trying to override show in energylevels.jl in order to print a readable
+# version of dictionaries with keys that are <:EnergyLevel or Tuples containing that.
+# Doing this for now, instead. Maybe this is the better way to do it anyway?
+function Base.getproperty(S::SpeciesProperties, p::Symbol)
+    if p == :transitions
+        transitions = Base.getfield(S, p)
+        println(
+            "Dict{Tuple{EnergyLevel, EnergyLevel}, NamedTuple{(:multipole, :einsteinA), \
+            Tuple{String, Float64}}} with $(length(transitions)) entries:"
+        )
+        for (k, v) in transitions
+            println("(", k[1], ", ", k[2], ")", " => ", v)
+        end
+    elseif p == :allowed_sublevel_transitions
+        transitions = Base.getfield(S, p)
+        println(
+            "Dict{Tuple{Tuple{EnergyLevel, Union{Int64, Rational}}, Tuple{EnergyLevel, \
+            Union{Int64, Rational}}}, NamedTuple{(:multipole, :einsteinA), Tuple{String, \
+            Float64}}} with $(length(transitions)) entries:"
+        )
+        for (k, v) in transitions
+            println("(", k[1], ", ", k[2], ")", " => ", v)
+        end
+    end
+    Base.getfield(S, p)
+end
 
+# Couldn't find a better way to suppress outputs, seems specific enough not to impact much else
+# Base.show(io::IO, m, x::Dict{Tuple{EnergyLevel, EnergyLevel}, NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}}) = print(io, "")
+# Base.show(io::IO, m, x::Dict{Tuple{Tuple{EnergyLevel, Union{Int64, Rational}}, Tuple{EnergyLevel, Union{Int64, Rational}}}, NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}}) = print(io, "")
 #############################################################################################
 # IonInstance
 #############################################################################################
@@ -191,26 +294,23 @@ Ion instance of some species.
 `selected_sublevels` specifies which energy sublevels will be present in the Hilbert space of 
 this Ion instance, as a subset of all possible sublevels.
 
-Each element of `selected_sublevels` is a 2-element Tuple `(level::String, sublevels)`, with 
-the first element being the name of a level and the second specifying which sublevels should 
-be included. Allowed sublevels are those whose magnetic quantum number `m` is in the set 
-{`-f`, `-f+1`, `-f+2`, ... `f-1`, `f`}, where `f` is the total angular momentum quantum 
+Each element of `selected_sublevels` is a 2-element Tuple `(level::EnergyLevel, sublevels)`, 
+with the first element being the name of a level and the second specifying which sublevels 
+should be included. Allowed sublevels are those whose magnetic quantum number `m` is in the 
+set {`-f`, `-f+1`, `-f+2`, ... `f-1`, `f`}, where `f` is the total angular momentum quantum 
 number of `level`. For each `level` specified there are three allowed options to specify the 
 set of `sublevels` to include:
 
-* `sublevels::Real`: Includes only one `m = sublevels`
-* `sublevels::Vector{Real}`: Includes all sublevels whose magnetic quantum number `m` is in 
-    `sublevels`
-* `sublevels = "all"`: Includes all allowed sublevels
-If an element of `selected_sublevels` utilizes the first option, specifying a single `m`, one 
-may optionally may this a 3-element tuple instead: `(level::String, m::Real, alias::String)`, 
-assinging this particular sublevel the alias `alias`.
+* `selected_sublevels::Real`: Includes only one `m = sublevels`
+* `selected_sublevels::Vector{Real}`: Includes all sublevels whose magnetic quantum number 
+    `m` is in `sublevels`
+* `selected_sublevels = "all"`: Includes all allowed sublevels
 
 Omission of a level in `selected_sublevels` will exclude all sublevels.
 
 **Fields**
 * `speciesproperties`: A container of species-specific properties
-* `sublevels`::Vector{Tuple{String,Real}}: List of all sublevels present in the Hilbert space
+* `selected_sublevels`::Vector{Tuple{String,Real}}: Choose which sublevels of Ion to consider
 * `shape`::Vector{Int}: Dimension of the Hilbert space
 * `manualshift::OrderedDict`: A dictionary with keys denoting the selected levels and values, 
     a real number for describing a shift of the level's energy. This is just a convenient way 
@@ -223,11 +323,15 @@ Omission of a level in `selected_sublevels` will exclude all sublevels.
 mutable struct IonInstance{Species<:Any} <: Ion
     # fields
     speciesproperties::SpeciesProperties
-    sublevels::Vector{Tuple{String, Real}}
-    shape::Vector{Int}
+    selected_sublevels::Tuple{Vararg{Tuple{EnergyLevel, Real}}}
+    selected_sublevel_transitions::Dict{  # Dictionary of allowed transitions between energy levels
+        Tuple{EnergyLevel, EnergyLevel},
+        NamedTuple{(:multipole, :einsteinA), Tuple{String, Float64}}
+    }
+    shape::Vector{Int}             
     manualshift::OrderedDict{Tuple, Real}
-    ionnumber::Union{Int, Missing}
-    ionposition::Union{Real, Missing}
+    ionnumber::Union{Int, Missing}           # remove
+    ionposition::Union{Real, Missing}        # remove
 
     # constructors (overrides default)
     function IonInstance{Species}(
@@ -236,21 +340,26 @@ mutable struct IonInstance{Species<:Any} <: Ion
         manualshift=Dict()
     ) where {Species<:Any}
         sublevels = _construct_sublevels(selected_sublevels, properties)
+        # for (k, v) in properties.allowed_sublevel_transitions
+        #     if (k[1] in sublevels) && (k[2] in sublevels)
+        selected_sublevel_transitions = properties.allowed_sublevel_transitions
         shape = [length(sublevels)]
         manualshift_full = _construct_manualshift(manualshift, sublevels)
         return new{Species}(
             properties,
-            sublevels,
+            Tuple(sublevel for sublevel in sublevels),  # Store in an immutable container
+            selected_sublevel_transitions,
             shape,
             manualshift_full,
-            missing,
-            missing
+            missing,          # remove
+            missing           # remove
         )
     end
 
     function IonInstance{Species}(
             speciesproperties,
             sublevels,
+            selected_sublevel_transitions,
             shape,
             manualshift,
             ionnumber,
@@ -262,12 +371,42 @@ mutable struct IonInstance{Species<:Any} <: Ion
         return new{Species}(
             speciesproperties,
             sublevels,
+            selected_sublevel_transitions,
             shape,
             manualshift,
-            ionnumber,
-            ionposition
+            ionnumber,       # remove
+            ionposition      # remove
         )
     end
+end
+
+function Base.setproperty!(I::Ion, p::Symbol, x)
+    if p == :selected_sublevels
+        sublevels = _construct_sublevels(x, I.speciesproperties)
+        shape = [length(sublevels)]
+        Base.setfield!(I, :selected_sublevels, Tuple(sublevel for sublevel in sublevels))
+        Base.setfield!(I, :shape, shape)
+    elseif p == :shape
+        error("setfield!: User shouldn't change shape field directly.")
+        return
+    else 
+        error("setfield!: User shouldn't change this field.")
+    end
+end
+
+function Base.getproperty(I::Ion, p::Symbol)
+    if p == :selected_sublevel_transitions
+        transitions = Base.getfield(I, p)
+        println(
+            "Dict{Tuple{Tuple{EnergyLevel, Union{Int64, Rational}}, Tuple{EnergyLevel, \
+            Union{Int64, Rational}}}, NamedTuple{(:multipole, :einsteinA), Tuple{String, \
+            Float64}}} with $(length(transitions)) entries:"
+        )
+        for (k, v) in transitions
+            println("(", k[1], ", ", k[2], ")", " => ", v)
+        end
+    end
+    Base.getfield(I, p)
 end
 
 
@@ -287,14 +426,18 @@ function _construct_sublevels(selected_sublevels, properties)
     # Construct the list of sublevels
     sublevels = []
     for manifold in selected_sublevels
-        # Ensure that the string is a valid level
+        # Ensure that the level exists in the ion
         level = manifold[1]
         @assert level in keys(full_level_structure) "invalid level $level"
-        level_structure = full_level_structure[level]
+        # level_structure = full_level_structure[level]
 
         selectedms = manifold[2]
         # Add chosen sublevels
-        f = level_structure.f
+        if isnothing(level.f) # this means there is no hyperfine structure
+            f = level.j
+        else
+            f = level.f
+        end
 
         m_allowed = Array((-f):f)
         if selectedms == "all"
@@ -328,12 +471,13 @@ end
 # Functions to modify ion fields
 #############################################################################################
 
-validatesublevel(I::Ion, sublevel::Tuple{String, Real}) =
-    @assert sublevel in sublevels(I) (
-            "Ion does not contain sublevel $sublevel. Use sublevels(Ion) to see list of 
-            available sublevels."
+function validatesublevel(I::Ion, sublevel::Tuple{EnergyLevel, Real})
+    @assert sublevel in selected_sublevels(I) (
+            "Ion does not contain sublevel $sublevel. Use selected_sublevels(Ion) to see list 
+            of available sublevels."
         )
-validatesublevel(I::Ion, alias::String) = validatesublevel(I, sublevel(I, alias))
+    return sublevel[1]  # returns parent energy level
+end
 
 """
     manualshift!(I::Ion, sublevel, shift::Real)
@@ -345,7 +489,6 @@ function manualshift!(I::Ion, sublevel::Tuple{String, Real}, shift::Real)
     validatesublevel(I, sublevel)
     return I.manualshift[(sublevel[1], Rational(sublevel[2]))] = shift
 end
-manualshift!(I::Ion, alias::String, shift::Real) = manualshift!(I, sublevel(I, alias), shift)
 
 """
     manualshift!(I::Ion, manualshift_dict::Dict)
@@ -380,73 +523,57 @@ end
 
 Returns array of all energy levels of `I`.
 """
-levels(I::Ion) = unique([sublevel[1] for sublevel in sublevels(I)])
+levels(I::Ion) = collect(keys(I.speciesproperties.level_structure))
 
-"""
-    level(I::Ion, sublevel)
+# #= 
+# quantumnumbers is written to be able to accept either a level or sublevel in the second 
+# argument. Since both levels and aliases are strings, multidispatach can't tell the difference, 
+# so the second method distinguishes these cases with an if statement.
+# =#
+# """
+#     quantumnumbers(I::Ion, level::String)
+#     quantumnumbers(I::Ion, sublevel)
 
-Retuns the energy level of `I` corresponding to `sublevel`.
-"""
-function level(I::Ion, sublevel::Tuple{String, Real})
-    validatesublevel(I, sublevel)
-    return sublevel[1]
-end
+# Returns the quantum numbers of an energy level or sublevel of `I` as a `NamedTuple`.
+# If second argument is a level, returns `(:n, :i, :s, :l, :j, :f)`
+# If second argument is a sublevel, returns `(:n, :i, :s, :l, :j, :f, :m)`
+# """
+# function quantumnumbers(I::Ion, sublevel::Tuple{String, Real})
+#     validatesublevel(I, sublevel)
+#     levelstruct = speciesproperties(I).level_structure[sublevel[1]]
+#     names = (:n, :i, :s, :l, :j, :f, :m)
+#     values = (
+#         levelstruct.n,
+#         nuclearspin(I),
+#         1 // 2,
+#         levelstruct.l,
+#         levelstruct.j,
+#         levelstruct.f,
+#         Rational(sublevel[2])
+#     )
+#     return NamedTuple{names}(values)
+# end
 
-function level(I::Ion, alias::String)
-    validatesublevel(I, alias)
-    sl = sublevel(I, alias)
-    return sl[1]
-end
-
-#= 
-quantumnumbers is written to be able to accept either a level or sublevel in the second 
-argument. Since both levels and aliases are strings, multidispatach can't tell the difference, 
-so the second method distinguishes these cases with an if statement.
-=#
-"""
-    quantumnumbers(I::Ion, level::String)
-    quantumnumbers(I::Ion, sublevel)
-
-Returns the quantum numbers of an energy level or sublevel of `I` as a `NamedTuple`.
-If second argument is a level, returns `(:n, :i, :s, :l, :j, :f)`
-If second argument is a sublevel, returns `(:n, :i, :s, :l, :j, :f, :m)`
-"""
-function quantumnumbers(I::Ion, sublevel::Tuple{String, Real})
-    validatesublevel(I, sublevel)
-    levelstruct = speciesproperties(I).level_structure[sublevel[1]]
-    names = (:n, :i, :s, :l, :j, :f, :m)
-    values = (
-        levelstruct.n,
-        nuclearspin(I),
-        1 // 2,
-        levelstruct.l,
-        levelstruct.j,
-        levelstruct.f,
-        Rational(sublevel[2])
-    )
-    return NamedTuple{names}(values)
-end
-
-function quantumnumbers(I::Ion, level_or_alias::String)
-    # If the second argument is a String, it's either a level name or the alias of a sublevel
-    if level_or_alias in levels(I)
-        # Second argument is a level name. Leave out the m quantum number
-        levelstruct = speciesproperties(I).level_structure[level_or_alias]
-        names = (:n, :i, :s, :l, :j, :f)
-        values = (
-            levelstruct.n,
-            nuclearspin(I),
-            1 // 2,
-            levelstruct.l,
-            levelstruct.j,
-            levelstruct.f
-        )
-        return NamedTuple{names}(values)
-    else
-        # Second argument is a sublevel alias.
-        quantumnumbers(I, sublevel(I, level_or_alias))
-    end
-end
+# function quantumnumbers(I::Ion, level_or_alias::String)
+#     # If the second argument is a String, it's either a level name or the alias of a sublevel
+#     if level_or_alias in levels(I)
+#         # Second argument is a level name. Leave out the m quantum number
+#         levelstruct = speciesproperties(I).level_structure[level_or_alias]
+#         names = (:n, :i, :s, :l, :j, :f)
+#         values = (
+#             levelstruct.n,
+#             nuclearspin(I),
+#             1 // 2,
+#             levelstruct.l,
+#             levelstruct.j,
+#             levelstruct.f
+#         )
+#         return NamedTuple{names}(values)
+#     else
+#         # Second argument is a sublevel alias.
+#         quantumnumbers(I, sublevel(I, level_or_alias))
+#     end
+# end
 
 """
     landegj(l::Real, j::Real, s::Real=1//2)
@@ -500,7 +627,6 @@ function manualshift(I::Ion, sublevel::Tuple{String, Real})
     validatesublevel(I, sublevel)
     return manualshift(I)[sublevel]
 end
-manualshift(I::Ion, alias::String) = manualshift(I, sublevel(I, alias))
 
 """
     zeemanshift(I::Ion, sublevel, B::Real)
@@ -527,8 +653,6 @@ zeemanshift(B::Real, l::Real, j::Real, f::Real, m::Real, i::Real, s::Real=1 // 2
 
 zeemanshift(B::Real, qnums::NamedTuple) =
     zeemanshift(B, qnums.l, qnums.j, qnums.f, qnums.m, qnums.i, qnums.s)
-
-zeemanshift(I::Ion, alias::String, B::Real) = zeemanshift(I, sublevel(I, alias), B)
 
 #= 
 This function is written to be able to accept either a level or sublevel in the second 
@@ -703,9 +827,8 @@ Computes the matrix elements (units of Hz) between two energy sublevels.
 
 **args**
 * `ion`: Ion undergoing transition
-* `transition`: Tuple of sublevels (full names or aliases) between which the transition is 
-            being calculated. Must be formatted such that 
-            `energy(transition[2]) > energy(transition[1])`
+* `transition`: Tuple of sublevels between which the transition is being calculated. Must be 
+        formatted such that `energy(transition[2]) > energy(transition[1])`
 * `I`: Intensity of the driving field
 * `ϵhat`: Unit vector of light polarization
 * `khat`: Unit vector of light wavevector
@@ -798,8 +921,8 @@ function matrixelement(
     )
     SL1 = transition[1]
     SL2 = transition[2]
-    L1 = level(ion, SL1)
-    L2 = level(ion, SL2)
+    L1 = validatesublevel(ion, SL1)
+    L2 = validatesublevel(ion, SL2)
 
     E1 = energy(ion, L1)
     E2 = energy(ion, L2)

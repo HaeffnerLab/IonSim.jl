@@ -1,4 +1,3 @@
-using PhysicalConstants: c
 export Be9
 
 const properties_be9 = SpeciesProperties(
@@ -20,6 +19,7 @@ const properties_be9 = SpeciesProperties(
         ls"2²P_3/2(F=2)" => 957.3965638867406e12,
         ls"2²P_3/2(F=3)" => 957.3965608267406e12,
     ),
+
     transitions=Dict(
         (ls"2²S_1/2", ls"2²P_1/2") => (multipole="E1", einsteinA=19.4e6),
         (ls"2²S_1/2", ls"2²P_3/2") => (multipole="E1", einsteinA=19.4e6),
@@ -28,7 +28,7 @@ const properties_be9 = SpeciesProperties(
     
     # gfactors=Dict("S1/2" => 2.00225664, "D5/2" => 1.2003340)
 
-    # quadratid_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
+    # quadratic_zeeman = Dict(("S1/2", -1//2) => B->1.3e-4*B^2,
     #                        ("D5/2", -5//2) => B->4.5e-4*B^2)  # Syntax example, not numerically accurate
 )
 

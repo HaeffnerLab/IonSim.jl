@@ -2,29 +2,31 @@ export EnergyLevel,
     LS,
     J₁K,
     @jk_str,
-    @ls_str
+    @ls_str,
+    addhyperfine
 
 
 """
     EnergyLevel
 
-Base type for representing a spectroscopic term.
+Base type for representing an electronic energy level corresponding to a spectroscopic term.
 """
 abstract type EnergyLevel end
 
 """
-    LS <: EenergyLevel
+    LS <: EnergyLevel
 
-Stores description of an LS-coupled energy level. 
+Stores description of an LS-coupled energy level. This is only intended to be instantiated
+by the string macro [`@ls_str`](@ref)
 
 **args**
-`n`: principal quantum number
-`l`: electronic orbital angular momentum 
-`s`: electronic spin angular momentum
-`j`: total electronic angular momentum
+* `n`: principal quantum number
+* `l`: electronic orbital angular momentum 
+* `s`: electronic spin angular momentum
+* `j`: total electronic angular momentum
 **optional**
-`f`: total angular momentum (including nuclear spin)
-`str_repr`: a string representation of the level
+* `f`: total angular momentum (including nuclear spin)
+* `str_repr`: a string representation of the level
 """
 @with_kw struct LS <: EnergyLevel
     n::Int 
@@ -38,15 +40,16 @@ end
 """
     J₁K <: EnergyLevel   
 
-Stores description of intermediate, J₁K coupled energy level. 
+Stores description of an intermediate, J₁K coupled energy level. This is only intended to be 
+instantiated by the string macro [`@jk_str`](@ref).
 
 **args**
-`k`: quantum number describing angular momentum coupling between J₁ and K
-`s`: total spin quantum number for outermost valence electrons
-`j`: total electronic angular momentum (spin and orbital)
+* `k`: quantum number describing angular momentum coupling between J₁ and K
+* `s`: total spin quantum number for outermost valence electrons
+* `j`: total electronic angular momentum (spin and orbital)
 **optional**
-`f`: total angular momentum (including nuclear spin) 
-`str_repr`: a string representation of the level
+* `f`: total angular momentum (including nuclear spin) 
+* `str_repr`: a string representation of the level
 """
 @with_kw struct J₁K <: EnergyLevel @deftype Union{Int, Rational{Int}}
     # It seems that we can't specify a particular n?
@@ -61,13 +64,13 @@ end
 """
     jk_str(T::AbstractString)
 
-Macro for constructing `J₁K <: EnergyLevel` from string. 
+Macro for constructing [`J₁K`](@ref) `<: EnergyLevel` from string. 
     
 ```julia-repl
 julia> jk"³[3/2]_1/2"
 |k=3/2, s=1, j=1/2⟩
 ``` 
-
+\n
 ```julia-repl
 julia> jk"³[3/2]_1/2(F=0)"
 |k=3/2, s=1, j=1/2, f=0⟩
@@ -172,9 +175,31 @@ function _checkforhyperfine(s)
     return f
 end
 
-function Base.print(io::IO, T::EnergyLevel)
+function addhyperfine(T::EnergyLevel, F::Union{Rational, Int})
+    @assert isnothing(T.f) "!isnothing(EnergyLevel.f)" 
+    try
+        F = convert(Int, F)
+    catch InexactError
+        F = "$(F.num)/$(F.den)"
+    end
+    return typeof(T)(T.n, T.l, T.s, T.j, F, T.str_repr * "(F=$F)")
+end
+
+#TODO: Custom type for sublevels (currently they are stored as Tuple{EnergyLevel, Real})
+
+
+#############################################################################################
+# Overrides of Base functions
+#############################################################################################
+
+# we don't care about str_repr
+function Base.:(==)(E1::EnergyLevel, E2::EnergyLevel)
+    (E1.n == E2.n) && (E1.l == E2.l) && (E1.s == E2.s) && (E1.j == E2.j) && (E1.f == E2.f)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", T::EnergyLevel)
     _tostr(x) = typeof(x)<:Int ? "$x" : "$(x.num)/$(x.den)"
-    str = "|"
+    str = isnothing(T.str_repr) ? "|" : "$(T.str_repr): |"
     for sym in fieldnames(typeof(T))
         sym == :str_repr && continue
         sym_str = String(sym)
@@ -184,22 +209,40 @@ function Base.print(io::IO, T::EnergyLevel)
         str *= "$(sym_str)=$x, "
     end
     str = str[1:end-2] * "⟩"
-    print(io, str)
+    println(io, str)
 end
 
-function Base.println(io::IO, T::EnergyLevel)
-    print(io, T)
-    println()
-end
-
-# What gets printed when T is instantiated
-Base.show(io::IO, m::MIME"text/plain", T::EnergyLevel) = print(io, T)
-
-# What gets printed when T is placed in standard containers (tuples, lists, etc.)
-function Base.dump(io::IOContext, T::EnergyLevel; maxdepth=8, indent="")
+function Base.dump(io::IO, T::EnergyLevel; maxdepth=8, indent="")
     if isnothing(T.str_repr)
         print(io, T)
     else
         print(io, T.str_repr)
     end
 end
+    
+function Base.show(io::IO, x::Tuple{Vararg{Tuple{<:EnergyLevel, <:Any}}})
+    for t in x
+        println(io, t)
+    end
+end
+
+function Base.show(io::IO, t::Tuple{EnergyLevel, Union{Rational, Int}})
+    t1 = t[1]
+    t2 = t[2]
+    try
+        t2 = convert(Int, t2)
+    catch InexactError
+        t2 = "$(t2.num)/$(t2.den)"
+    end
+    print(io, "(", t1, ", ", t2, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", x::AbstractDict{<:EnergyLevel, <:Any})
+    println(io, "OrderedDict{EnergyLevel, Real} with $(length(x)) entries:")
+    for pair in x
+        println(io, pair)
+    end
+end
+
+
+
