@@ -177,7 +177,7 @@ function _checkforhyperfine(s)
     return f
 end
 
-function addhyperfine(T::EnergyLevel, F::Union{Rational, Int})
+function addhyperfine(T::LS, F::Union{Rational, Int})
     @assert isnothing(T.f) "!isnothing(EnergyLevel.f)" 
     try
         F = convert(Int, F)
@@ -185,6 +185,16 @@ function addhyperfine(T::EnergyLevel, F::Union{Rational, Int})
         F = "$(F.num)/$(F.den)"
     end
     return typeof(T)(T.n, T.l, T.s, T.j, F, T.i, T.str_repr * "(F=$F)")
+end
+
+function addhyperfine(T::J₁K, F::Union{Rational, Int})
+    @assert isnothing(T.f) "!isnothing(EnergyLevel.f)" 
+    try
+        F = convert(Int, F)
+    catch InexactError
+        F = "$(F.num)/$(F.den)"
+    end
+    return typeof(T)(T.k, T.s, T.j, F, T.str_repr * "(F=$F)")
 end
 
 #TODO: Custom type for sublevels (currently they are stored as Tuple{EnergyLevel, Real})

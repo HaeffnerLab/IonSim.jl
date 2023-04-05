@@ -165,7 +165,7 @@ function SpeciesProperties(;
         transition_info = v
         e1, e2 = k
         j1, j2 = e1.j, e2.j
-        l1, l2 = e1.l, e2.l
+        # l1, l2 = e1.l, e2.l
 
         multipole = v.multipole
         if multipole == "user-defined"
