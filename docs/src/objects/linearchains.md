@@ -96,20 +96,14 @@ typeof(selectedmodes(chain).x[1]) <: IonSimBasis
 The normal mode structure can be better understood by using IonSim's `visualize` function:
 
 ```@example lc1
-using Plots # hide
+using Plots
 visualize(chain, ẑ, [:])
-savefig("../assets/zchain.png"); nothing # hide
 ```
-
-![](../assets/zchain.png)
 
 
 ```@example lc1
 visualize(chain, x̂, [:], format="circles")
-savefig("../assets/xchain.png"); nothing # hide
 ```
-
-![](../assets/xchain.png)
 
 ## Buiding from YAML
 One can alternatively build a `LinearChain` from a yaml file. If the file `normal_mode.yaml` has the following contents:
@@ -148,7 +142,10 @@ fnm.x
 
 ```@example lc1
 visualize(fnm.x[2], ẑ, format="circles")
-savefig("../assets/fullnormalmode.png"); nothing # hide
 ```
 
-![](../assets/fullnormalmode.png)
+```@example lc1
+x = range(0, 10, length=100)
+y = sin.(x)
+plot(x, y)
+```
