@@ -48,7 +48,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/HaeffnerLab/IonSim.jl",
+    repo = "github.com/HaeffnerLab/IonSim.jl.git",
     target = "build",
     branch = "gh-pages",
 )
