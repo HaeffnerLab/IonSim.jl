@@ -143,9 +143,3 @@ fnm.x
 ```@example lc1
 visualize(fnm.x[2], ẑ, format="circles")
 ```
-
-```@example lc1
-x = range(0, 10, length=100)
-y = sin.(x)
-plot(x, y)
-```
