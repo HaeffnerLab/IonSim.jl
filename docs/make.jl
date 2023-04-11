@@ -53,5 +53,3 @@ deploydocs(
     branch = "gh-pages",
     # versions = ["stable" => "v^", "v#.#"],
 )
-
-build_site()
