@@ -17,19 +17,8 @@ jobs:
         with:
           version: 1.5
 
-      - name: Install NodeJS and highlight.js
-        run: julia -e '
-              import Pkg; Pkg.activate("page/Project.toml"); Pkg.instantiate();
-              using NodeJS;
-              run(`npm install highlight.js purgecss`);
-            '
-
-      - name: Touch .nojekyll file
-        run: touch build/.nojekyll
-
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
-          BASE_BRANCH: docs
           BRANCH: gh-pages
-          FOLDER: docs
+          FOLDER: docs/
