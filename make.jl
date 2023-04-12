@@ -28,6 +28,8 @@ pages = [
     "api.md",
 ]
 
+# pages = ["index.md"]
+
 makedocs(
     sitename = "IonSim.jl",
     authors = "Joseph Broz",
