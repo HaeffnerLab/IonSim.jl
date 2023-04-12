@@ -17,8 +17,6 @@ jobs:
         with:
           version: 1.5
 
-      - run: touch page/__site/.nojekyll
-
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
