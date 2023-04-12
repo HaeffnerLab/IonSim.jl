@@ -19,3 +19,5 @@ This functional form of the Hamiltonian can then be used either as input to any 
 IonSim is designed from an experimentalist's perspective. If you are looking to do efficient simulations of trapped ion systems, with high control of energy levels and vibrational modes, this is the package for you.
 
 The code is MIT-licensed; find the code [on GitHub](https://github.com/HaeffnerLab/IonSim.jl).
+
+debug
