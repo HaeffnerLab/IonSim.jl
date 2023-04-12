@@ -32,4 +32,4 @@ jobs:
         with:
           BASE_BRANCH: docs
           BRANCH: gh-pages
-          FOLDER: docs/build/
+          FOLDER: documentation/build/
