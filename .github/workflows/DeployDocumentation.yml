@@ -12,11 +12,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Julia
-        uses: julia-actions/setup-julia@v1
-        with:
-          version: 1.5
-
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
