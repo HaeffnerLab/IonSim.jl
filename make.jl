@@ -49,10 +49,10 @@ makedocs(
     pages = pages
 )
 
-# deploydocs(
-#     repo = "github.com/HaeffnerLab/IonSim.jl",
-#     target = "",
-#     branch = "gh-pages",
-#     dirname = "",
-#     # versions = ["stable" => "v^", "v#.#"],
-# )
+deploydocs(
+    repo = "github.com/HaeffnerLab/IonSim.jl",
+    target = "",
+    branch = "gh-pages",
+    dirname = "",
+    # versions = ["stable" => "v^", "v#.#"],
+)
