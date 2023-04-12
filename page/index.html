@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- META -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="author" content="Joseph Broz">
+  <title>Ionsim.jl</title>
+
+  <link rel="icon" type="image/png"  href="/IonSim.jl/page/assets/favicon.ico">
+
+  <!-- CSS -->
+   <link rel="stylesheet" href="/IonSim.jl/page/libs/katex/katex.min.css">
+     
+   <link rel="stylesheet" href="/IonSim.jl/page/libs/highlight/styles/atom-one-dark.css">
+   
+  <link rel="stylesheet" href="/IonSim.jl/page/css/bootstrap.min.css">
+  <style>.bg-primary {
+  background-color: #3f6388 !important;
+}
+
+a {
+  color: #2669DD;
+}
+
+a:hover {
+  color: teal;
+}
+
+.section-bg-color {
+  background-color: #f6f8fa;
+}
+
+footer a {
+  color: cornflowerblue;
+}
+
+
+header {
+  margin-top: 55px !important;
+}
+
+
+
+.jumbotron {
+  background-image: url("assets/diagonal-lines.svg");
+  background-repeat: repeat;
+}
+
+
+/* CODE ADJUSTMENTS */
+
+pre code.hljs {
+  border-radius: 10px;
+}
+
+pre code.hljs.plaintext {
+  margin-left: 15px;
+}
+</style>
+  <link rel="stylesheet" href="/IonSim.jl/page/css/custom.css">
+
+  <script async defer src="https://buttons.github.io/buttons.js"></script>
+</head>
+<body id="page-top">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
+  <div class="container">
+    <span class="navbar-brand">
+      
+        <img src="assets/logo4_SM_lighter.svg" class="img-fluid" style="height:         25px;
+padding-right:  10px;
+" alt="Logo"/>
+      
+      <a href="#page-top">Ionsim.jl</a>
+      
+      ｜ <a href="https://docs.ionsim.org/" target="_blank">Docs</a>
+      
+    </span>
+    <input type="checkbox" id="navbar-toggler-cbox" class="d-none" />
+    <label for="navbar-toggler-cbox" class="navbar-toggler" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </label>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        
+        <li class="nav-item">
+          <a class="nav-link" href="#about">About</a>
+        </li>
+        
+        <li class="nav-item">
+          <a class="nav-link" href="#getting_started">Getting started</a>
+        </li>
+        
+        <li class="nav-item">
+          <a class="nav-link" href="#examples">Examples</a>
+        </li>
+        
+        <li class="nav-item">
+          <a class="nav-link" href="#collaborate">Collaborate</a>
+        </li>
+        
+        <li class="nav-item">
+          <a class="nav-link" href="#cite">Cite</a>
+        </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  <header class="text-white text-center">
+  
+    <div class="jumbotron jumbotron-fluid container-fluid bg-primary">
+  
+    <h1>Ionsim.jl</h1>
+    <div class="lead">A Julia package for simulating the dynamics of trapped ions interacting with laser light.
+</div>
+    
+      <a class="github-button" href="https://github.com/haeffnerlab/IonSim.jl" data-size="large" aria-label="View Ionsim.jl on GitHub">View on GitHub</a>
+    
+    
+      <a class="github-button" href="https://github.com/haeffnerlab/IonSim.jl" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star Ionsim.jl on GitHub">Star</a>
+    
+  </div>
+</header>
+
+  <!-- Content appended here -->
+<div class="franklin-content"><section id="about" class="scrollspy">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <h2></h2></p>
+<div class="lead"><p>IonSim is built on top of <a href="https://qojulia.org/">QuantumOptics.jl</a> and makes it easy to simulate the dynamics of trapped ion systems like ths one:</p>
+<figure class="figure">
+  <img src="assets/trapped_ion_system.png" alt="" class="figure-img img-fluid " width="" >
+  
+</figure>
+
+<p>Described by the Hamiltonian:</p></div>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow></mrow><annotation encoding="application/x-tex">
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"></span></span></span>
+<p>IonSim primarily performs two jobs:</p>
+<ol>
+<li><p>Keeps track of the physical parameters necessary for describing the system, with a structure and nomenclature designed to be intuitive for experimentalists.</p>
+</li>
+<li><p>Using these parameters, constructs a function that quickly evaluates the system&#39;s Hamiltonian at a particular point in time.</p>
+</li>
+</ol>
+<p>This Hamiltonian can then be used either as input to any of the solvers implemented in QuantumOptics, or in the native solver, which supports a straightforward treatment of technical noise.       </div>
+    </div>
+  </div>
+</section>
+<section id="getting_started" class="scrollspy section-bg-color">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <h2>Getting started</h2></p>
+<p>Install IonSim with:</p>
+<pre><code class="julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> <span class="hljs-keyword">using</span> Pkg
+</span><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> Pkg.add(<span class="hljs-string">&quot;IonSim&quot;</span>)</span></code></pre>
+<p>You&#39;ll also likely want to add:</p>
+<pre><code class="julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> Pkg.add(<span class="hljs-string">&quot;IJulia&quot;</span>)
+</span><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> Pkg.add(<span class="hljs-string">&quot;PyPlot&quot;</span>)</span></code></pre>
+<p>The first line adds Jupyter compatibility, so you&#39;ll have the option to start a Julia kernel from Jupyter notebook. This is the suggested way to interact with IonSim. The second line adds an interface to Python&#39;s <a href="https://matplotlib.org/">Matplotlib</a> library, which will make it easy to follow along with the examples.</p>
+<p>IonSim is a work in progress, but you can keep current with the latest updates easily with:</p>
+<pre><code class="julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> Pkg.update(<span class="hljs-string">&quot;IonSim&quot;</span>)</span></code></pre>
+<p>Once you&#39;ve installed IonSim you can take a look at the tutorial or the examples.</p>
+<p>      </div>
+    </div>
+  </div>
+</section>
+<section id="examples" class="scrollspy">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <h2>Examples</h2></p>
+<p>      </div>
+    </div>
+  </div>
+</section>
+<section id="collaborate" class="scrollspy section-bg-color">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <h2>Collaborate</h2></p>
+<div class="lead">Franklin can run your Julia code on the fly and show the output.</div>
+<p>      </div>
+    </div>
+  </div>
+</section>
+<section id="cite" class="scrollspy">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <h2>Cite</h2></p>
+<div class="lead">Make your page available online easily by leveraging GitHub Actions and GitHub Pages.</div>
+<p>By following these instructions, the content of the rendered website will be copied to a <code>gh-pages</code> branch where it will be deployed by GitHub. If you would like to deploy the page with your own URL or using something else than GitHub, have a look at the specific instructions further on.</p>
+<p><strong>Adjust DeployPage</strong>: start by checking the <code>.github/workflows/DeployPage.yml</code> in particular:</p>
+<ul>
+<li><p>if you want to use Python or matplotlib, uncomment the relevant lines</p>
+</li>
+<li><p>in the <code>run</code> block ensure that</p>
+<ul>
+<li><p><code>NodeJS</code> and <code>PkgPage</code> are added,</p>
+</li>
+<li><p>any packages that your page might rely on are added,</p>
+</li>
+<li><p>the <code>optimize</code> call has the appropriate <code>input</code> and <code>output</code> path &#40;if you&#39;re in the default setting, leave as is&#41;.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>GitIgnore</strong>: it&#39;s important you specify that <code>page/__site</code> should be ignored by git and not pushed to your repository otherwise the build process might not work properly. To do so create a file <code>.gitignore</code> containing the line</p>
+<pre><code class="julia hljs">page/__site</code></pre>
+<p>as shown <a href="https://github.com/tlienart/PkgPage.jl/blob/cce098535eb95c2c3ba919d605792abfee57710c/.gitignore#L3">here</a>.</p>
+<p><strong>GitAttributes</strong>: in order for GitHub to ignore <code>page</code> folder it the language statistics for your repository, make sure to add a file <code>.gitattributes</code> with content</p>
+<pre><code class="julia hljs">page/* linguist-vendored</code></pre>
+<p>like <a href="https://github.com/tlienart/PkgPage.jl/blob/master/.gitattributes">this</a>.</p>
+<p>Now whenever you push changes to the <code>master</code> branch of your package, the  build process will be triggered and your page updated and deployed. <strong>That&#39;s it</strong>.</p>
+<p><strong>Avoiding clashes with Documenter.jl</strong>: if you already use <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> you might want your page to be deployed in a specific folder of <code>gh-pages</code> as Documenter also generates files in <code>gh-pages</code>.</p>
+<div class="alert alert-info" role="alert">
+This will typically not be necessary as the names created by PkgPage and Documenter don&#39;t clash, but you might still prefer to avoid mixing the two &#40;in which case, read on&#41;.</div>
+<p>you can do so in two steps:</p>
+<ol>
+<li><p>change the <code>run</code> part of <code>DeployPage.yml</code> by specifying the <code>output</code> keyword argument  in <code>PkgPage.optimize</code> for instance: <code>PkgPage.optimize&#40;input&#61;&quot;page&quot;, output&#61;&quot;page&quot;&#41;</code>,</p>
+</li>
+<li><p>change the <code>prepath</code> in <code>config.md</code> to reflect that the base URL will contain that additional folder, for instance <code>@def prepath &#61; &quot;YourPackage.jl/page&quot;</code>.</p>
+</li>
+</ol>
+<p><strong>Use your own URL</strong>: you can usually get host services like Netlify to deploy a specific branch of a GitHub repo, do make sure to set <code>@def prepath &#61; &quot;&quot;</code> in your <code>config.md</code> though.</p>
+<p>If you want to do the deployment without GitHub actions then you will need to:</p>
+<ul>
+<li><p>ensure you have <code>purgecss</code> and <code>highlights</code> installed and available to <code>NodeJS</code>, the simplest way to do this is to install them via <code>NodeJS</code> with</p>
+</li>
+</ul>
+<pre><code class="julia hljs"><span class="hljs-keyword">using</span> NodeJS;
+run(<span class="hljs-string">`<span class="hljs-subst">$(npm_cmd()</span>) install highlight.js`</span>);
+run(<span class="hljs-string">`<span class="hljs-subst">$(npm_cmd()</span>) install purgecss`</span>);</code></pre>
+<br/>
+<ul>
+<li><p>run <code>PkgPage.optimize&#40;input&#61;&quot;page&quot;, output&#61;&quot;&quot;&#41;</code> &#40;adapting <code>input</code> as required&#41;</p>
+</li>
+<li><p>place the content of <code>page/__site</code> wherever your server requires it.</p>
+</li>
+</ul>
+<p>      </div>
+    </div>
+  </div>
+</section>
+<footer class="py-5 bg-dark">
+  <div class="container">
+    <p class="m-0 text-center text-white">&copy; Joseph Broz. Website powered by <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a>, <a href="https://github.com/tlienart/PkgPage.jl">PkgPage.jl</a> and the <a href="https://julialang.org">Julia</a> programming language.</p>
+  </div>
+</footer>
+</div><!-- CONTENT ENDS HERE -->
+  
+      
+
+
+
+  
+  
+      
+
+
+  
+  <script src="/IonSim.jl/page/libs/simple-scrollspy.min.js"></script>
+  <script>
+  window.onload = function () {
+    scrollSpy('#navbarResponsive', {
+      sectionClass: '.scrollspy',
+      menuActiveTarget: '.nav-link',
+      offset: 100
+    })
+  }
+  </script>
+  </body>
+</html>
