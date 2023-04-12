@@ -1,25 +1,35 @@
 name: Documentation Build and Deploy
+
 on:
   push:
     branches:
       - docs
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Install Julia
-      uses: julia-actions/setup-julia@v1
-      with:
-        version: 1.5
-    - run: julia -e '
-            import Pkg; Pkg.activate("page/Project.toml"); Pkg.instantiate();
-            using NodeJS;
-            run(`$(npm_cmd()) install highlight.js purgecss`);
-    - run: touch page/__site/.nojekyll
-    - name: Deploy 🚀
-      uses: JamesIves/github-pages-deploy-action@releases/v4
-      with:
-        BRANCH: gh-pages
-        FOLDER: /
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: 1.5
+
+      - name: Install NodeJS and highlight.js
+        run: julia -e '
+              import Pkg; Pkg.activate("page/Project.toml"); Pkg.instantiate();
+              using NodeJS;
+              run(`npm install highlight.js purgecss`);
+            '
+
+      - name: Touch .nojekyll file
+        run: touch build/.nojekyll
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@releases/v4
+        with:
+          BASE_BRANCH: docs
+          BRANCH: gh-pages
+          FOLDER: docs/build/
