@@ -1,9 +1,7 @@
-name: Page Build and Deploy
+name: Documentation Build and Deploy
 on:
   push:
     branches:
-      - master
-      - main
       - docs
 jobs:
   build-and-deploy:
@@ -19,11 +17,9 @@ jobs:
             import Pkg; Pkg.activate("page/Project.toml"); Pkg.instantiate();
             using NodeJS;
             run(`$(npm_cmd()) install highlight.js purgecss`);
-            import PkgPage;
-            PkgPage.optimize(input="page", output="page")'
     - run: touch page/__site/.nojekyll
     - name: Deploy 🚀
       uses: JamesIves/github-pages-deploy-action@releases/v4
       with:
         BRANCH: gh-pages
-        FOLDER: page/__site
+        FOLDER: /
