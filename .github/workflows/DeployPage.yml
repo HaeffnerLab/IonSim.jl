@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - main
+      - docs
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
