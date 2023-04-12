@@ -1,4 +1,4 @@
-name: Page Build and Deploy
+name: Build and Deploy
 on:
   push:
     branches:
