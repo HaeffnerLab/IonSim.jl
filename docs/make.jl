@@ -1,6 +1,6 @@
 using Documenter, IonSim
 
-builddir = "docs"
+builddir = "build"
 
 pages = [
     "index.md",
@@ -49,7 +49,7 @@ makedocs(
 
 deploydocs(
     repo = "github.com/HaeffnerLab/IonSim.jl",
-    target = "docs/build",
+    target = "",
     branch = "gh-pages",
     dirname = "",
     # versions = ["stable" => "v^", "v#.#"],

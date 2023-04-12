@@ -1,23 +1,23 @@
-name: Gh Page Update
+# name: Gh Page Update
 
-on:
-  push:
-    branches:
-      - gh-pages
+# on:
+#   push:
+#     branches:
+#       - gh-pages
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v2
 
-      - name: Git add
-        run: git add docs/build
+#       - name: Git add
+#         run: git add docs/build
 
-      - name: Git commit
-        run: git commit -m "Publish HTML files"
+#       - name: Git commit
+#         run: git commit -m "Publish HTML files"
 
-      - name: Push build to branch
-        run: |
-          git push origin gh-pages
+#       - name: Push build to branch
+#         run: |
+#           git push origin gh-pages
