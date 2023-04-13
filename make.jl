@@ -54,5 +54,5 @@ deploydocs(
     target = "build",
     branch = "gh-pages",
     dirname = "docs",
-    # versions = ["stable" => "v^", "v#.#"],
+    versions = ["stable" => "v^", "v#.#"],
 )
