@@ -17,3 +17,4 @@ jobs:
         with:
           BRANCH: gh-pages
           FOLDER: build/
+          DESTINATION_FOLDER: docs
