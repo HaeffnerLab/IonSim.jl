@@ -28,8 +28,6 @@ pages = [
     "api.md",
 ]
 
-# pages = ["index.md"]
-
 makedocs(
     sitename = "IonSim.jl",
     authors = "Joseph Broz",
@@ -53,6 +51,6 @@ deploydocs(
     repo = "github.com/HaeffnerLab/IonSim.jl",
     target = "build",
     branch = "gh-pages",
-    dirname = "docs",
+    dirname = "",
     versions = ["stable" => "v^", "v#.#"],
 )

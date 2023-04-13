@@ -1,4 +1,4 @@
-name: Documentation Build and Deploy
+name: gh-page update
 
 on:
   push:
