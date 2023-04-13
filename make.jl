@@ -51,6 +51,6 @@ deploydocs(
     repo = "github.com/HaeffnerLab/IonSim.jl",
     target = "build",
     branch = "gh-pages",
-    dirname = "docs",
+    dirname = "",
     versions = ["stable" => "v^", "v#.#"],
 )
