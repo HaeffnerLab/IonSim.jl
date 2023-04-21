@@ -51,6 +51,7 @@ Constructs the Hamiltonian for `chamber` as a function of time. Return type is a
 """
 function hamiltonian(
     chamber::Chamber;
+    rotatingframe::Union{RotatingFrame,String}="interaction",
     timescale::Real=1,
     lamb_dicke_order::Union{Vector{Int}, Int}=1,
     rwa_cutoff::Real=Inf,
@@ -59,6 +60,7 @@ function hamiltonian(
 )
     return hamiltonian(
         chamber,
+        rotatingframe,
         iontrap(chamber),
         timescale,
         lamb_dicke_order,
@@ -74,8 +76,10 @@ end
 
 # At each time step, this function updates in-place the 2D array describing the full system
 # Hamiltonian.
+
 function hamiltonian(
     chamber::Chamber,
+    rf::Union{RotatingFrame,String},
     iontrap::LinearChain,
     timescale::Real,
     lamb_dicke_order::Union{Vector{Int}, Int},
@@ -85,6 +89,7 @@ function hamiltonian(
 )
     b, indxs, cindxs = _setup_base_hamiltonian(
         chamber,
+        rf,
         timescale,
         lamb_dicke_order,
         rwa_cutoff,
@@ -92,7 +97,16 @@ function hamiltonian(
         time_dependent_eta
     )
     aui, gbi, gbs, bfunc, δνi, δνfuncs = _setup_fluctuation_hamiltonian(chamber, timescale)
+    interaction_picture = (typeof(rf)<:String)
+    if interaction_picture
+        @assert rf == "interaction" "argument rotatingframe must be the string \"interaction\" or be of type RotatingFrame"
+    else
+        Sdiag = rotating_eigenenergies(chamber,rf,timescale)
+    end
     S = SparseOperator(basis(chamber))
+
+    #could make rotating_eigenenergies return list and indices instead
+    #try to place this inside of an existing loop
     function f(t, ψ)  # a two argument function is required in the QuantumOptics solvers
         @inbounds begin
             @simd for i in 1:length(indxs)
@@ -114,6 +128,15 @@ function hamiltonian(
                             end
                         end
                     end
+                end
+            end
+
+            #Hit a new loop with an @inbounds begin\end and run a single loop over the nonzero diagonal elements
+            #Have a list of nonzero diagonal elements and a list of the indices corresponding to them
+            #only need to do this loop if we're not in the interaction picture
+            if !interaction_picture
+                for j in 1:length(basis(chamber))
+                    S.data[j,j] = Sdiag.data[j,j]#rotating_eigenenergies(chamber,rf,timescale).data[j,j]#S.data[j,j] + 
                 end
             end
             if length(gbi) == 0 && length(δνi) == 0
@@ -139,6 +162,7 @@ function hamiltonian(
                 end
             end
         end
+        
         return S
     end
     return f
@@ -178,6 +202,7 @@ function does not keeps track of only one of these pairs.
 =#
 function _setup_base_hamiltonian(
     chamber,
+    rf,
     timescale,
     lamb_dicke_order,
     rwa_cutoff,
@@ -185,9 +210,19 @@ function _setup_base_hamiltonian(
     time_dependent_eta
 )
     rwa_cutoff *= timescale
+    
+    interaction_picture = (typeof(rf)<:String)
+        
     allmodes = reverse(modes(chamber))
     L = length(allmodes)
-    νlist = Tuple([frequency(mode) for mode in allmodes])
+    
+    if interaction_picture
+        νlist = Tuple([frequency(mode) for mode in allmodes])
+    else
+        vibrationalϕlist = [rotatingphase(rf, create(chamber, L-(i-1))) for i in 1:L]        
+        νlist = Tuple([vibrationalϕlist[i] for i in 1:L])
+    end
+
     mode_dims = [modecutoff(mode) + 1 for mode in allmodes]
 
     all_ions = reverse(ions(chamber))
@@ -195,7 +230,7 @@ function _setup_base_hamiltonian(
     ion_arrays = [spdiagm(0 => [true for _ in 1:shape(ion)[1]]) for ion in all_ions]
 
     ηm, Δm, Ωm =
-        _ηmatrix(chamber), _Δmatrix(chamber, timescale), _Ωmatrix(chamber, timescale)
+        _ηmatrix(chamber), _Δmatrix(chamber, rf, timescale), _Ωmatrix(chamber, timescale)
     lamb_dicke_order = _check_lamb_dicke_order(lamb_dicke_order, L)
     ld_array, rows, vals = _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     if displacement == "truncated" && time_dependent_eta
@@ -252,11 +287,13 @@ function _setup_base_hamiltonian(
                     ri = rows[i]
                     ri < j && continue
                     cf = vals[i]
+
                     pflag = abs(Δ_2π + cf) > rwa_cutoff
                     nflag = abs(Δ_2π - cf) > rwa_cutoff
+
                     (pflag && nflag) && continue
                     rev_indxs = false
-                    idxs = _inv_get_kron_indxs((rows[i], j), mode_dims)
+                    idxs = inv_get_kron_indxs((rows[i], j), mode_dims)
                     for l in 1:L
                         (idxs[1][l] ≠ idxs[2][l] && typeof(ηnm[l]) <: Number) && @goto cl
                     end
@@ -404,6 +441,34 @@ function _setup_base_hamiltonian(
     return functions, repeated_indices, conj_repeated_indices
 end
 
+function rotating_eigenenergies(chamber, rf, timescale)
+    S_diag = SparseOperator(basis(chamber))
+    allmodes = (modes(chamber))
+    allions = (ions(chamber))
+    mode_dims = [modecutoff(mode) + 1 for mode in allmodes]
+    ion_dims = [shape(ion)[1] for ion in allions]
+    dims = mode_dims
+    for dim in ion_dims
+        push!(dims,dim)
+    end
+    for j in 1:length(basis(chamber))
+        idxs = inv_get_kron_indxs((j,j), dims)[1]
+        Energy = 0
+
+        for (m,mode) in enumerate(allmodes)
+            Energy = Energy + frequency(mode)*(idxs[m]-1)
+        end
+
+        for (n,ion) in enumerate(allions)
+            Energy = Energy + energy(ion,sublevels(ion)[idxs[n+length(allmodes)]],B=chamber.B)
+        end
+        S_diag.data[j,j] = timescale*(Energy - unitary(rf)[j])
+    end
+    return S_diag
+end
+
+
+
 # δν(t) × aᵀa terms for Hamiltonian. This function returns an array of functions
 # δν_functions = [2π×ν.δν(t)×timescale for ν in modes]. It also returns an array of arrays
 # of arrays of indices, δν_indices, such that δν_indices[i][j] lists all diagonal elements
@@ -517,23 +582,30 @@ end
 # respectively. For each row/column we have a vector of detunings from the laser frequency
 # for each ion transition. We need to separate this calculation from _Ωmatrix to implement
 # RWA easily.
-function _Δmatrix(chamber, timescale)
+function _Δmatrix(chamber, rf, timescale)
     all_ions = ions(chamber)
     all_lasers = lasers(chamber)
     (N, M) = length(all_ions), length(all_lasers)
     B = bfield(chamber)
     ∇B = bgradient(chamber)
     Δnmkj = Array{Vector}(undef, N, M)
+    interaction_picture = (typeof(rf)<:String)
     for n in 1:N, m in 1:M
         Btot = bfield(chamber, all_ions[n])
         v = Vector{Float64}(undef, 0)
         for transition in subleveltransitions(all_ions[n])
-            ωa = transitionfrequency(all_ions[n], transition, B=Btot)
+            #RF Edit: Instead of adjusting by the atomic frequency, adjust according to the rotating frame.
+            #ωa = transitionfrequency(all_ions[n], transition, B=Btot)
+            if interaction_picture
+                ϕ = transitionfrequency(all_ions[n], transition, B=Btot)
+            else
+                ϕ = rotatingphase(rf, n, transition)
+            end
             push!(
                 v,
                 2π *
                 timescale *
-                ((c / wavelength(all_lasers[m])) + detuning(all_lasers[m]) - ωa)
+                ((c / wavelength(all_lasers[m])) + detuning(all_lasers[m]) - ϕ)
             )
         end
         Δnmkj[n, m] = v
@@ -632,7 +704,7 @@ end
 
 # The inverse of _get_kron_indxs. If T = X₁ ⊗ X₂ ⊗ X₃ and X₁, X₂, X₃ are M×M, N×N and L×L
 # dimension matrices, then we should input dims=(M, N, L).
-function _inv_get_kron_indxs(indxs, dims)
+function inv_get_kron_indxs(indxs, dims)
     row, col = indxs
     N = length(dims)
     ret_rows = Array{Int64}(undef, N)
@@ -703,4 +775,4 @@ function _ld_array(mode_dims, lamb_dicke_order, νlist, timescale)
     end
     length(a) == 1 ? ld_array = a[1] : ld_array = kron(a...)
     return ld_array, rowvals(ld_array), log.(nonzeros(ld_array))
-end
+end;
