@@ -1,0 +1,36 @@
+name: "Be9"
+shortname: "⁹Be"
+mass: 1.496508080073e-26
+charge: 1
+nuclearspin: 0.5
+full_level_structure:
+  S1/2f=1: {n: 2, l: 0, j: 0.5, f: 1, E: 0.78126104631e+9}
+  S1/2f=2: {n: 2, l: 0, j: 0.5, f: 2, E: -0.468756627786e+9}
+  P1/2f=1: {n: 2, l: 1, j: 0.5, f: 1, E: 957.2010729076436e+12}
+  P1/2f=2: {n: 2, l: 1, j: 0.5, f: 2, E: 957.2008357076436e+12}
+  P3/2f=0: {n: 2, l: 1, j: 1.5, f: 0, E: 957.3965669467407e+12}
+  P3/2f=1: {n: 2, l: 1, j: 1.5, f: 1, E: 957.3965659267407e+12}
+  P3/2f=2: {n: 2, l: 1, j: 1.5, f: 2, E: 957.3965638867406e+12}
+  P3/2f=3: {n: 2, l: 1, j: 1.5, f: 3, E: 957.3965608267406e+12}
+full_transitions: 
+  - {from: S1/2f=1, to: P1/2f=1, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=1, to: P1/2f=2, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=2, to: P1/2f=1, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=2, to: P1/2f=2, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=1, to: P3/2f=0, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=1, to: P3/2f=1, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=1, to: P3/2f=2, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=2, to: P1/2f=1, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=2, to: P1/2f=2, multipole: E1, einsteinA: 19.4000000e+9}
+  - {from: S1/2f=2, to: P1/2f=3, multipole: E1, einsteinA: 19.4000000e+9}
+
+# Optional fields
+default_sublevel_selection:
+- ["S1/2f=1", "all"]
+- ["S1/2f=2", "all"]
+- ["P1/2f=1", "all"]
+- ["P1/2f=2", "all"]
+- ["P3/2f=0", "all"]
+- ["P3/2f=1", "all"]
+- ["P3/2f=2", "all"]
+- ["P3/2f=3", "all"]

@@ -1,11 +1,12 @@
 using QuantumOptics: NLevelBasis, nlevelstate
 using Test, IonSim
+using IonSim.Properties: IonProperties
 using IonSim.PhysicalConstants
 using Suppressor
 
 @suppress_err begin
     @testset "ions -- general" begin
-        C = Ca40()
+        C = Ion(CA40_PROPERTIES, nothing)
         # test for required fields
         @test typeof(speciesproperties(C)) <: IonProperties
         @test typeof(sublevels(C)) == Vector{Tuple{String, Real}}
@@ -17,7 +18,7 @@ using Suppressor
         @test typeof(ionposition(C)) == Missing
 
         # test ==
-        C1 = Ca40()
+        C1 = Ion(CA40_PROPERTIES, nothing)
         @test C1 == C
 
         # test aliases
@@ -66,16 +67,8 @@ using Suppressor
         @test transitionwavelength(C, ("S", "D")) ≈ 7.29147e-7
     end
 
-    @testset "ions -- species" begin
-        # attempt to instantiate all Ion subtypes (use default sublevel selection)
-        for s in [Be9, Ca40, Mg25, Yb171]
-            ion = s()
-            @test typeof(ion) <: Ion
-        end
-    end
-
     @testset "ions -- Ca40" begin
-        C = Ca40()
+        C = Ion(CA40_PROPERTIES, nothing)
 
         # set some aliases for convenience
         sublevelalias!(C, ("S1/2", -1 / 2), "S")
@@ -109,7 +102,7 @@ using Suppressor
         @test_throws AssertionError C[""]
 
         # # test indexing
-        C1 = Ca40([("S1/2", -1 / 2), ("D5/2", -5 / 2)])
+        C1 = Ion(CA40_PROPERTIES, [("S1/2", -1 / 2), ("D5/2", -5 / 2)])
         sublevelalias!(C1, ("S1/2", -1 / 2), "S")
         sublevelalias!(C1, ("D5/2", -5 / 2), "D")
         @test C1[("S1/2", -1 / 2)].data == ComplexF64[1; 0]

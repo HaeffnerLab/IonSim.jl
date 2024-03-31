@@ -1,0 +1,37 @@
+name: "Mg25"
+shortname: "²⁵Mg"
+mass: 4.1489954812e-26
+charge: 1
+nuclearspin: 2.5
+full_level_structure:
+  S1/2f=2: {n: 3, l: 0, j: 0.5, f: 2, E: 1.043445158e+9}
+  S1/2f=3: {n: 3, l: 0, j: 0.5, f: 3, E: -0.745317970e+9}
+  P1/2f=2: {n: 3, l: 1, j: 0.5, f: 2, E: 1069.3408690519877e+12}
+  P1/2f=3: {n: 3, l: 1, j: 0.5, f: 3, E: 1069.3405639519879e+12}
+  P3/2f=1: {n: 3, l: 1, j: 1.5, f: 1, E: 1072.0853411194748e+12}
+  P3/2f=2: {n: 3, l: 1, j: 1.5, f: 2, E: 1072.0853033394746e+12}
+  P3/2f=3: {n: 3, l: 1, j: 1.5, f: 3, E: 1072.0852466694748e+12}
+  P3/2f=4: {n: 3, l: 1, j: 1.5, f: 4, E: 1072.0851711094747e+12}
+
+full_transitions: 
+  - {from: "S1/2f=2", to: "P1/2f=2", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=2", to: "P1/2f=3", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=3", to: "P1/2f=2", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=3", to: "P1/2f=3", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=2", to: "P3/2f=1", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=2", to: "P3/2f=2", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=2", to: "P3/2f=3", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=3", to: "P1/2f=2", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=3", to: "P1/2f=3", multipole: "E1", einsteinA: 41.3e+6}
+  - {from: "S1/2f=3", to: "P1/2f=4", multipole: "E1", einsteinA: 41.3e+6}
+
+# Optional fields
+default_sublevel_selection:
+  - ["S1/2f=2", "all"]
+  - ["S1/2f=3", "all"]
+  - ["P1/2f=2", "all"]
+  - ["P1/2f=3", "all"]
+  - ["P3/2f=1", "all"]
+  - ["P3/2f=2", "all"]
+  - ["P3/2f=3", "all"]
+  - ["P3/2f=4", "all"]
