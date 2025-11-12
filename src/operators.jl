@@ -25,16 +25,89 @@ returns the creation operator for `v` such that: `create(v) * v[i] = √(i+1) * 
 create(v::VibrationalMode) = SparseOperator(v, diagm(-1 => sqrt.(1:(modecutoff(v)))))
 
 """
+    create(c::Chamber, mode_idx::Int64; onlymodes=false)
+Returns the creation operator for the mode specified by mode_idx, tensored with the identity for all other modes.
+If onlymodes=false, then the output is also tensored with the identity for all ions.
+"""
+function create(c::Chamber, mode_idx::Int64; onlymodes=false)
+    @assert (mode_idx <= length(modes(c))) & (mode_idx > 0) "Invalid mode index."
+    v = modes(c)[mode_idx]
+    if mode_idx == 1
+        if length(modes(c)) > 1
+            adag = create(v) ⊗ tensor([one(modes(c)[j]) for j in 2:length(modes(c))]...)
+        else
+            adag = create(v)
+        end
+    else
+        adag = one(modes(c)[1])
+        for j in 2:length(modes(c))
+            if j == mode_idx
+                adag = adag ⊗ create(v)
+            else
+                adag = adag ⊗ one(modes(c)[j])
+            end
+        end
+    end
+    if onlymodes
+        return adag
+    end
+    return tensor([one(ion) for ion in ions(c)]...) ⊗ adag
+end
+    
+
+        
+
+"""
     destroy(v::VibrationalMode)
 Returns the destruction operator for `v` such that: `destroy(v) * v[i] = √i * v[i-1]`.
 """
 destroy(v::VibrationalMode) = create(v)'
 
 """
+    destroy(c::Chamber, mode_idx::Int64; onlymodes=false)
+Returns the destruction operator for the mode specified by mode_idx, tensored with the identity for all other modes.
+If onlymodes=false, then the output is also tensored with the identity for all ions.
+"""
+function destroy(c::Chamber, mode_idx::Int64; onlymodes=false)
+    return SparseOperator(create(c,mode_idx,onlymodes=onlymodes)')
+end
+
+"""
     number(v::VibrationalMode)
 Returns the number operator for `v` such that:  `number(v) * v[i] = i * v[i]`.
 """
 number(v::VibrationalMode) = SparseOperator(v, diagm(0 => 0:(modecutoff(v))))
+
+"""
+    number(c::Chamber, mode_idx::Int64; onlymodes=false)
+Returns the number operator for the mode specified by mode_idx, tensored with the identity for all other modes.
+If onlymodes=false, then the output is also tensored with the identity for all ions.
+"""
+
+function number(c::Chamber, mode_idx::Int64; onlymodes=false)
+    @assert (mode_idx <= length(modes(c))) & (mode_idx > 0) "Invalid mode index."
+    v = modes(c)[mode_idx]
+    if mode_idx == 1
+        if length(modes(c))>1
+            num = number(v) ⊗ tensor([one(modes(c)[j]) for j in 2:length(modes(c))]...)
+        else
+            num = number(v)
+        end
+    else
+        num = one(modes(c)[1])
+        for j in 2:length(modes(c))
+            if j == mode_idx
+                num = num ⊗ number(v)
+            else
+                num = num ⊗ one(modes(c)[j])
+            end
+        end
+    end
+    if onlymodes
+        return num
+    end
+    return SparseOperator(tensor([one(ion) for ion in ions(c)]...) ⊗ num)
+end
 
 """
     displace(v::VibrationalMode, α::Number; method="truncated")
@@ -67,6 +140,33 @@ function displace(v::VibrationalMode, α::Number; method="truncated")
         return exp(dense(α * create(v) - conj(α) * destroy(v)))
     end
 end
+
+"""
+    displace(c::Chamber, mode_idx::Int64, α::Number; method="truncated", onlymodes=false)
+Returns the displacement operator for the mode specified by mode_idx, D(α), tensored with the identity for all other modes.
+If onlymodes=false, then the output is also tensored with the identity for all ions.
+"""
+function displace(c::Chamber, mode_idx::Int64, α::Number; method="truncated", onlymodes=false)
+    @assert (mode_idx <= length(modes(c))) & (mode_idx > 0) "Invalid mode index."
+    v = modes(c)[mode_idx]
+    if mode_idx == 1
+        dis = displace(v,α,method=method) ⊗ tensor([one(modes(c)[j]) for j in 2:length(modes(c))]...)
+    else
+        dis = one(modes(c)[1])
+        for j in 2:length(modes(c))
+            if j == mode_idx
+                dis = dis ⊗ displace(v,α,method=method)
+            else
+                dis = dis ⊗ one(modes(c)[j])
+            end
+        end
+    end
+    if onlymodes
+        return dis
+    end
+    return SparseOperator(tensor([one(ion) for ion in ions(c)]...) ⊗ dis)
+end
+
 
 """
     thermalstate(v::VibrationalMode, n̄::Real; method="truncated")
@@ -182,6 +282,32 @@ If ψ2 is not given, then ``|ψ1\\rangle\\langle ψ1|`` is returned.
 sigma(ion::Ion, ψ1::T, ψ2::T) where {T <: Union{Tuple{String, Real}, String, Int}} =
     sparse(projector(ion[ψ1], dagger(ion[ψ2])))
 sigma(ion::Ion, ψ1::Union{Tuple{String, Real}, String, Int}) = sigma(ion, ψ1, ψ1)
+
+"""
+    sigma(c::Chamber, ion_idx::Int64, ψ1::sublevel, ψ2::sublevel, onlyions=false)
+Returns the transition operator for the ion specified by ion_idx undergoing the transition ψ2 --> ψ1, tensored with the identity for all other ions.
+If onlyions=false, then the output is also tensored with the identity for all modes.
+"""
+function sigma(c::Chamber, ion_idx::Int64, ψ1::T, ψ2::T, onlyions=false) where {T <: Union{Tuple{String, Real}, String, Int}}
+    @assert (ion_idx <= length(ions(c))) & (ion_idx > 0) "Invalid ion index."
+    ion = ions(c)[ion_idx]
+    if ion_idx == 1
+        sig = sigma(ion,ψ1,ψ2) ⊗ tensor([one(ions(c)[j]) for j in 2:length(ions(c))]...)
+    else
+        sig = one(ions(c)[1])
+        for j in 2:length(ions(c))
+            if j == ion_idx
+                sig = sig ⊗ sigma(ion,ψ1,ψ2)
+            else
+                sig = sig ⊗ one(ions(c)[j])
+            end
+        end
+    end
+    if onlyions
+        return SparseOperator(sig)
+    end
+    return SparseOperator(sig ⊗ tensor([one(mode) for mode in modes(c)]...))
+end
 
 """
     ionprojector(obj, sublevels...; only_ions=false)
