@@ -1,0 +1,28 @@
+name: "Ca40"
+shortname: "⁴⁰Ca"
+mass: 6.635943757345042e-26
+charge: 1
+nuclearspin: 0
+full_level_structure:
+  S1/2: {n: 4, l: 0, j: 0.5, f: 0.5 , E: 0.0}
+  D3/2: {n: 3, l: 2, j: 1.5, f: 1.5 , E: 4.09335071228e+14}
+  D5/2: {n: 3, l: 2, j: 2.5, f: 2.5 , E: 4.1115503183857306e+14}
+  P1/2: {n: 4, l: 1, j: 0.5, f: 0.5 , E: 7.554e+14}
+  P3/2: {n: 4, l: 1, j: 1.5, f: 1.5 , E: 7.621e+14}
+full_transitions:
+  - {from: "S1/2", to: "D5/2", multipole: "E2", einsteinA: 8.562e-1}
+  - {from: "S1/2", to: "P1/2", multipole: "E1", einsteinA: 1.299e+8}
+  - {from: "D3/2", to: "P1/2", multipole: "E1", einsteinA: 1.060e+7}
+  - {from: "S1/2", to: "D3/2", multipole: "E2", einsteinA: 9.259e-1}
+  - {from: "S1/2", to: "P3/2", multipole: "E1", einsteinA: 1.351e+8}
+  - {from: "D3/2", to: "P3/2", multipole: "E1", einsteinA: 1.110e+6}
+  - {from: "D5/2", to: "P3/2", multipole: "E1", einsteinA: 9.901e+6}
+
+# Optional fields
+default_sublevel_selection:
+- ["S1/2", "all"]
+- ["D5/2", "all"]
+
+gfactors:
+  S1/2: 2.00225664
+  D5/2: 1.2003340

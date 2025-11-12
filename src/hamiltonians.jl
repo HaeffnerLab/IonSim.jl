@@ -14,7 +14,7 @@ Constructs the Hamiltonian for `chamber` as a function of time. Return type is a
 `h(t::Real, ψ)` that, itself, returns a `QuantumOptics.SparseOperator`.
 
 **args**
-* `timescale`: e.g. a value of 1e-6 will take time to be in μs
+* `timescale`: e.g. a value of 1e-6 will take time to be in ``\\mu s``
 * `lamb_dicke_order`: Only consider terms that change the phonon number by up to this value.
     If this is an `Int`, then the cutoff is applied to all modes. If this is a `Vector{Int}`,
     then `lamb_dicke_order[i]` is applied to the iᵗʰ mode, according to the order in
